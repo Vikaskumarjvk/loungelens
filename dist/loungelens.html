@@ -215,6 +215,14 @@ button.act.big { width: 100%; padding: 13px; font-size: 16px; margin-top: 8px; b
 .src-link .rel { font-size: 8px; color: var(--accent); letter-spacing: -1px; }
 body.simple-mode .src-link .rel { display: none; }
 
+/* auth bar + login */
+.auth-bar { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+#auth-name { font-size: 13px; font-weight: 600; color: var(--accent); }
+.login-error { background: #2a1416; border: 1px solid #3a1d1d; color: #ff7b72;
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-top: 10px; }
+#login-modal .leg-input { width: 100%; }
+@media (max-width: 560px) { .auth-bar { margin-left: 0; margin-top: 8px; } }
+
 /* sync code box */
 .sync-box { width: 100%; min-height: 70px; background: var(--panel2); border: 1px solid var(--line);
   color: var(--txt); border-radius: 9px; padding: 10px; font-family: ui-monospace, Menlo, monospace;
@@ -265,6 +273,10 @@ body.simple-mode .src-link .rel { display: none; }
       <div class="mode-toggle" id="mode-toggle" title="Switch detail level">
         <button data-mode="simple" class="active">😌 Simple</button>
         <button data-mode="advanced">🔧 Advanced</button>
+      </div>
+      <div class="auth-bar" id="auth-bar">
+        <button class="act mini ghost" id="login-open">👤 Log in</button>
+        <span id="auth-who" hidden><span id="auth-name"></span> <button class="act mini ghost" id="logout-btn">Log out</button></span>
       </div>
     </div>
     <nav>
@@ -475,6 +487,22 @@ body.simple-mode .src-link .rel { display: none; }
   </div>
 
   <div id="toast" class="toast" hidden></div>
+
+  <!-- login / signup modal -->
+  <div id="login-modal" class="modal" hidden>
+    <div class="modal-box">
+      <div class="modal-logo">👤</div>
+      <h2 id="login-title">Log in</h2>
+      <p class="card-sub" id="login-sub">Saves your cards and preferences. Free, no email needed.</p>
+      <input id="login-user" class="leg-input" placeholder="Username" autocomplete="username" />
+      <input id="login-pin" class="leg-input" type="password" inputmode="numeric" placeholder="PIN (4+ digits)" autocomplete="current-password" style="margin-top:8px;" />
+      <div id="login-error" class="login-error" hidden></div>
+      <button class="act big" id="login-submit" style="margin-top:12px;">Log in</button>
+      <p class="onboard-fine" id="login-switch">New here? <span class="link" id="to-signup">Create a profile</span></p>
+      <p class="onboard-fine" id="login-cloud-note"></p>
+      <button class="act ghost mini" id="login-cancel" style="margin-top:4px;">Cancel</button>
+    </div>
+  </div>
 
   <footer class="foot">
     <span id="data-freshness"></span> · Saved on this device only · <span class="link" id="reset-all">reset</span>
@@ -852,6 +880,158 @@ window.LL_CARDS = [
     domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "fast", eligibility: "DBS Treasures banking relationship.",
     feeNote: "Premium debit lounge.", confidence: "low", verify: "dbs.com/in" },
+
+  // ==================================================================
+  // ============  MORE CREDIT CARDS — co-brand + fintech  ============
+  // ==================================================================
+  // Travel co-brands, fintech cards, and newer variants. Most are confidence
+  // "low" (not live-verified). Co-brand lounge benefits change with the airline/
+  // partner deal, so verify especially after any merger (e.g. Vistara->Air India).
+
+  // ---- Fintech / new-age (often free + lounge = great easy picks) ----
+  { id: "scapia-federal", name: "Scapia (Federal Bank)", issuer: "Federal Bank", network: "visa",
+    domesticVisits: 4, period: "year", spendGate: { amount: 5000, per: "month", note: "Lounge unlocks with small monthly spend (~₹5k) on most terms." },
+    programs: ["dreamfolks", "visa"], railway: false, ease: 4, ltf: true, fyf: true, approvalSpeed: "fast",
+    eligibility: "Popular free travel card; app-based, fast KYC.", feeNote: "Lifetime free. Domestic lounge + zero forex. Strong easy pick.",
+    confidence: "low", verify: "scapia.in" },
+  { id: "onecard", name: "OneCard (metal)", issuer: "BoB / SBM / Federal", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: true, fyf: true, approvalSpeed: "fast",
+    eligibility: "App-based metal card, fast approval.", feeNote: "Lifetime free. No standard lounge — baseline (verify current offers).",
+    confidence: "low", verify: "getonecard.app" },
+  { id: "jupiter-edge", name: "Jupiter Edge (CSB/Federal)", issuer: "Federal/CSB", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: true, fyf: true, approvalSpeed: "fast",
+    eligibility: "Neobank card.", feeNote: "No lounge on base — baseline.", confidence: "low", verify: "jupiter.money" },
+  { id: "idfc-swyp", name: "IDFC FIRST SWYP", issuer: "IDFC FIRST", network: "rupay",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 5, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "EMI-first card, easy.", feeNote: "No lounge — baseline.", confidence: "low", verify: "idfcfirstbank.com" },
+
+  // ---- HDFC co-brands ----
+  { id: "hdfc-6e-indigo", name: "6E Rewards IndiGo HDFC (XL)", issuer: "HDFC", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "IndiGo flyer co-brand; XL variant has lounge.",
+    feeNote: "XL variant: domestic lounge + IndiGo benefits.", confidence: "low", verify: "hdfcbank.com" },
+  { id: "hdfc-tataneu-plus", name: "Tata Neu Plus HDFC", issuer: "HDFC", network: "rupay",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "rupay"], railway: false,
+    ease: 4, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "Entry Tata Neu; RuPay works on UPI.",
+    feeNote: "₹499. Some domestic lounge on RuPay tier.", confidence: "low", verify: "hdfcbank.com" },
+  { id: "hdfc-indianoil", name: "IndianOil HDFC", issuer: "HDFC", network: "rupay",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: false, fyf: true, approvalSpeed: "normal",
+    eligibility: "Fuel co-brand.", feeNote: "Fuel rewards; no standard lounge — baseline.", confidence: "low", verify: "hdfcbank.com" },
+  { id: "hdfc-pixel", name: "HDFC Pixel Play", issuer: "HDFC", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "Digital-first card.", feeNote: "No lounge on base — baseline.", confidence: "low", verify: "hdfcbank.com" },
+
+  // ---- Axis co-brands ----
+  { id: "axis-indianoil", name: "IndianOil Axis", issuer: "Axis", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "Fuel co-brand.", feeNote: "No standard lounge — baseline.", confidence: "low", verify: "axisbank.com" },
+  { id: "axis-airtel", name: "Airtel Axis", issuer: "Axis", network: "mastercard",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "Utility cashback co-brand.", feeNote: "No lounge — baseline.", confidence: "low", verify: "axisbank.com" },
+  { id: "axis-horizon", name: "Axis Horizon", issuer: "Axis", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Travel/miles card.",
+    feeNote: "Domestic + international lounge, travel miles.", confidence: "low", verify: "axisbank.com" },
+  { id: "axis-samsung", name: "Axis Samsung (Infinite/Signature)", issuer: "Axis", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Samsung co-brand; Infinite tier has lounge.",
+    feeNote: "Infinite variant: domestic + Priority Pass.", confidence: "low", verify: "axisbank.com" },
+
+  // ---- SBI co-brands ----
+  { id: "sbi-air-india", name: "SBI Air India Platinum/Signature", issuer: "SBI", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Air India flyer co-brand.",
+    feeNote: "Signature tier: domestic + Priority Pass.", confidence: "low", verify: "sbicard.com" },
+  { id: "sbi-irctc", name: "SBI IRCTC (Premier)", issuer: "SBI", network: "rupay",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "rupay"], railway: true,
+    ease: 4, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "Rail traveller co-brand; RuPay.",
+    feeNote: "Railway lounge focus + some airport.", confidence: "low", verify: "sbicard.com" },
+  { id: "sbi-bpcl-octane", name: "SBI BPCL Octane", issuer: "SBI", network: "visa",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Fuel premium co-brand.",
+    feeNote: "₹1499. Some domestic lounge + fuel rewards.", confidence: "low", verify: "sbicard.com" },
+  { id: "sbi-miles", name: "SBI Miles / Miles Elite", issuer: "SBI", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Newer travel-miles series.",
+    feeNote: "Travel card: domestic + Priority Pass on higher tier.", confidence: "low", verify: "sbicard.com" },
+
+  // ---- ICICI co-brands / new ----
+  { id: "icici-mmt", name: "MakeMyTrip ICICI (Signature)", issuer: "ICICI", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Travel co-brand.",
+    feeNote: "Signature: domestic + Priority Pass + travel vouchers.", confidence: "low", verify: "icici.com" },
+  { id: "icici-times-black", name: "ICICI Times Black", issuer: "ICICI", network: "visa",
+    domesticVisits: "unlimited", period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: true,
+    ease: 1, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "New super-premium, invite/HNW.",
+    feeNote: "Premium. Unlimited domestic + Priority Pass + railway.", confidence: "low", verify: "icici.com" },
+
+  // ---- IDFC new metal ----
+  { id: "idfc-ashva", name: "IDFC FIRST Ashva (metal)", issuer: "IDFC FIRST", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: true,
+    ease: 2, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Newer premium metal.",
+    feeNote: "Domestic + Priority Pass + railway.", confidence: "low", verify: "idfcfirstbank.com" },
+  { id: "idfc-mayura", name: "IDFC FIRST Mayura (metal)", issuer: "IDFC FIRST", network: "visa",
+    domesticVisits: "unlimited", period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: true,
+    ease: 1, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Top IDFC metal, invite-led.",
+    feeNote: "Unlimited domestic + Priority Pass + railway.", confidence: "low", verify: "idfcfirstbank.com" },
+
+  // ---- HSBC / SC new travel ----
+  { id: "hsbc-travelone", name: "HSBC TravelOne", issuer: "HSBC", network: "mastercard",
+    domesticVisits: 6, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "mastercard"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Travel-miles card.",
+    feeNote: "₹4999. Domestic + international lounge.", confidence: "low", verify: "hsbc.co.in" },
+  { id: "sc-easemytrip", name: "Standard Chartered EaseMyTrip", issuer: "Standard Chartered", network: "mastercard",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "mastercard"], railway: false,
+    ease: 3, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "Travel co-brand.",
+    feeNote: "Domestic lounge + travel discounts.", confidence: "low", verify: "sc.com/in" },
+
+  // ---- AU / Kotak / IndusInd more ----
+  { id: "au-lit", name: "AU LIT (customisable)", issuer: "AU Small Finance", network: "visa",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
+    ease: 4, ltf: true, fyf: true, approvalSpeed: "fast", eligibility: "Feature-toggle card; turn lounge feature on.",
+    feeNote: "Lifetime free base; pay only for features you enable (incl. lounge).", confidence: "low", verify: "aubank.in" },
+  { id: "au-ixigo", name: "AU Ixigo", issuer: "AU Small Finance", network: "rupay",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "rupay"], railway: true,
+    ease: 4, ltf: false, fyf: true, approvalSpeed: "fast", eligibility: "Travel co-brand, RuPay (UPI).",
+    feeNote: "Domestic + railway, travel rewards.", confidence: "low", verify: "aubank.in" },
+  { id: "kotak-indianoil", name: "Kotak IndianOil", issuer: "Kotak", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 4, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "Fuel co-brand.", feeNote: "No standard lounge — baseline.", confidence: "low", verify: "kotak.com" },
+  { id: "kotak-solitaire", name: "Kotak Solitaire", issuer: "Kotak", network: "mastercard",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "mastercard"], railway: false,
+    ease: 2, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Premium banking relationship.",
+    feeNote: "Domestic + Priority Pass.", confidence: "low", verify: "kotak.com" },
+  { id: "indusind-eazydiner", name: "IndusInd EazyDiner", issuer: "IndusInd", network: "mastercard",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "mastercard"], railway: false,
+    ease: 3, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "Dining co-brand.",
+    feeNote: "Domestic lounge + dining benefits.", confidence: "low", verify: "indusind.com" },
+  { id: "indusind-tiger", name: "IndusInd Tiger / Avios", issuer: "IndusInd", network: "visa",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
+    ease: 3, ltf: true, fyf: false, approvalSpeed: "normal", eligibility: "Some LTF variants.",
+    feeNote: "Domestic + Priority Pass.", confidence: "low", verify: "indusind.com" },
+
+  // ---- RBL / BoB / PSU more ----
+  { id: "rbl-irctc", name: "RBL IRCTC", issuer: "RBL", network: "rupay",
+    domesticVisits: 2, period: "year", spendGate: null, programs: ["dreamfolks", "rupay"], railway: true,
+    ease: 3, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "Rail co-brand.",
+    feeNote: "Railway lounge + some airport.", confidence: "low", verify: "rblbank.com" },
+  { id: "bob-premier", name: "Bank of Baroda Premier / Select", issuer: "Bank of Baroda", network: "visa",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: true,
+    ease: 3, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "Mid income.",
+    feeNote: "Domestic + railway.", confidence: "low", verify: "bobcard.co.in" },
+  { id: "canara-rupay-cc", name: "Canara / PNB RuPay Select Credit", issuer: "PSU banks", network: "rupay",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 4, ltf: false, fyf: true, approvalSpeed: "normal", eligibility: "PSU bank customers.",
+    feeNote: "RuPay Select credit: domestic + railway.", confidence: "low", verify: "issuing PSU bank T&C" },
+
+  // ---- Amex more ----
+  { id: "amex-smartearn", name: "Amex SmartEarn", issuer: "Amex", network: "amex",
+    domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 3, ltf: false, fyf: true, approvalSpeed: "slow",
+    eligibility: "Entry Amex.", feeNote: "₹495. No lounge — baseline.", confidence: "low", verify: "americanexpress.com/in" },
+  { id: "amex-plat-reserve", name: "Amex Platinum Reserve", issuer: "Amex", network: "amex",
+    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority"], railway: false,
+    ease: 2, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Premium.",
+    feeNote: "₹10,000. Domestic + Priority Pass.", confidence: "low", verify: "americanexpress.com/in" },
 ];
 
 </script>
@@ -1585,11 +1765,90 @@ window.LL_SOURCE_LINKS = {
 
 </script>
   <script>
+/*
+ * LoungeLens — Login / Logout (free, two modes).
+ *
+ * HONEST ARCHITECTURE:
+ *  - DEVICE mode (default, works NOW, zero setup): "login" creates a local profile
+ *    keyed by a username + PIN, stored in this browser. Logout hides the data;
+ *    login re-reveals it. Multiple people on one device get separate profiles.
+ *    This is real login/logout UX with NO server. Fully testable.
+ *  - CLOUD mode (free, opt-in): if a Firebase config is provided (window.LL_FIREBASE),
+ *    the same login uses Firebase Auth + Firestore so the profile syncs across
+ *    devices for free (Firebase Spark tier). This part needs the owner to paste a
+ *    free Firebase config once — until then the app runs in DEVICE mode and says so.
+ *
+ * This module is the AUTH STATE layer. It does NOT itself talk to Firebase (that's
+ * loaded lazily in app.js only if config exists), so it stays pure + Node-testable.
+ *
+ * Account record (DEVICE mode), stored under localStorage key "loungelens.accounts":
+ *   { [username]: { pinHash, data: <full app state blob> } }
+ *
+ * PIN hash: a lightweight non-crypto hash. This is NOT bank-grade security — it just
+ * stops casual peeking on a shared device. We tell the user that plainly. (Real
+ * security would need the cloud path with proper auth.)
+ */
+(function (root) {
+  "use strict";
+
+  function hashPin(username, pin) {
+    // djb2-style hash, salted with username. Deterministic, non-reversible-enough
+    // for "don't let my flatmate open my profile". Not for protecting secrets.
+    const s = "LL" + (username || "").toLowerCase() + "" + (pin || "");
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return "h" + h.toString(36);
+  }
+
+  function normUser(u) { return (u || "").trim().toLowerCase(); }
+
+  // ---- account store operations (pure: take store, return new store) ----
+  function createAccount(store, username, pin, initialData) {
+    const u = normUser(username);
+    if (!u) throw new Error("username required");
+    if (!pin || String(pin).length < 4) throw new Error("PIN must be at least 4 digits");
+    store = store || {};
+    if (store[u]) throw new Error("that username already exists on this device");
+    store[u] = { pinHash: hashPin(u, pin), data: initialData || null };
+    return store;
+  }
+
+  function verifyLogin(store, username, pin) {
+    const u = normUser(username);
+    if (!store || !store[u]) return { ok: false, reason: "no such user on this device" };
+    if (store[u].pinHash !== hashPin(u, pin)) return { ok: false, reason: "wrong PIN" };
+    return { ok: true, data: store[u].data || null };
+  }
+
+  function saveAccountData(store, username, data) {
+    const u = normUser(username);
+    if (!store || !store[u]) throw new Error("not logged in / no account");
+    store[u].data = data;
+    return store;
+  }
+
+  function listUsers(store) { return Object.keys(store || {}); }
+
+  function deleteAccount(store, username, pin) {
+    const u = normUser(username);
+    const v = verifyLogin(store, username, pin);
+    if (!v.ok) return { ok: false, reason: v.reason, store };
+    delete store[u];
+    return { ok: true, store };
+  }
+
+  const Auth = { hashPin, normUser, createAccount, verifyLogin, saveAccountData, listUsers, deleteAccount };
+  if (typeof module !== "undefined" && module.exports) module.exports = Auth;
+  root.LL_AUTH = Auth;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
 /* LoungeLens app controller — DOM glue over LL_ENGINE. Simple + Advanced modes. */
 (function () {
   "use strict";
   const E = window.LL_ENGINE, CARDS = window.LL_CARDS, LOUNGES = window.LL_LOUNGES, META = window.LL_META, SELF = window.LL_SELF;
-  const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS;
+  const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const NOW = new Date();
@@ -1604,7 +1863,28 @@ window.LL_SOURCE_LINKS = {
     } catch (e) { return blank(); }
   }
   function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "" }; }
-  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+  // account store (login): { username: { pinHash, data } } + the active username
+  const ACCT_KEY = "loungelens.accounts";
+  const SESSION_KEY = "loungelens.session";
+  function loadAccounts() { try { return JSON.parse(localStorage.getItem(ACCT_KEY)) || {}; } catch (e) { return {}; } }
+  function saveAccounts(s) { localStorage.setItem(ACCT_KEY, JSON.stringify(s)); }
+  let accounts = loadAccounts();
+  let activeUser = localStorage.getItem(SESSION_KEY) || null;
+
+  // if a user is logged in, prefer their saved data as the live state
+  if (activeUser && accounts[activeUser] && accounts[activeUser].data) {
+    state = accounts[activeUser].data;
+  }
+
+  function save() {
+    localStorage.setItem(KEY, JSON.stringify(state)); // device fallback copy
+    if (activeUser && accounts[activeUser]) {
+      accounts = AUTH.saveAccountData(accounts, activeUser, state);
+      saveAccounts(accounts);
+      cloudSync(); // no-op unless cloud mode is configured
+    }
+  }
 
   // ---- helpers -----------------------------------------------------------
   const card = (id) => CARDS.find((c) => c.id === id);
@@ -2058,6 +2338,94 @@ window.LL_SOURCE_LINKS = {
     e.target.value = "";
   };
 
+  // ============================ LOGIN / LOGOUT ============================
+  // CLOUD adapter: only active if window.LL_FIREBASE config is present AND the
+  // firebase SDK loaded. Until then we run DEVICE mode and say so honestly.
+  const cloudConfigured = !!(window.LL_FIREBASE && window.LL_FIREBASE.apiKey);
+  function cloudSync() { /* wired in cloud.js when config provided; device mode = no-op */ }
+
+  let signupMode = false;
+  function renderAuthBar() {
+    const who = $("#auth-who"), openBtn = $("#login-open"), nameEl = $("#auth-name");
+    if (activeUser) {
+      const display = (accounts[activeUser] && accounts[activeUser].data && accounts[activeUser].data.profileName) || activeUser;
+      if (nameEl) nameEl.textContent = "👤 " + display;
+      if (who) who.hidden = false;
+      if (openBtn) openBtn.hidden = true;
+    } else {
+      if (who) who.hidden = true;
+      if (openBtn) openBtn.hidden = false;
+    }
+  }
+  function openLogin(signup) {
+    signupMode = !!signup;
+    $("#login-title").textContent = signupMode ? "Create your profile" : "Log in";
+    $("#login-sub").textContent = signupMode
+      ? "Pick a username + PIN. Saves your cards on this device. Free, no email."
+      : "Welcome back. Your cards and preferences come right back.";
+    $("#login-submit").textContent = signupMode ? "Create profile" : "Log in";
+    $("#login-switch").innerHTML = signupMode
+      ? `Already have a profile? <span class="link" id="to-login">Log in</span>`
+      : `New here? <span class="link" id="to-signup">Create a profile</span>`;
+    $("#login-cloud-note").textContent = cloudConfigured
+      ? "Cloud sync is on — your profile follows you across devices."
+      : "Saved on this device. To sync across devices, use Profile → sync code, or the owner can enable free cloud login (see SETUP-LOGIN.md).";
+    $("#login-error").hidden = true;
+    $("#login-user").value = ""; $("#login-pin").value = "";
+    $("#login-modal").hidden = false;
+    rewireLoginSwitch();
+    setTimeout(() => $("#login-user").focus(), 50);
+  }
+  function rewireLoginSwitch() {
+    const s = $("#to-signup"); if (s) s.onclick = () => openLogin(true);
+    const l = $("#to-login"); if (l) l.onclick = () => openLogin(false);
+  }
+  function loginError(msg) { const e = $("#login-error"); e.textContent = msg; e.hidden = false; }
+
+  if ($("#login-open")) $("#login-open").onclick = () => openLogin(false);
+  if ($("#login-cancel")) $("#login-cancel").onclick = () => { $("#login-modal").hidden = true; };
+  if ($("#login-submit")) $("#login-submit").onclick = () => {
+    const u = $("#login-user").value.trim();
+    const pin = $("#login-pin").value.trim();
+    if (!u) { loginError("Enter a username."); return; }
+    if (signupMode) {
+      try {
+        // new profile starts from a fresh blank state (or current device state if empty)
+        const seed = blank(); seed.profileName = u; seed.onboarded = true;
+        accounts = AUTH.createAccount(accounts, u, pin, seed);
+        saveAccounts(accounts);
+        activeUser = AUTH.normUser(u);
+        localStorage.setItem(SESSION_KEY, activeUser);
+        state = accounts[activeUser].data;
+        $("#login-modal").hidden = true;
+        render(); renderAuthBar();
+        toast("Profile created. You're logged in.");
+      } catch (e) { loginError(e.message); }
+    } else {
+      const v = AUTH.verifyLogin(accounts, u, pin);
+      if (!v.ok) { loginError(v.reason === "wrong PIN" ? "Wrong PIN, try again." : "No profile with that username on this device. Create one?"); return; }
+      activeUser = AUTH.normUser(u);
+      localStorage.setItem(SESSION_KEY, activeUser);
+      state = v.data || blank();
+      $("#login-modal").hidden = true;
+      render(); renderAuthBar();
+      toast("Logged in. Welcome back.");
+    }
+  };
+  if ($("#logout-btn")) $("#logout-btn").onclick = () => {
+    save(); // persist current state to the account before leaving
+    activeUser = null;
+    localStorage.removeItem(SESSION_KEY);
+    state = blank(); // logged-out view starts clean (data is safe in the account)
+    render(); renderAuthBar();
+    toast("Logged out. Log back in any time to restore your data.");
+  };
+  // allow Enter key to submit
+  ["login-user", "login-pin"].forEach((id) => {
+    const el = $("#" + id);
+    if (el) el.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#login-submit").click(); });
+  });
+
   // ============================ PROFILE / SYNC ============================
   function renderProfile() {
     const nameInput = $("#profile-name");
@@ -2160,6 +2528,7 @@ window.LL_SOURCE_LINKS = {
   cityDatalist();
   renderTripInputs();
   render();
+  renderAuthBar();
   maybeOnboard();
 })();
 

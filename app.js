@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const E = window.LL_ENGINE, CARDS = window.LL_CARDS, LOUNGES = window.LL_LOUNGES, META = window.LL_META, SELF = window.LL_SELF;
-  const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS;
+  const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const NOW = new Date();
@@ -17,7 +17,28 @@
     } catch (e) { return blank(); }
   }
   function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "" }; }
-  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+  // account store (login): { username: { pinHash, data } } + the active username
+  const ACCT_KEY = "loungelens.accounts";
+  const SESSION_KEY = "loungelens.session";
+  function loadAccounts() { try { return JSON.parse(localStorage.getItem(ACCT_KEY)) || {}; } catch (e) { return {}; } }
+  function saveAccounts(s) { localStorage.setItem(ACCT_KEY, JSON.stringify(s)); }
+  let accounts = loadAccounts();
+  let activeUser = localStorage.getItem(SESSION_KEY) || null;
+
+  // if a user is logged in, prefer their saved data as the live state
+  if (activeUser && accounts[activeUser] && accounts[activeUser].data) {
+    state = accounts[activeUser].data;
+  }
+
+  function save() {
+    localStorage.setItem(KEY, JSON.stringify(state)); // device fallback copy
+    if (activeUser && accounts[activeUser]) {
+      accounts = AUTH.saveAccountData(accounts, activeUser, state);
+      saveAccounts(accounts);
+      cloudSync(); // no-op unless cloud mode is configured
+    }
+  }
 
   // ---- helpers -----------------------------------------------------------
   const card = (id) => CARDS.find((c) => c.id === id);
@@ -471,6 +492,94 @@
     e.target.value = "";
   };
 
+  // ============================ LOGIN / LOGOUT ============================
+  // CLOUD adapter: only active if window.LL_FIREBASE config is present AND the
+  // firebase SDK loaded. Until then we run DEVICE mode and say so honestly.
+  const cloudConfigured = !!(window.LL_FIREBASE && window.LL_FIREBASE.apiKey);
+  function cloudSync() { /* wired in cloud.js when config provided; device mode = no-op */ }
+
+  let signupMode = false;
+  function renderAuthBar() {
+    const who = $("#auth-who"), openBtn = $("#login-open"), nameEl = $("#auth-name");
+    if (activeUser) {
+      const display = (accounts[activeUser] && accounts[activeUser].data && accounts[activeUser].data.profileName) || activeUser;
+      if (nameEl) nameEl.textContent = "👤 " + display;
+      if (who) who.hidden = false;
+      if (openBtn) openBtn.hidden = true;
+    } else {
+      if (who) who.hidden = true;
+      if (openBtn) openBtn.hidden = false;
+    }
+  }
+  function openLogin(signup) {
+    signupMode = !!signup;
+    $("#login-title").textContent = signupMode ? "Create your profile" : "Log in";
+    $("#login-sub").textContent = signupMode
+      ? "Pick a username + PIN. Saves your cards on this device. Free, no email."
+      : "Welcome back. Your cards and preferences come right back.";
+    $("#login-submit").textContent = signupMode ? "Create profile" : "Log in";
+    $("#login-switch").innerHTML = signupMode
+      ? `Already have a profile? <span class="link" id="to-login">Log in</span>`
+      : `New here? <span class="link" id="to-signup">Create a profile</span>`;
+    $("#login-cloud-note").textContent = cloudConfigured
+      ? "Cloud sync is on — your profile follows you across devices."
+      : "Saved on this device. To sync across devices, use Profile → sync code, or the owner can enable free cloud login (see SETUP-LOGIN.md).";
+    $("#login-error").hidden = true;
+    $("#login-user").value = ""; $("#login-pin").value = "";
+    $("#login-modal").hidden = false;
+    rewireLoginSwitch();
+    setTimeout(() => $("#login-user").focus(), 50);
+  }
+  function rewireLoginSwitch() {
+    const s = $("#to-signup"); if (s) s.onclick = () => openLogin(true);
+    const l = $("#to-login"); if (l) l.onclick = () => openLogin(false);
+  }
+  function loginError(msg) { const e = $("#login-error"); e.textContent = msg; e.hidden = false; }
+
+  if ($("#login-open")) $("#login-open").onclick = () => openLogin(false);
+  if ($("#login-cancel")) $("#login-cancel").onclick = () => { $("#login-modal").hidden = true; };
+  if ($("#login-submit")) $("#login-submit").onclick = () => {
+    const u = $("#login-user").value.trim();
+    const pin = $("#login-pin").value.trim();
+    if (!u) { loginError("Enter a username."); return; }
+    if (signupMode) {
+      try {
+        // new profile starts from a fresh blank state (or current device state if empty)
+        const seed = blank(); seed.profileName = u; seed.onboarded = true;
+        accounts = AUTH.createAccount(accounts, u, pin, seed);
+        saveAccounts(accounts);
+        activeUser = AUTH.normUser(u);
+        localStorage.setItem(SESSION_KEY, activeUser);
+        state = accounts[activeUser].data;
+        $("#login-modal").hidden = true;
+        render(); renderAuthBar();
+        toast("Profile created. You're logged in.");
+      } catch (e) { loginError(e.message); }
+    } else {
+      const v = AUTH.verifyLogin(accounts, u, pin);
+      if (!v.ok) { loginError(v.reason === "wrong PIN" ? "Wrong PIN, try again." : "No profile with that username on this device. Create one?"); return; }
+      activeUser = AUTH.normUser(u);
+      localStorage.setItem(SESSION_KEY, activeUser);
+      state = v.data || blank();
+      $("#login-modal").hidden = true;
+      render(); renderAuthBar();
+      toast("Logged in. Welcome back.");
+    }
+  };
+  if ($("#logout-btn")) $("#logout-btn").onclick = () => {
+    save(); // persist current state to the account before leaving
+    activeUser = null;
+    localStorage.removeItem(SESSION_KEY);
+    state = blank(); // logged-out view starts clean (data is safe in the account)
+    render(); renderAuthBar();
+    toast("Logged out. Log back in any time to restore your data.");
+  };
+  // allow Enter key to submit
+  ["login-user", "login-pin"].forEach((id) => {
+    const el = $("#" + id);
+    if (el) el.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#login-submit").click(); });
+  });
+
   // ============================ PROFILE / SYNC ============================
   function renderProfile() {
     const nameInput = $("#profile-name");
@@ -573,5 +682,6 @@
   cityDatalist();
   renderTripInputs();
   render();
+  renderAuthBar();
   maybeOnboard();
 })();

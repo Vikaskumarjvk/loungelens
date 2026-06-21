@@ -196,6 +196,14 @@ button.act.big { width: 100%; padding: 13px; font-size: 16px; margin-top: 8px; b
 .src-link .rel { font-size: 8px; color: var(--accent); letter-spacing: -1px; }
 body.simple-mode .src-link .rel { display: none; }
 
+/* auth bar + login */
+.auth-bar { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+#auth-name { font-size: 13px; font-weight: 600; color: var(--accent); }
+.login-error { background: #2a1416; border: 1px solid #3a1d1d; color: #ff7b72;
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-top: 10px; }
+#login-modal .leg-input { width: 100%; }
+@media (max-width: 560px) { .auth-bar { margin-left: 0; margin-top: 8px; } }
+
 /* sync code box */
 .sync-box { width: 100%; min-height: 70px; background: var(--panel2); border: 1px solid var(--line);
   color: var(--txt); border-radius: 9px; padding: 10px; font-family: ui-monospace, Menlo, monospace;

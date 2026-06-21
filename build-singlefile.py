@@ -33,6 +33,7 @@ js_files = [
     "engine.js",
     "selfcheck.js",
     "profile.js",
+    "auth.js",
     "app.js",
 ]
 

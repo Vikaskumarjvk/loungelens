@@ -31,6 +31,10 @@
         <button data-mode="simple" class="active">😌 Simple</button>
         <button data-mode="advanced">🔧 Advanced</button>
       </div>
+      <div class="auth-bar" id="auth-bar">
+        <button class="act mini ghost" id="login-open">👤 Log in</button>
+        <span id="auth-who" hidden><span id="auth-name"></span> <button class="act mini ghost" id="logout-btn">Log out</button></span>
+      </div>
     </div>
     <nav>
       <button data-view="trip" class="active">✈️ Plan a Trip</button>
@@ -241,6 +245,22 @@
 
   <div id="toast" class="toast" hidden></div>
 
+  <!-- login / signup modal -->
+  <div id="login-modal" class="modal" hidden>
+    <div class="modal-box">
+      <div class="modal-logo">👤</div>
+      <h2 id="login-title">Log in</h2>
+      <p class="card-sub" id="login-sub">Saves your cards and preferences. Free, no email needed.</p>
+      <input id="login-user" class="leg-input" placeholder="Username" autocomplete="username" />
+      <input id="login-pin" class="leg-input" type="password" inputmode="numeric" placeholder="PIN (4+ digits)" autocomplete="current-password" style="margin-top:8px;" />
+      <div id="login-error" class="login-error" hidden></div>
+      <button class="act big" id="login-submit" style="margin-top:12px;">Log in</button>
+      <p class="onboard-fine" id="login-switch">New here? <span class="link" id="to-signup">Create a profile</span></p>
+      <p class="onboard-fine" id="login-cloud-note"></p>
+      <button class="act ghost mini" id="login-cancel" style="margin-top:4px;">Cancel</button>
+    </div>
+  </div>
+
   <footer class="foot">
     <span id="data-freshness"></span> · Saved on this device only · <span class="link" id="reset-all">reset</span>
   </footer>
@@ -252,6 +272,7 @@
   <script src="engine.js"></script>
   <script src="selfcheck.js"></script>
   <script src="profile.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
   <script>
     // PWA: register service worker for offline + installability.
