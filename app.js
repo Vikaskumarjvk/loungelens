@@ -76,6 +76,13 @@
     const loungeTag = lounge
       ? `<span class="ca-lounge">🛋 ${lounge}${c.domesticVisits === "unlimited" ? "" : "/" + (c.period || "yr").slice(0, 2)}</span>`
       : "";
+    // tiny variant: a compact badge-only thumbnail for inline use (trip lines)
+    if (opts.tiny) {
+      return `<span class="cardart-tiny ${tier}" style="--ca1:${ib.c1};--ca2:${ib.c2};" title="${c.name} · ${c.issuer}">
+        <span class="cat-badge">${ib.short || BRAND.initials(c.issuer)}</span>
+        <span class="cat-net" style="background:${nb.grad};color:${nb.color};">${nb.label}</span>
+      </span>`;
+    }
     return `<div class="cardart ${tier} ${opts.small ? "ca-sm" : ""}" style="--ca1:${ib.c1};--ca2:${ib.c2};">
       <div class="ca-sheen"></div>
       <div class="ca-top">
@@ -261,7 +268,7 @@
         if (isSimple()) {
           if (row.open) {
             return `<div class="lounge-line ok"><span class="ll-name">${l.name}</span> <span class="ll-loc">${loc}</span>
-              <div class="use-card">use <b>${row.best.card.name}</b>${row.best.quota.unlimited ? "" : ` · ${row.best.quota.left} left`}</div>
+              <div class="use-card">${cardArt(row.best.card, { tiny: true })} use <b>${row.best.card.name}</b>${row.best.quota.unlimited ? "" : ` · ${row.best.quota.left} left`}</div>
               ${confirmLink}</div>`;
           }
           const why = row.matches.length === 0 ? "none of your cards" :
@@ -272,7 +279,7 @@
         // advanced
         const openers = row.matches.length ? row.matches.map((m) => `
           <div class="opener ${m.usable ? "usable" : "unusable"}">
-            <span class="who">${m.card.name}</span> via ${m.sharedRails.map(railWord).join(", ")}
+            ${cardArt(m.card, { tiny: true })} <span class="who">${m.card.name}</span> via ${m.sharedRails.map(railWord).join(", ")}
             ${m.usable ? `<span class="chip good">${m.quota.unlimited ? "unlimited" : m.quota.left + " left"}</span>`
               : (!m.spend.met ? `<span class="chip warn">spend-locked</span>` : `<span class="chip bad">0 left</span>`)}
           </div>`).join("") : `<div class="card-sub">No card of yours opens this.</div>`;
