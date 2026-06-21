@@ -4,7 +4,11 @@
 
 Every lounge your wallet *actually* opens — airport **and** railway, India domestic.
 One view across all your cards, with a live "visits left" tracker, trip planner,
-card comparison, a "worth it?" fee calculator, login, and 114 cards across 28 issuers.
+card comparison, a "worth it?" fee calculator, an India coverage map, login, and
+300 cards across 40 issuers, mapped against 77 lounges (50 airports + railway).
+
+**Offline single file:** [`dist/loungelens.html`](dist/loungelens.html) is the whole app in
+one file. Download it, double-click, runs with no server and no internet. AirDrop / WhatsApp it.
 
 ## Run it
 
@@ -25,7 +29,8 @@ python3 -m http.server 8777
 Run the engine tests:
 
 ```
-node tests.js     # 26 assertions, all green
+node tests.js     # 76 assertions, all green
+# plus tests-self.js, tests-auth.js, tests-profile.js, tests-suggest.js — 145 total
 ```
 
 ## What it does (and why it beats the existing apps)
@@ -59,15 +64,19 @@ and the spend-gate tracker — not the exact numbers, which you keep current.
   verdict ("you're in 👍" / blocked / no card), the exact card to use at each lounge, and
   gap cities with a one-click "fix with a card".
 - **💳 My Cards** — wallet rollup, live "visits left", spend-gate unlock tracker, log a visit.
-- **🛋️ All Lounges** — full list, filter by airport/railway, "only ones I can enter".
+- **🛫 Airports** — pick an airport or station, see every lounge there and which of your cards opens it.
+- **🗺️ Coverage Map** — India as a state tile-grid, each state colored by how much of its lounge
+  access your wallet unlocks. Tap a state to drill into its lounges.
+- **🛋️ All Lounges** — full list, filter by airport/railway/city, sort, "only ones I can enter".
 - **⭐ Get a Card** — recommender, trip-aware, biased toward easy + fast-to-issue cards.
-- **➕ Add Cards** — tap the cards you hold.
-
+- **⚖️ Compare** — two cards head-to-head across coverage, visits, ease, spend gate, railway.
+- **🧮 Worth It?** — tell it how often you fly and what a lounge is worth; it says if a fee pays off.
+- **➕ Add Cards** — tap the cards you hold, filter by issuer / network / lifetime-free.
 - **🩺 Data Health** — the self-awareness layer (see below).
+- **👤 Profile / Sync** — free, serverless: data lives on your device, a sync code carries it across devices.
 
-**Simple vs Advanced mode** (toggle top-right): Simple hides rails/jargon and speaks plainly
-("use RuPay Select · 2 left"). Advanced shows access rails, spend-gate detail, confidence,
-eligibility, and verify notes.
+Every view that shows a card renders a small issuer-colored card chip, so the same card reads
+the same everywhere. A wallet-strength score (0-100 circular gauge) sits on My Cards.
 
 ## Self-improvement (what's real vs what needs a backend)
 
@@ -108,11 +117,14 @@ Scope it when the user base justifies the cost.
 data/cards.js     card dataset (visits, spend gates, ease, LTF, approvalSpeed, eligibility, rails)
 data/lounges.js   lounge dataset (airport + railway, access rails, confidence, verify)
 data/meta.js      dataset metadata + plain-language rail names + honesty banner
+brand.js          issuer colors + network marks + card-art helpers (the visual layer)
 engine.js         pure logic: quota math, spend gates, per-lounge matching, wallet rollup,
-                  coverage, recommender, cities, planTrip, recommendForTrip. No DOM. Node-testable.
-tests.js          37 self-tests over the engine (node tests.js)
-index.html        5 views + mode toggle
-styles.css        dark UI, simple/advanced visibility
+                  coverage, recommender, cities, planTrip, recommendForTrip, compareCards,
+                  valueCalc, walletScore, coverageMap. No DOM. Node-testable.
+tests.js          76 self-tests over the engine (node tests.js); 145 total across all suites
+index.html        11 views (trip, wallet, airports, map, lounges, recommend, compare, value,
+                  add, health, profile, about) + hash routing
+styles.css        dark fintech UI, card-art system, India tile map
 app.js            DOM glue + localStorage persistence (nothing leaves your device)
 HOSTING.md        free deploy + sharing guide
 ```
@@ -125,7 +137,8 @@ Not just a web page — a production Progressive Web App:
 - **Installable** — "Add to Home Screen" on iPhone, "Install app" on Android/desktop. Opens
   full-screen like a native app. Real icons in `icons/`, `manifest.webmanifest`.
 - **Works offline** — `sw.js` caches the whole app shell, so it runs with no internet (handy
-  at an airport on bad wifi). Verified: service worker registers, controls the page, caches 12 files.
+  at an airport on bad wifi). Network-first, so a fresh version always loads when online, with
+  cache fallback when offline. Caches 17 files in the shell.
 - **First-run onboarding** + **About/Trust page** (not-financial-advice, privacy, data provenance).
 - **Shareable link preview** (Open Graph) for WhatsApp/chat.
 
@@ -141,12 +154,14 @@ never exposes anyone's saved cards. (Also see **HOSTING.md** for the host compar
 Edit `data/cards.js` / `data/lounges.js` and bump `lastReviewed` in `data/meta.js`.
 The schema is the contract — adding a card/lounge is one object literal.
 
-> **Data provenance note (be honest with members):** the card/lounge numbers were authored
-> from working knowledge of the 2024-25 Indian lounge overhaul, not scraped live this session
-> (the automated research agents hit context limits in this environment). They are
-> directionally correct and every record is confidence-tagged, but **desk-check the specific
-> spend gates and visit counts against issuer T&Cs before a trip.** The `verify` field on each
-> card/lounge points where to look. The engine and UX are fully verified (52 tests + browser run).
+> **Data provenance note (be honest with members):** most card/lounge numbers started as
+> best-guess seed data from the 2024-25 Indian lounge overhaul and are tagged low-confidence.
+> A research+verify pass (parallel agents fetching each bank's official page, then an
+> independent fact-checker re-fetching the cited source before any number is allowed to change)
+> bumps individual records to verified as it confirms them. Some bank sites bot-block, so many
+> cards stay best-guess on purpose rather than guess. Every record is confidence-tagged and
+> carries a `verify` hint, so **desk-check the specific spend gates and visit counts against
+> issuer T&Cs before a trip.** The engine and UX are fully verified (145 tests + browser runs).
 
 ## Known limitations (tracked, not hidden)
 
