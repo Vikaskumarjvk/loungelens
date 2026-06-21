@@ -416,6 +416,7 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .ap-code { font-size: 17px; font-weight: 800; letter-spacing: .5px; }
 .ap-lounge { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
 .ap-lounge:first-of-type { border-top: none; }
+.ap-verdict { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 /* ============================ COMPARE ============================ */
 .compare-pick { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; flex-wrap: wrap; }

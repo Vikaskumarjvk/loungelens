@@ -9,7 +9,7 @@
  * This fixes the earlier cache-first bug where users were stuck on a stale version.
  * Bump CACHE_VERSION on each release so old caches are purged on activate.
  */
-const CACHE_VERSION = "loungelens-v10-2026-06-22-tripart";
+const CACHE_VERSION = "loungelens-v11-2026-06-22-artconsistency";
 const SHELL = [
   "./",
   "./index.html",

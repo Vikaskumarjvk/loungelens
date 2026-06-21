@@ -440,7 +440,7 @@
       const openers = matches.length
         ? matches.map((m) => `
             <div class="opener ${m.usable ? "usable" : "unusable"}">
-              <span class="who">${m.card.name}</span>${isSimple() ? "" : ` via ${m.sharedRails.map(railWord).join(", ")}`}
+              ${cardArt(m.card, { tiny: true })} <span class="who">${m.card.name}</span>${isSimple() ? "" : ` via ${m.sharedRails.map(railWord).join(", ")}`}
               ${m.usable ? `<span class="chip good">${m.quota.unlimited ? "unlimited" : m.quota.left + " left"}</span>`
                 : (!m.spend.met ? `<span class="chip warn">spend-locked</span>` : `<span class="chip bad">0 left</span>`)}
             </div>`).join("")
@@ -725,7 +725,7 @@
         const l = row.lounge;
         const order = E.bestCardOrder(row.matches);
         const verdict = row.open
-          ? `<span class="chip good">enter with ${order[0].card.name}${order[0].quota.unlimited ? "" : ` · ${order[0].quota.left} left`}</span>`
+          ? `<span class="ap-verdict">${cardArt(order[0].card, { tiny: true })}<span class="chip good">enter with ${order[0].card.name}${order[0].quota.unlimited ? "" : ` · ${order[0].quota.left} left`}</span></span>`
           : row.matches.length
             ? `<span class="chip warn">blocked</span>`
             : `<span class="chip">no card</span>`;
@@ -901,7 +901,7 @@
       const netStr = v.net >= 0 ? "+" + fmtRs(v.net) : "-" + fmtRs(Math.abs(v.net));
       return `<div class="val-row ${cls}">
         <div class="val-main">
-          <div><b>${c.name}</b> ${typeBadge(c)} ${confBadge(c.confidence)}</div>
+          <div>${cardArt(c, { tiny: true })} <b>${c.name}</b> ${typeBadge(c)} ${confBadge(c.confidence)}</div>
           <div class="card-sub">${c.issuer} · fee ${fee ? fmtRs(fee) : "free/varies"} · ${v.allowance === "unlimited" ? "unlimited visits" : v.visitsUsed + " visits/yr you'd use"}</div>
           ${v.spendGateWarning ? `<div class="notes adv-only">⚠️ ${v.spendGateWarning}</div>` : ""}
         </div>
