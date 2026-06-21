@@ -309,16 +309,9 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .gate-warn { background: var(--warn-dim); border: 1px solid rgba(251, 191, 36, 0.28); border-radius: var(--r-sm); padding: 10px 12px; margin-top: 10px; font-size: 12.5px; color: #f3d28a; }
 .gate-warn b { color: var(--warn); }
 
-/* ============================ MODE TOGGLE ============================ */
-.mode-toggle {
-  margin-left: auto; display: flex; gap: 3px; background: var(--chip);
-  border: 1px solid var(--line); border-radius: var(--r-pill); padding: 3px;
-}
-.mode-toggle button { background: transparent; border: none; color: var(--dim); padding: 6px 13px; border-radius: var(--r-pill); cursor: pointer; font-size: 12px; font-weight: 700; transition: color .15s; }
-.mode-toggle button.active { background: var(--accent-grad); color: #fff; box-shadow: 0 2px 10px rgba(123, 110, 255, 0.3); }
-@media (max-width: 600px) { .mode-toggle { margin-left: 0; margin-top: 10px; order: 3; } .brand { flex-wrap: wrap; } }
-
-body.simple-mode .adv-only { display: none !important; }
+/* Simple/Advanced toggle removed 2026-06-22 — single clean smart view.
+   .adv-only content is now always visible; .auth-bar pushes right. */
+@media (max-width: 600px) { .brand { flex-wrap: wrap; } }
 
 /* ============================ NUDGE / LINK ============================ */
 .nudge {
@@ -403,7 +396,6 @@ body.simple-mode .adv-only { display: none !important; }
 .src-link:hover { border-color: var(--accent); transform: translateY(-1px); }
 .src-link.access { background: var(--good-dim); border-color: rgba(54, 211, 153, 0.32); color: #7ee08a; }
 .src-link .rel { font-size: 8px; color: var(--accent); letter-spacing: -1px; }
-body.simple-mode .src-link .rel { display: none; }
 
 /* ============================ AIRPORTS ============================ */
 .ap-group { background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-1), inset 0 1px 0 var(--glass-top); }
@@ -448,7 +440,7 @@ body.simple-mode .src-link .rel { display: none; }
 .suggest-form .cmp-select { flex: 0 0 auto; width: auto; }
 
 /* ============================ AUTH ============================ */
-.auth-bar { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+.auth-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 #auth-name { font-size: 13px; font-weight: 600; color: var(--accent); }
 .login-error { background: var(--bad-dim); border: 1px solid rgba(251, 113, 133, 0.32); color: #fda4af; border-radius: var(--r-sm); padding: 9px 11px; font-size: 13px; margin-top: 10px; }
 #login-modal .leg-input { width: 100%; }
@@ -521,6 +513,38 @@ body.simple-mode .src-link .rel { display: none; }
   .hero h2 { font-size: 24px; }
   main { padding: 18px 14px 0; }
   .stat .num { font-size: 26px; }
+  .filter-controls .cmp-select { flex: 1 1 100%; min-width: 0; }
+}
+
+/* ---- DESKTOP: top nav becomes a fixed left sidebar (real website feel) ---- */
+@media (min-width: 960px) {
+  header {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 248px;
+    border-bottom: none; border-right: 1px solid var(--line);
+    padding: 22px 16px; overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .brand { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .brand .logo { font-size: 30px; }
+  .brand h1 { font-size: 23px; }
+  .brand .tag { font-size: 12px; max-width: 200px; }
+  .auth-bar { margin-left: 0; margin-top: 4px; }
+  nav {
+    flex-direction: column; gap: 4px; margin-top: 20px;
+    flex-wrap: nowrap; align-items: stretch;
+  }
+  nav button { text-align: left; padding: 10px 14px; font-size: 13.5px; border-radius: var(--r-sm); }
+  nav button:hover { transform: none; background: rgba(255, 255, 255, 0.05); }
+  .install-btn { margin-top: 8px; }
+  main { margin-left: 248px; max-width: 860px; padding: 30px 32px 0; }
+  .foot { margin-left: 248px; }
+  /* keep sticky filter bars below the (now non-sticky-at-top) content nicely */
+  .filterbar { top: 0; }
+}
+
+@media (min-width: 1400px) {
+  main { margin-left: 0; padding-left: 280px; max-width: 1140px; }
+  .foot { margin-left: 0; padding-left: 280px; }
 }
 
 /* reduce motion if the user prefers it */
@@ -538,10 +562,6 @@ body.simple-mode .src-link .rel { display: none; }
       <div>
         <h1>LoungeLens</h1>
         <span class="tag">every lounge your cards actually open — airport + railway</span>
-      </div>
-      <div class="mode-toggle" id="mode-toggle" title="Switch detail level">
-        <button data-mode="simple" class="active">😌 Simple</button>
-        <button data-mode="advanced">🔧 Advanced</button>
       </div>
       <div class="auth-bar" id="auth-bar">
         <button class="act mini ghost" id="login-open">👤 Log in</button>
@@ -599,13 +619,19 @@ body.simple-mode .src-link .rel { display: none; }
       <div class="filters">
         <input id="lounge-search" placeholder="Search city, airport, station…" />
         <select id="lounge-type">
-          <option value="">All</option>
+          <option value="">✈️ + 🚆 All</option>
           <option value="airport">✈️ Airport</option>
           <option value="railway">🚆 Railway</option>
         </select>
+        <select id="lounge-city"><option value="">All cities</option></select>
         <select id="lounge-filter">
           <option value="all">All lounges</option>
           <option value="open">Only ones I can enter</option>
+        </select>
+        <select id="lounge-sort">
+          <option value="default">Sort: default</option>
+          <option value="open">Enterable first</option>
+          <option value="city">City A-Z</option>
         </select>
       </div>
       <div class="stat-row" id="coverage-stats"></div>
@@ -3476,15 +3502,15 @@ window.LL_SOURCE_LINKS = {
     </div>`;
   }
 
-  // ---- mode toggle -------------------------------------------------------
+  // ---- view mode (Simple/Advanced toggle removed 2026-06-22) -------------
+  // One clean smart view: friendly plain-language labels (what Simple did well)
+  // PLUS the useful detail Advanced used to hide (rails, eligibility, notes) —
+  // shown cleanly, always. `isSimple()` stays true so labels/layout stay friendly;
+  // the body no longer carries simple-mode, so `.adv-only` content is visible.
   function applyMode() {
-    document.body.classList.toggle("simple-mode", isSimple());
-    document.body.classList.toggle("advanced-mode", !isSimple());
-    $$("#mode-toggle button").forEach((b) => b.classList.toggle("active", b.dataset.mode === state.mode));
+    document.body.classList.remove("simple-mode");
+    document.body.classList.add("advanced-mode");
   }
-  $$("#mode-toggle button").forEach((b) =>
-    b.addEventListener("click", () => { state.mode = b.dataset.mode; save(); applyMode(); render(); })
-  );
 
   // ---- routing -----------------------------------------------------------
   $$("nav button").forEach((b) =>
@@ -3661,10 +3687,22 @@ window.LL_SOURCE_LINKS = {
   }
 
   // ============================ LOUNGES ===================================
+  let loungeCityFilled = false;
+  function fillLoungeCities() {
+    const sel = $("#lounge-city");
+    if (!sel || loungeCityFilled) return;
+    const cities = [...new Set(LOUNGES.map((l) => l.city).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">All cities</option>' + cities.map((c) => `<option value="${c}">${c}</option>`).join("");
+    loungeCityFilled = true;
+  }
+
   function renderLounges() {
+    fillLoungeCities();
     const q = ($("#lounge-search").value || "").toLowerCase();
     const type = $("#lounge-type").value;
+    const city = ($("#lounge-city") && $("#lounge-city").value) || "";
     const onlyOpen = $("#lounge-filter").value === "open";
+    const sort = ($("#lounge-sort") && $("#lounge-sort").value) || "default";
     const cov = E.coverage(state.wallet, CARDS, LOUNGES, state.visitLog, state.spend, NOW, type ? { type } : null);
 
     $("#coverage-stats").innerHTML = `
@@ -3674,8 +3712,11 @@ window.LL_SOURCE_LINKS = {
 
     let rows = cov.list.filter(({ lounge: l }) =>
       `${l.name} ${l.city} ${l.airport || ""} ${l.station || ""} ${l.terminal || ""}`.toLowerCase().includes(q));
+    if (city) rows = rows.filter((r) => r.lounge.city === city);
     if (onlyOpen) rows = rows.filter((r) => r.open);
-    if (rows.length === 0) { $("#lounge-list").innerHTML = `<div class="empty">No lounges match.</div>`; return; }
+    if (sort === "open") rows = rows.slice().sort((a, b) => (b.open ? 1 : 0) - (a.open ? 1 : 0));
+    else if (sort === "city") rows = rows.slice().sort((a, b) => (a.lounge.city || "").localeCompare(b.lounge.city || ""));
+    if (rows.length === 0) { $("#lounge-list").innerHTML = `<div class="empty">No lounges match these filters.</div>`; return; }
 
     $("#lounge-list").innerHTML = rows.map(({ lounge: l, matches, open, blockedOnly }) => {
       const cls = open ? "open" : blockedOnly ? "blocked" : "closed";
@@ -3725,8 +3766,8 @@ window.LL_SOURCE_LINKS = {
     state.experiences.push({ loungeId, cardId, outcome, ts: new Date().toISOString() });
     save(); render();
   }
-  ["#lounge-search", "#lounge-type", "#lounge-filter"].forEach((sel) => {
-    const el = $(sel); el.oninput = renderLounges; el.onchange = renderLounges;
+  ["#lounge-search", "#lounge-type", "#lounge-city", "#lounge-filter", "#lounge-sort"].forEach((sel) => {
+    const el = $(sel); if (el) { el.oninput = renderLounges; el.onchange = renderLounges; }
   });
 
   // ============================ RECOMMEND =================================

@@ -32,10 +32,6 @@
         <h1>LoungeLens</h1>
         <span class="tag">every lounge your cards actually open — airport + railway</span>
       </div>
-      <div class="mode-toggle" id="mode-toggle" title="Switch detail level">
-        <button data-mode="simple" class="active">😌 Simple</button>
-        <button data-mode="advanced">🔧 Advanced</button>
-      </div>
       <div class="auth-bar" id="auth-bar">
         <button class="act mini ghost" id="login-open">👤 Log in</button>
         <span id="auth-who" hidden><span id="auth-name"></span> <button class="act mini ghost" id="logout-btn">Log out</button></span>
@@ -92,13 +88,19 @@
       <div class="filters">
         <input id="lounge-search" placeholder="Search city, airport, station…" />
         <select id="lounge-type">
-          <option value="">All</option>
+          <option value="">✈️ + 🚆 All</option>
           <option value="airport">✈️ Airport</option>
           <option value="railway">🚆 Railway</option>
         </select>
+        <select id="lounge-city"><option value="">All cities</option></select>
         <select id="lounge-filter">
           <option value="all">All lounges</option>
           <option value="open">Only ones I can enter</option>
+        </select>
+        <select id="lounge-sort">
+          <option value="default">Sort: default</option>
+          <option value="open">Enterable first</option>
+          <option value="city">City A-Z</option>
         </select>
       </div>
       <div class="stat-row" id="coverage-stats"></div>

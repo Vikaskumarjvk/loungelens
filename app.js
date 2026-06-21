@@ -84,15 +84,15 @@
     </div>`;
   }
 
-  // ---- mode toggle -------------------------------------------------------
+  // ---- view mode (Simple/Advanced toggle removed 2026-06-22) -------------
+  // One clean smart view: friendly plain-language labels (what Simple did well)
+  // PLUS the useful detail Advanced used to hide (rails, eligibility, notes) —
+  // shown cleanly, always. `isSimple()` stays true so labels/layout stay friendly;
+  // the body no longer carries simple-mode, so `.adv-only` content is visible.
   function applyMode() {
-    document.body.classList.toggle("simple-mode", isSimple());
-    document.body.classList.toggle("advanced-mode", !isSimple());
-    $$("#mode-toggle button").forEach((b) => b.classList.toggle("active", b.dataset.mode === state.mode));
+    document.body.classList.remove("simple-mode");
+    document.body.classList.add("advanced-mode");
   }
-  $$("#mode-toggle button").forEach((b) =>
-    b.addEventListener("click", () => { state.mode = b.dataset.mode; save(); applyMode(); render(); })
-  );
 
   // ---- routing -----------------------------------------------------------
   $$("nav button").forEach((b) =>
@@ -269,10 +269,22 @@
   }
 
   // ============================ LOUNGES ===================================
+  let loungeCityFilled = false;
+  function fillLoungeCities() {
+    const sel = $("#lounge-city");
+    if (!sel || loungeCityFilled) return;
+    const cities = [...new Set(LOUNGES.map((l) => l.city).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">All cities</option>' + cities.map((c) => `<option value="${c}">${c}</option>`).join("");
+    loungeCityFilled = true;
+  }
+
   function renderLounges() {
+    fillLoungeCities();
     const q = ($("#lounge-search").value || "").toLowerCase();
     const type = $("#lounge-type").value;
+    const city = ($("#lounge-city") && $("#lounge-city").value) || "";
     const onlyOpen = $("#lounge-filter").value === "open";
+    const sort = ($("#lounge-sort") && $("#lounge-sort").value) || "default";
     const cov = E.coverage(state.wallet, CARDS, LOUNGES, state.visitLog, state.spend, NOW, type ? { type } : null);
 
     $("#coverage-stats").innerHTML = `
@@ -282,8 +294,11 @@
 
     let rows = cov.list.filter(({ lounge: l }) =>
       `${l.name} ${l.city} ${l.airport || ""} ${l.station || ""} ${l.terminal || ""}`.toLowerCase().includes(q));
+    if (city) rows = rows.filter((r) => r.lounge.city === city);
     if (onlyOpen) rows = rows.filter((r) => r.open);
-    if (rows.length === 0) { $("#lounge-list").innerHTML = `<div class="empty">No lounges match.</div>`; return; }
+    if (sort === "open") rows = rows.slice().sort((a, b) => (b.open ? 1 : 0) - (a.open ? 1 : 0));
+    else if (sort === "city") rows = rows.slice().sort((a, b) => (a.lounge.city || "").localeCompare(b.lounge.city || ""));
+    if (rows.length === 0) { $("#lounge-list").innerHTML = `<div class="empty">No lounges match these filters.</div>`; return; }
 
     $("#lounge-list").innerHTML = rows.map(({ lounge: l, matches, open, blockedOnly }) => {
       const cls = open ? "open" : blockedOnly ? "blocked" : "closed";
@@ -333,8 +348,8 @@
     state.experiences.push({ loungeId, cardId, outcome, ts: new Date().toISOString() });
     save(); render();
   }
-  ["#lounge-search", "#lounge-type", "#lounge-filter"].forEach((sel) => {
-    const el = $(sel); el.oninput = renderLounges; el.onchange = renderLounges;
+  ["#lounge-search", "#lounge-type", "#lounge-city", "#lounge-filter", "#lounge-sort"].forEach((sel) => {
+    const el = $(sel); if (el) { el.oninput = renderLounges; el.onchange = renderLounges; }
   });
 
   // ============================ RECOMMEND =================================

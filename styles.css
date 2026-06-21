@@ -285,16 +285,9 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .gate-warn { background: var(--warn-dim); border: 1px solid rgba(251, 191, 36, 0.28); border-radius: var(--r-sm); padding: 10px 12px; margin-top: 10px; font-size: 12.5px; color: #f3d28a; }
 .gate-warn b { color: var(--warn); }
 
-/* ============================ MODE TOGGLE ============================ */
-.mode-toggle {
-  margin-left: auto; display: flex; gap: 3px; background: var(--chip);
-  border: 1px solid var(--line); border-radius: var(--r-pill); padding: 3px;
-}
-.mode-toggle button { background: transparent; border: none; color: var(--dim); padding: 6px 13px; border-radius: var(--r-pill); cursor: pointer; font-size: 12px; font-weight: 700; transition: color .15s; }
-.mode-toggle button.active { background: var(--accent-grad); color: #fff; box-shadow: 0 2px 10px rgba(123, 110, 255, 0.3); }
-@media (max-width: 600px) { .mode-toggle { margin-left: 0; margin-top: 10px; order: 3; } .brand { flex-wrap: wrap; } }
-
-body.simple-mode .adv-only { display: none !important; }
+/* Simple/Advanced toggle removed 2026-06-22 — single clean smart view.
+   .adv-only content is now always visible; .auth-bar pushes right. */
+@media (max-width: 600px) { .brand { flex-wrap: wrap; } }
 
 /* ============================ NUDGE / LINK ============================ */
 .nudge {
@@ -379,7 +372,6 @@ body.simple-mode .adv-only { display: none !important; }
 .src-link:hover { border-color: var(--accent); transform: translateY(-1px); }
 .src-link.access { background: var(--good-dim); border-color: rgba(54, 211, 153, 0.32); color: #7ee08a; }
 .src-link .rel { font-size: 8px; color: var(--accent); letter-spacing: -1px; }
-body.simple-mode .src-link .rel { display: none; }
 
 /* ============================ AIRPORTS ============================ */
 .ap-group { background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-1), inset 0 1px 0 var(--glass-top); }
@@ -424,7 +416,7 @@ body.simple-mode .src-link .rel { display: none; }
 .suggest-form .cmp-select { flex: 0 0 auto; width: auto; }
 
 /* ============================ AUTH ============================ */
-.auth-bar { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+.auth-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 #auth-name { font-size: 13px; font-weight: 600; color: var(--accent); }
 .login-error { background: var(--bad-dim); border: 1px solid rgba(251, 113, 133, 0.32); color: #fda4af; border-radius: var(--r-sm); padding: 9px 11px; font-size: 13px; margin-top: 10px; }
 #login-modal .leg-input { width: 100%; }
@@ -497,6 +489,38 @@ body.simple-mode .src-link .rel { display: none; }
   .hero h2 { font-size: 24px; }
   main { padding: 18px 14px 0; }
   .stat .num { font-size: 26px; }
+  .filter-controls .cmp-select { flex: 1 1 100%; min-width: 0; }
+}
+
+/* ---- DESKTOP: top nav becomes a fixed left sidebar (real website feel) ---- */
+@media (min-width: 960px) {
+  header {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 248px;
+    border-bottom: none; border-right: 1px solid var(--line);
+    padding: 22px 16px; overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .brand { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .brand .logo { font-size: 30px; }
+  .brand h1 { font-size: 23px; }
+  .brand .tag { font-size: 12px; max-width: 200px; }
+  .auth-bar { margin-left: 0; margin-top: 4px; }
+  nav {
+    flex-direction: column; gap: 4px; margin-top: 20px;
+    flex-wrap: nowrap; align-items: stretch;
+  }
+  nav button { text-align: left; padding: 10px 14px; font-size: 13.5px; border-radius: var(--r-sm); }
+  nav button:hover { transform: none; background: rgba(255, 255, 255, 0.05); }
+  .install-btn { margin-top: 8px; }
+  main { margin-left: 248px; max-width: 860px; padding: 30px 32px 0; }
+  .foot { margin-left: 248px; }
+  /* keep sticky filter bars below the (now non-sticky-at-top) content nicely */
+  .filterbar { top: 0; }
+}
+
+@media (min-width: 1400px) {
+  main { margin-left: 0; padding-left: 280px; max-width: 1140px; }
+  .foot { margin-left: 0; padding-left: 280px; }
 }
 
 /* reduce motion if the user prefers it */
