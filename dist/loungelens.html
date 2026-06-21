@@ -251,6 +251,11 @@ body.simple-mode .src-link .rel { display: none; }
 .val-verdict.bad .val-net { color: var(--bad); }
 .val-tag { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--dim); }
 
+/* trip "confirm in official app" link */
+.confirm-link { display: inline-block; margin-top: 5px; font-size: 12px; color: var(--accent);
+  text-decoration: none; font-weight: 600; }
+.confirm-link:hover { text-decoration: underline; }
+
 /* suggest form */
 .suggest-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 .suggest-form .leg-input { flex: 1; min-width: 140px; }
@@ -1135,6 +1140,69 @@ window.LL_CARDS = [
     domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority"], railway: false,
     ease: 2, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Premium.",
     feeNote: "₹10,000. Domestic + Priority Pass.", confidence: "low", verify: "americanexpress.com/in" },
+
+  // ==================================================================
+  // ============  MORE DEBIT CARDS — PSU + premium tiers  ============
+  // ==================================================================
+  // PSU banks issue the bulk of India's debit cards. Most lounge access on debit
+  // is now spend-gated or pay-per-use after the 2024-25 cuts. All confidence "low".
+
+  { id: "pnb-rupay-select-debit", name: "PNB RuPay Select Debit", issuer: "Punjab National Bank", network: "rupay", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "PNB savings account.",
+    feeNote: "RuPay Select debit: domestic + railway.", confidence: "low", verify: "pnbindia.in" },
+  { id: "canara-rupay-select-debit", name: "Canara RuPay Select Debit", issuer: "Canara Bank", network: "rupay", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "Canara savings account.",
+    feeNote: "RuPay Select debit: domestic + railway.", confidence: "low", verify: "canarabank.com" },
+  { id: "union-rupay-select-debit", name: "Union Bank RuPay Select Debit", issuer: "Union Bank", network: "rupay", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "Union Bank savings account.",
+    feeNote: "RuPay Select debit: domestic + railway.", confidence: "low", verify: "unionbankofindia.co.in" },
+  { id: "bob-world-debit", name: "Bank of Baroda World Debit", issuer: "Bank of Baroda", network: "visa", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: { amount: 50000, per: "quarter", note: "Spend-gated debit lounge." },
+    programs: ["dreamfolks", "visa", "mastercard"], railway: false, ease: 5, ltf: false, fyf: false, approvalSpeed: "instant",
+    eligibility: "BoB savings account.", feeNote: "World debit; spend-gated lounge.", confidence: "low", verify: "bankofbaroda.in" },
+  { id: "idbi-visa-signature-debit", name: "IDBI Visa Signature Debit", issuer: "IDBI Bank", network: "visa", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "IDBI savings account.",
+    feeNote: "Signature debit lounge.", confidence: "low", verify: "idbibank.in" },
+  { id: "indianbank-rupay-debit", name: "Indian Bank RuPay Select Debit", issuer: "Indian Bank", network: "rupay", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "Indian Bank savings account.",
+    feeNote: "RuPay Select debit: domestic + railway.", confidence: "low", verify: "indianbank.in" },
+  { id: "boi-rupay-debit", name: "Bank of India RuPay Select Debit", issuer: "Bank of India", network: "rupay", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "BoI savings account.",
+    feeNote: "RuPay Select debit: domestic + railway.", confidence: "low", verify: "bankofindia.co.in" },
+  { id: "centralbank-rupay-debit", name: "Central Bank RuPay Select Debit", issuer: "Central Bank of India", network: "rupay", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["rupay", "dreamfolks"], railway: true,
+    ease: 5, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "Central Bank savings account.",
+    feeNote: "RuPay Select debit: domestic + railway.", confidence: "low", verify: "centralbankofindia.co.in" },
+  { id: "rbl-debit", name: "RBL Signature / World Debit", issuer: "RBL", network: "mastercard", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "mastercard"], railway: false,
+    ease: 4, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "RBL savings account.",
+    feeNote: "Premium debit lounge.", confidence: "low", verify: "rblbank.com" },
+  { id: "idfc-first-debit", name: "IDFC FIRST Visa Signature Debit", issuer: "IDFC FIRST", network: "visa", type: "debit",
+    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "visa"], railway: true,
+    ease: 4, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "IDFC FIRST savings account.",
+    feeNote: "Signature debit: domestic + railway.", confidence: "low", verify: "idfcfirstbank.com" },
+  { id: "au-debit", name: "AU Bank Visa Signature Debit", issuer: "AU Small Finance", network: "visa", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: true,
+    ease: 4, ltf: false, fyf: false, approvalSpeed: "instant", eligibility: "AU savings account.",
+    feeNote: "Signature debit: domestic + railway.", confidence: "low", verify: "aubank.in" },
+  { id: "standard-chartered-debit", name: "Standard Chartered Visa Debit", issuer: "Standard Chartered", network: "visa", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "fast", eligibility: "SC savings account.",
+    feeNote: "Premium debit lounge.", confidence: "low", verify: "sc.com/in" },
+  { id: "hsbc-debit", name: "HSBC Premier Debit", issuer: "HSBC", network: "visa", type: "debit",
+    domesticVisits: 2, period: "quarter", spendGate: null, programs: ["dreamfolks", "visa"], railway: false,
+    ease: 3, ltf: false, fyf: false, approvalSpeed: "fast", eligibility: "HSBC Premier relationship.",
+    feeNote: "Premier debit lounge.", confidence: "low", verify: "hsbc.co.in" },
+  { id: "kotak-811-debit", name: "Kotak 811 / Visa Debit", issuer: "Kotak", network: "visa", type: "debit",
+    domesticVisits: 1, period: "quarter", spendGate: { amount: 50000, per: "quarter", note: "Spend-gated on lower-tier debit." },
+    programs: ["dreamfolks", "visa"], railway: false, ease: 5, ltf: false, fyf: false, approvalSpeed: "instant",
+    eligibility: "Kotak 811 digital account.", feeNote: "Spend-gated debit lounge.", confidence: "low", verify: "kotak.com" },
 ];
 
 </script>
@@ -2275,6 +2343,14 @@ window.LL_SOURCE_LINKS = {
   // render a row of external source links (official access apps + research bases).
   // Honest: these LINK OUT — the app can't grant access itself.
   const relDots = (n) => "●".repeat(n) + "○".repeat(5 - n);
+  // compact "confirm in the official app" link for a lounge in the trip planner.
+  // picks the highest-reliability access service whose rail matches the lounge.
+  function tripConfirmLink(lounge) {
+    const access = (SLINKS.forLounge(lounge) || []).filter((x) => x.kind === "access");
+    if (!access.length) return "";
+    const best = access.sort((a, b) => (b.reliability || 0) - (a.reliability || 0))[0];
+    return `<a class="confirm-link" href="${best.url}" target="_blank" rel="noopener noreferrer">✔ confirm in ${best.label.replace(/^Open /, "")} →</a>`;
+  }
   function sourceLinksHtml(links, ctx) {
     if (!links || !links.length) return "";
     const access = links.filter((l) => l.kind === "access");
@@ -2364,10 +2440,13 @@ window.LL_SOURCE_LINKS = {
       const lounges = leg.loungeRows.map((row) => {
         const l = row.lounge;
         const loc = l.type === "railway" ? `🚆 ${l.station}` : `✈️ ${l.airport} ${l.terminal || ""}`.trim();
+        // "confirm in the official app" link for the primary access rail of this lounge
+        const confirmLink = tripConfirmLink(l);
         if (isSimple()) {
           if (row.open) {
             return `<div class="lounge-line ok"><span class="ll-name">${l.name}</span> <span class="ll-loc">${loc}</span>
-              <div class="use-card">use <b>${row.best.card.name}</b>${row.best.quota.unlimited ? "" : ` · ${row.best.quota.left} left`}</div></div>`;
+              <div class="use-card">use <b>${row.best.card.name}</b>${row.best.quota.unlimited ? "" : ` · ${row.best.quota.left} left`}</div>
+              ${confirmLink}</div>`;
           }
           const why = row.matches.length === 0 ? "none of your cards" :
             (row.best && !row.best.spend.met) ? `${row.best.card.name} is spend-locked` : `${row.best ? row.best.card.name : "your card"} has 0 visits left`;
@@ -2385,6 +2464,7 @@ window.LL_SOURCE_LINKS = {
           <div class="card-head"><div><b>${l.name}</b> ${confBadge(l.confidence)}<div class="card-sub">${loc}</div></div></div>
           ${openers}
           ${l.verify ? `<span class="verify">✔ ${l.verify}</span>` : ""}
+          ${confirmLink}
         </div>`;
       }).join("");
 

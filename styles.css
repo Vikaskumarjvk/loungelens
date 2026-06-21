@@ -232,6 +232,11 @@ body.simple-mode .src-link .rel { display: none; }
 .val-verdict.bad .val-net { color: var(--bad); }
 .val-tag { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--dim); }
 
+/* trip "confirm in official app" link */
+.confirm-link { display: inline-block; margin-top: 5px; font-size: 12px; color: var(--accent);
+  text-decoration: none; font-weight: 600; }
+.confirm-link:hover { text-decoration: underline; }
+
 /* suggest form */
 .suggest-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 .suggest-form .leg-input { flex: 1; min-width: 140px; }

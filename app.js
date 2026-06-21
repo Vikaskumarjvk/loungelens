@@ -65,6 +65,14 @@
   // render a row of external source links (official access apps + research bases).
   // Honest: these LINK OUT — the app can't grant access itself.
   const relDots = (n) => "●".repeat(n) + "○".repeat(5 - n);
+  // compact "confirm in the official app" link for a lounge in the trip planner.
+  // picks the highest-reliability access service whose rail matches the lounge.
+  function tripConfirmLink(lounge) {
+    const access = (SLINKS.forLounge(lounge) || []).filter((x) => x.kind === "access");
+    if (!access.length) return "";
+    const best = access.sort((a, b) => (b.reliability || 0) - (a.reliability || 0))[0];
+    return `<a class="confirm-link" href="${best.url}" target="_blank" rel="noopener noreferrer">✔ confirm in ${best.label.replace(/^Open /, "")} →</a>`;
+  }
   function sourceLinksHtml(links, ctx) {
     if (!links || !links.length) return "";
     const access = links.filter((l) => l.kind === "access");
@@ -154,10 +162,13 @@
       const lounges = leg.loungeRows.map((row) => {
         const l = row.lounge;
         const loc = l.type === "railway" ? `🚆 ${l.station}` : `✈️ ${l.airport} ${l.terminal || ""}`.trim();
+        // "confirm in the official app" link for the primary access rail of this lounge
+        const confirmLink = tripConfirmLink(l);
         if (isSimple()) {
           if (row.open) {
             return `<div class="lounge-line ok"><span class="ll-name">${l.name}</span> <span class="ll-loc">${loc}</span>
-              <div class="use-card">use <b>${row.best.card.name}</b>${row.best.quota.unlimited ? "" : ` · ${row.best.quota.left} left`}</div></div>`;
+              <div class="use-card">use <b>${row.best.card.name}</b>${row.best.quota.unlimited ? "" : ` · ${row.best.quota.left} left`}</div>
+              ${confirmLink}</div>`;
           }
           const why = row.matches.length === 0 ? "none of your cards" :
             (row.best && !row.best.spend.met) ? `${row.best.card.name} is spend-locked` : `${row.best ? row.best.card.name : "your card"} has 0 visits left`;
@@ -175,6 +186,7 @@
           <div class="card-head"><div><b>${l.name}</b> ${confBadge(l.confidence)}<div class="card-sub">${loc}</div></div></div>
           ${openers}
           ${l.verify ? `<span class="verify">✔ ${l.verify}</span>` : ""}
+          ${confirmLink}
         </div>`;
       }).join("");
 
