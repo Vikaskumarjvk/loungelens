@@ -381,45 +381,95 @@
   $("#rec-type").onchange = renderRecommend;
 
   // ============================ ADD CARDS =================================
-  let addCardFilter = "all"; // all | credit | debit
+  // full filter state (kept in JS so re-renders never lose a selection)
+  const addF = { type: "all", issuer: "", network: "", hideNoLounge: false, lifetimeFree: false, sort: "relevance" };
+  const hasLounge = (c) => c.domesticVisits === "unlimited" || (Number(c.domesticVisits) || 0) > 0;
+  const netWord = (n) => ({ visa: "Visa", mastercard: "Mastercard", rupay: "RuPay", amex: "Amex", diners: "Diners" }[n] || n);
+
   function renderAddCard() {
     const q = ($("#addcard-search") && $("#addcard-search").value || "").toLowerCase();
-    const list = CARDS
-      .filter((c) => addCardFilter === "all" || cardType(c) === addCardFilter)
+
+    // apply all filters
+    let list = CARDS
+      .filter((c) => addF.type === "all" || cardType(c) === addF.type)
+      .filter((c) => !addF.issuer || c.issuer === addF.issuer)
+      .filter((c) => !addF.network || c.network === addF.network)
+      .filter((c) => !addF.hideNoLounge || hasLounge(c))
+      .filter((c) => !addF.lifetimeFree || c.ltf)
       .filter((c) => `${c.name} ${c.issuer}`.toLowerCase().includes(q));
 
-    // filter chips + counts
+    // sort
+    const visitNum = (c) => c.domesticVisits === "unlimited" ? 9999 : (Number(c.domesticVisits) || 0);
+    const feeNum = (c) => { const m = (c.feeNote || "").match(/₹\s?([\d,]+)/); return m ? Number(m[1].replace(/,/g, "")) : 0; };
+    if (addF.sort === "visits") list = list.slice().sort((a, b) => visitNum(b) - visitNum(a));
+    else if (addF.sort === "ease") list = list.slice().sort((a, b) => (b.ease || 0) - (a.ease || 0));
+    else if (addF.sort === "fee") list = list.slice().sort((a, b) => feeNum(a) - feeNum(b));
+    else if (addF.sort === "name") list = list.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+    // counts for the type chips
     const nCredit = CARDS.filter((c) => cardType(c) === "credit").length;
     const nDebit = CARDS.filter((c) => cardType(c) === "debit").length;
-    const filterBar = `<div class="row" style="margin-bottom:10px;">
-      <button class="act ${addCardFilter === "all" ? "" : "ghost"} mini" data-addfilter="all">All (${CARDS.length})</button>
-      <button class="act ${addCardFilter === "credit" ? "" : "ghost"} mini" data-addfilter="credit">💳 Credit (${nCredit})</button>
-      <button class="act ${addCardFilter === "debit" ? "" : "ghost"} mini" data-addfilter="debit">🏧 Debit (${nDebit})</button>
-    </div>`;
+    // issuer options (sorted, with counts)
+    const issuerCounts = {};
+    CARDS.forEach((c) => { issuerCounts[c.issuer] = (issuerCounts[c.issuer] || 0) + 1; });
+    const issuerOpts = ['<option value="">All banks</option>']
+      .concat(Object.keys(issuerCounts).sort().map((i) =>
+        `<option value="${i}" ${addF.issuer === i ? "selected" : ""}>${i} (${issuerCounts[i]})</option>`)).join("");
+    const networks = ["visa", "mastercard", "rupay", "amex", "diners"];
+    const netOpts = ['<option value="">All networks</option>']
+      .concat(networks.map((n) => `<option value="${n}" ${addF.network === n ? "selected" : ""}>${netWord(n)}</option>`)).join("");
+    const sorts = [["relevance", "Sort: default"], ["visits", "Most visits"], ["ease", "Easiest to get"], ["fee", "Lowest fee"], ["name", "Name A-Z"]];
+    const sortOpts = sorts.map(([v, l]) => `<option value="${v}" ${addF.sort === v ? "selected" : ""}>${l}</option>`).join("");
+
+    const controls = `
+      <div class="filterbar">
+        <div class="seg">
+          <button class="seg-btn ${addF.type === "all" ? "on" : ""}" data-addtype="all">All ${CARDS.length}</button>
+          <button class="seg-btn ${addF.type === "credit" ? "on" : ""}" data-addtype="credit">💳 Credit ${nCredit}</button>
+          <button class="seg-btn ${addF.type === "debit" ? "on" : ""}" data-addtype="debit">🏧 Debit ${nDebit}</button>
+        </div>
+        <div class="filter-controls">
+          <select class="cmp-select" id="add-issuer">${issuerOpts}</select>
+          <select class="cmp-select" id="add-network">${netOpts}</select>
+          <select class="cmp-select" id="add-sort">${sortOpts}</select>
+          <label class="chip toggle"><input type="checkbox" id="add-hidenolounge" ${addF.hideNoLounge ? "checked" : ""} /> Lounge cards only</label>
+          <label class="chip toggle"><input type="checkbox" id="add-ltf" ${addF.lifetimeFree ? "checked" : ""} /> Lifetime-free</label>
+        </div>
+        <div class="result-count">${list.length} card${list.length === 1 ? "" : "s"}</div>
+      </div>`;
 
     const cards = list.map((c) => {
       const picked = state.wallet.includes(c.id);
       const tags = [
-        `<span class="chip">${visitsLabel(c)}</span>`,
+        hasLounge(c) ? `<span class="chip good">${visitsLabel(c)}</span>` : `<span class="chip">no lounge</span>`,
         c.ltf ? `<span class="chip good">LTF</span>` : "",
         c.spendGate ? `<span class="chip warn">spend gate</span>` : "",
-        c.railway ? `<span class="chip rail">🚆</span>` : "",
+        c.railway ? `<span class="chip rail">🚆 railway</span>` : "",
         `<span class="chip">${easeWord(c.ease)}</span>`,
         c.approvalSpeed ? `<span class="chip">${speedWord(c.approvalSpeed)}</span>` : "",
+        c.discontinued ? `<span class="chip bad">discontinued</span>` : "",
       ].filter(Boolean).join("");
       return `
       <div class="card selectable ${picked ? "picked" : ""}" data-toggle="${c.id}">
         <div class="card-head">
           <div><div class="card-title">${typeBadge(c)} ${c.name} ${confBadge(c.confidence)}</div>
-          <div class="card-sub">${c.issuer} · ${c.feeNote}</div></div>
+          <div class="card-sub">${c.issuer} · ${netWord(c.network)} · ${c.feeNote}</div></div>
           <span class="chip ${picked ? "good" : ""}">${picked ? "✓ added" : "tap to add"}</span>
         </div>
         <div class="row">${tags}</div>
       </div>`;
-    }).join("") || `<div class="empty">No cards match.</div>`;
+    }).join("") || `<div class="empty">No cards match these filters. <span class="link" id="add-clearfilters">Clear filters</span></div>`;
 
-    $("#addcard-list").innerHTML = filterBar + cards;
-    $$("[data-addfilter]").forEach((b) => b.onclick = () => { addCardFilter = b.dataset.addfilter; renderAddCard(); });
+    $("#addcard-list").innerHTML = controls + cards;
+
+    // wire controls
+    $$("[data-addtype]").forEach((b) => b.onclick = () => { addF.type = b.dataset.addtype; renderAddCard(); });
+    const wireSel = (id, key) => { const el = $("#" + id); if (el) el.onchange = () => { addF[key] = el.value; renderAddCard(); }; };
+    wireSel("add-issuer", "issuer"); wireSel("add-network", "network"); wireSel("add-sort", "sort");
+    const wireChk = (id, key) => { const el = $("#" + id); if (el) el.onchange = () => { addF[key] = el.checked; renderAddCard(); }; };
+    wireChk("add-hidenolounge", "hideNoLounge"); wireChk("add-ltf", "lifetimeFree");
+    const clr = $("#add-clearfilters");
+    if (clr) clr.onclick = () => { addF.type = "all"; addF.issuer = ""; addF.network = ""; addF.hideNoLounge = false; addF.lifetimeFree = false; addF.sort = "relevance"; renderAddCard(); };
     $$("[data-toggle]").forEach((el) => el.onclick = () => {
       const id = el.dataset.toggle;
       if (state.wallet.includes(id)) state.wallet = state.wallet.filter((x) => x !== id);

@@ -1362,4 +1362,14 @@ window.LL_CARDS = [
     domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks","priority"], railway: false,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal",
     eligibility: "AU ABC series premium (scraped 2026-06-22, tier estimated).", feeNote: "Lounge tier estimated, verify.", confidence: "low", verify: "aubank.in (not live-scraped — verify)" },
+
+  // ====  AU XCITE SERIES (2026-06-22, sourced terms)  ====
+  { id: "au-xcite-ultra", name: "AU Xcite Ultra", issuer: "AU Small Finance", network: "visa",
+    domesticVisits: 2, period: "quarter", spendGate: { amount: 50000, per: "quarter", note: "2 domestic lounge/quarter needs Rs 50k prior-quarter spend (cardinsider 2026-06-22)." }, programs: ["dreamfolks","visa"], railway: true,
+    ease: 3, ltf: false, fyf: true, approvalSpeed: "normal",
+    eligibility: "AU Xcite series, Ultra tier.", feeNote: "Rs 749 + GST. 2 domestic lounge/qtr (spend-gated) + 8 railway/yr.", confidence: "med", verify: "aubank.in (Xcite Ultra)" },
+  { id: "au-xcite", name: "AU Xcite", issuer: "AU Small Finance", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: ["dreamfolks","rupay"], railway: true,
+    ease: 4, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "AU Xcite series, base tier.", feeNote: "Railway lounge only (2/qtr, 8/yr in select cities). No domestic airport lounge.", confidence: "med", verify: "aubank.in (Xcite, railway-only)" },
 ];

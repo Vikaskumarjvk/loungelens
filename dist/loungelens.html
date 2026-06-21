@@ -495,6 +495,27 @@ body.simple-mode .src-link .rel { display: none; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast[hidden] { display: none; }
 
+/* ============================ FILTER BAR (Add Cards) ============================ */
+.filterbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(10, 12, 19, 0.82);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 12px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--shadow-1);
+}
+.seg { display: inline-flex; gap: 3px; background: var(--chip); border: 1px solid var(--line); border-radius: var(--r-pill); padding: 3px; align-self: flex-start; }
+.seg-btn { background: transparent; border: none; color: var(--dim); padding: 7px 14px; border-radius: var(--r-pill); cursor: pointer; font-size: 12.5px; font-weight: 700; transition: color .15s; white-space: nowrap; }
+.seg-btn:hover { color: var(--txt); }
+.seg-btn.on { background: var(--accent-grad); color: #fff; box-shadow: 0 2px 8px rgba(123, 110, 255, 0.3); }
+.filter-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filter-controls .cmp-select { flex: 0 1 auto; min-width: 130px; padding: 8px 10px; font-size: 13px; }
+.chip.toggle { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; user-select: none; }
+.chip.toggle input { accent-color: var(--accent); margin: 0; }
+.chip.toggle:has(input:checked) { color: var(--good); border-color: rgba(54, 211, 153, 0.4); background: var(--good-dim); }
+.result-count { font-size: 12px; color: var(--dim-2); font-weight: 600; }
+
 /* ============================ RESPONSIVE ============================ */
 @media (max-width: 600px) {
   .hero h2 { font-size: 24px; }
@@ -2183,6 +2204,16 @@ window.LL_CARDS = [
     domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks","priority"], railway: false,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal",
     eligibility: "AU ABC series premium (scraped 2026-06-22, tier estimated).", feeNote: "Lounge tier estimated, verify.", confidence: "low", verify: "aubank.in (not live-scraped — verify)" },
+
+  // ====  AU XCITE SERIES (2026-06-22, sourced terms)  ====
+  { id: "au-xcite-ultra", name: "AU Xcite Ultra", issuer: "AU Small Finance", network: "visa",
+    domesticVisits: 2, period: "quarter", spendGate: { amount: 50000, per: "quarter", note: "2 domestic lounge/quarter needs Rs 50k prior-quarter spend (cardinsider 2026-06-22)." }, programs: ["dreamfolks","visa"], railway: true,
+    ease: 3, ltf: false, fyf: true, approvalSpeed: "normal",
+    eligibility: "AU Xcite series, Ultra tier.", feeNote: "Rs 749 + GST. 2 domestic lounge/qtr (spend-gated) + 8 railway/yr.", confidence: "med", verify: "aubank.in (Xcite Ultra)" },
+  { id: "au-xcite", name: "AU Xcite", issuer: "AU Small Finance", network: "visa",
+    domesticVisits: 0, period: "year", spendGate: null, programs: ["dreamfolks","rupay"], railway: true,
+    ease: 4, ltf: false, fyf: true, approvalSpeed: "fast",
+    eligibility: "AU Xcite series, base tier.", feeNote: "Railway lounge only (2/qtr, 8/yr in select cities). No domestic airport lounge.", confidence: "med", verify: "aubank.in (Xcite, railway-only)" },
 ];
 
 </script>
@@ -3742,45 +3773,95 @@ window.LL_SOURCE_LINKS = {
   $("#rec-type").onchange = renderRecommend;
 
   // ============================ ADD CARDS =================================
-  let addCardFilter = "all"; // all | credit | debit
+  // full filter state (kept in JS so re-renders never lose a selection)
+  const addF = { type: "all", issuer: "", network: "", hideNoLounge: false, lifetimeFree: false, sort: "relevance" };
+  const hasLounge = (c) => c.domesticVisits === "unlimited" || (Number(c.domesticVisits) || 0) > 0;
+  const netWord = (n) => ({ visa: "Visa", mastercard: "Mastercard", rupay: "RuPay", amex: "Amex", diners: "Diners" }[n] || n);
+
   function renderAddCard() {
     const q = ($("#addcard-search") && $("#addcard-search").value || "").toLowerCase();
-    const list = CARDS
-      .filter((c) => addCardFilter === "all" || cardType(c) === addCardFilter)
+
+    // apply all filters
+    let list = CARDS
+      .filter((c) => addF.type === "all" || cardType(c) === addF.type)
+      .filter((c) => !addF.issuer || c.issuer === addF.issuer)
+      .filter((c) => !addF.network || c.network === addF.network)
+      .filter((c) => !addF.hideNoLounge || hasLounge(c))
+      .filter((c) => !addF.lifetimeFree || c.ltf)
       .filter((c) => `${c.name} ${c.issuer}`.toLowerCase().includes(q));
 
-    // filter chips + counts
+    // sort
+    const visitNum = (c) => c.domesticVisits === "unlimited" ? 9999 : (Number(c.domesticVisits) || 0);
+    const feeNum = (c) => { const m = (c.feeNote || "").match(/₹\s?([\d,]+)/); return m ? Number(m[1].replace(/,/g, "")) : 0; };
+    if (addF.sort === "visits") list = list.slice().sort((a, b) => visitNum(b) - visitNum(a));
+    else if (addF.sort === "ease") list = list.slice().sort((a, b) => (b.ease || 0) - (a.ease || 0));
+    else if (addF.sort === "fee") list = list.slice().sort((a, b) => feeNum(a) - feeNum(b));
+    else if (addF.sort === "name") list = list.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+    // counts for the type chips
     const nCredit = CARDS.filter((c) => cardType(c) === "credit").length;
     const nDebit = CARDS.filter((c) => cardType(c) === "debit").length;
-    const filterBar = `<div class="row" style="margin-bottom:10px;">
-      <button class="act ${addCardFilter === "all" ? "" : "ghost"} mini" data-addfilter="all">All (${CARDS.length})</button>
-      <button class="act ${addCardFilter === "credit" ? "" : "ghost"} mini" data-addfilter="credit">💳 Credit (${nCredit})</button>
-      <button class="act ${addCardFilter === "debit" ? "" : "ghost"} mini" data-addfilter="debit">🏧 Debit (${nDebit})</button>
-    </div>`;
+    // issuer options (sorted, with counts)
+    const issuerCounts = {};
+    CARDS.forEach((c) => { issuerCounts[c.issuer] = (issuerCounts[c.issuer] || 0) + 1; });
+    const issuerOpts = ['<option value="">All banks</option>']
+      .concat(Object.keys(issuerCounts).sort().map((i) =>
+        `<option value="${i}" ${addF.issuer === i ? "selected" : ""}>${i} (${issuerCounts[i]})</option>`)).join("");
+    const networks = ["visa", "mastercard", "rupay", "amex", "diners"];
+    const netOpts = ['<option value="">All networks</option>']
+      .concat(networks.map((n) => `<option value="${n}" ${addF.network === n ? "selected" : ""}>${netWord(n)}</option>`)).join("");
+    const sorts = [["relevance", "Sort: default"], ["visits", "Most visits"], ["ease", "Easiest to get"], ["fee", "Lowest fee"], ["name", "Name A-Z"]];
+    const sortOpts = sorts.map(([v, l]) => `<option value="${v}" ${addF.sort === v ? "selected" : ""}>${l}</option>`).join("");
+
+    const controls = `
+      <div class="filterbar">
+        <div class="seg">
+          <button class="seg-btn ${addF.type === "all" ? "on" : ""}" data-addtype="all">All ${CARDS.length}</button>
+          <button class="seg-btn ${addF.type === "credit" ? "on" : ""}" data-addtype="credit">💳 Credit ${nCredit}</button>
+          <button class="seg-btn ${addF.type === "debit" ? "on" : ""}" data-addtype="debit">🏧 Debit ${nDebit}</button>
+        </div>
+        <div class="filter-controls">
+          <select class="cmp-select" id="add-issuer">${issuerOpts}</select>
+          <select class="cmp-select" id="add-network">${netOpts}</select>
+          <select class="cmp-select" id="add-sort">${sortOpts}</select>
+          <label class="chip toggle"><input type="checkbox" id="add-hidenolounge" ${addF.hideNoLounge ? "checked" : ""} /> Lounge cards only</label>
+          <label class="chip toggle"><input type="checkbox" id="add-ltf" ${addF.lifetimeFree ? "checked" : ""} /> Lifetime-free</label>
+        </div>
+        <div class="result-count">${list.length} card${list.length === 1 ? "" : "s"}</div>
+      </div>`;
 
     const cards = list.map((c) => {
       const picked = state.wallet.includes(c.id);
       const tags = [
-        `<span class="chip">${visitsLabel(c)}</span>`,
+        hasLounge(c) ? `<span class="chip good">${visitsLabel(c)}</span>` : `<span class="chip">no lounge</span>`,
         c.ltf ? `<span class="chip good">LTF</span>` : "",
         c.spendGate ? `<span class="chip warn">spend gate</span>` : "",
-        c.railway ? `<span class="chip rail">🚆</span>` : "",
+        c.railway ? `<span class="chip rail">🚆 railway</span>` : "",
         `<span class="chip">${easeWord(c.ease)}</span>`,
         c.approvalSpeed ? `<span class="chip">${speedWord(c.approvalSpeed)}</span>` : "",
+        c.discontinued ? `<span class="chip bad">discontinued</span>` : "",
       ].filter(Boolean).join("");
       return `
       <div class="card selectable ${picked ? "picked" : ""}" data-toggle="${c.id}">
         <div class="card-head">
           <div><div class="card-title">${typeBadge(c)} ${c.name} ${confBadge(c.confidence)}</div>
-          <div class="card-sub">${c.issuer} · ${c.feeNote}</div></div>
+          <div class="card-sub">${c.issuer} · ${netWord(c.network)} · ${c.feeNote}</div></div>
           <span class="chip ${picked ? "good" : ""}">${picked ? "✓ added" : "tap to add"}</span>
         </div>
         <div class="row">${tags}</div>
       </div>`;
-    }).join("") || `<div class="empty">No cards match.</div>`;
+    }).join("") || `<div class="empty">No cards match these filters. <span class="link" id="add-clearfilters">Clear filters</span></div>`;
 
-    $("#addcard-list").innerHTML = filterBar + cards;
-    $$("[data-addfilter]").forEach((b) => b.onclick = () => { addCardFilter = b.dataset.addfilter; renderAddCard(); });
+    $("#addcard-list").innerHTML = controls + cards;
+
+    // wire controls
+    $$("[data-addtype]").forEach((b) => b.onclick = () => { addF.type = b.dataset.addtype; renderAddCard(); });
+    const wireSel = (id, key) => { const el = $("#" + id); if (el) el.onchange = () => { addF[key] = el.value; renderAddCard(); }; };
+    wireSel("add-issuer", "issuer"); wireSel("add-network", "network"); wireSel("add-sort", "sort");
+    const wireChk = (id, key) => { const el = $("#" + id); if (el) el.onchange = () => { addF[key] = el.checked; renderAddCard(); }; };
+    wireChk("add-hidenolounge", "hideNoLounge"); wireChk("add-ltf", "lifetimeFree");
+    const clr = $("#add-clearfilters");
+    if (clr) clr.onclick = () => { addF.type = "all"; addF.issuer = ""; addF.network = ""; addF.hideNoLounge = false; addF.lifetimeFree = false; addF.sort = "relevance"; renderAddCard(); };
     $$("[data-toggle]").forEach((el) => el.onclick = () => {
       const id = el.dataset.toggle;
       if (state.wallet.includes(id)) state.wallet = state.wallet.filter((x) => x !== id);
