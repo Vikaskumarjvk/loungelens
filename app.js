@@ -739,6 +739,11 @@
       ? `<div class="big-verdict warn">It's a tie (${cmp.aWins}-${cmp.bWins}) — pick on fee or rewards</div>`
       : `<div class="big-verdict good">🏆 ${(cmp.overall === "A" ? cmp.a : cmp.b).name} wins ${Math.max(cmp.aWins, cmp.bWins)}-${Math.min(cmp.aWins, cmp.bWins)}</div>`;
     $("#compare-result").innerHTML = `${banner}
+      <div class="cmp-arts">
+        <div class="cmp-art-cell">${cardArt(cmp.a)}<button class="act ghost mini" data-detail="${cmp.a.id}">Details →</button></div>
+        <span class="vs">vs</span>
+        <div class="cmp-art-cell">${cardArt(cmp.b)}<button class="act ghost mini" data-detail="${cmp.b.id}">Details →</button></div>
+      </div>
       <table class="cmp-table">
         <thead><tr><th></th><th>${cmp.a.name}</th><th>${cmp.b.name}</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -1064,9 +1069,24 @@
     if (e.target === m && m.id !== "onboard") m.hidden = true;
   }));
 
+  // landing hero stats (the product-scale moment)
+  function renderHeroStats() {
+    const el = $("#lh-stats");
+    if (!el) return;
+    const cities = new Set(LOUNGES.map((l) => l.city).filter(Boolean)).size;
+    const issuers = new Set(CARDS.map((c) => c.issuer)).size;
+    const pill = (n, l) => `<div class="lh-stat"><b>${n}</b><span>${l}</span></div>`;
+    el.innerHTML =
+      pill(CARDS.length, "cards") +
+      pill(LOUNGES.length, "lounges") +
+      pill(cities, "cities") +
+      pill(issuers, "banks");
+  }
+
   // init
   applyMode();
   cityDatalist();
+  renderHeroStats();
   renderTripInputs();
   render();
   renderAuthBar();
