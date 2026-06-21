@@ -680,6 +680,76 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   .foot { margin-left: 0; padding-left: 280px; }
 }
 
+/* ============================ COVERAGE MAP ============================ */
+/* tile-grid (statebin) map of India: each tile = a state, colored by coverage */
+#map-summary { margin-bottom: 18px; }
+.map-verdict {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 16px 18px;
+}
+.map-verdict.good { border-color: rgba(54, 211, 153, 0.4); }
+.map-verdict.warn { border-color: rgba(251, 191, 36, 0.4); }
+.map-verdict.bad { border-color: var(--line-strong); }
+.mv-pct {
+  font-size: 34px; font-weight: 800; line-height: 1; min-width: 76px; text-align: center;
+  background: var(--accent-grad); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.map-verdict.good .mv-pct { background: linear-gradient(135deg, #36d399, #2bb3d4); -webkit-background-clip: text; background-clip: text; }
+.mv-text b { font-size: 15px; }
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 6px;
+  max-width: 560px;
+  margin: 0 auto 6px;
+}
+/* keep tiles square-ish via aspect-ratio on the cells */
+.map-tile {
+  aspect-ratio: 1 / 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; border-radius: var(--r-sm); cursor: pointer;
+  border: 1px solid var(--line-strong); color: var(--txt);
+  font-family: inherit; padding: 2px; transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.map-tile:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 6px 18px rgba(0,0,0,.4); z-index: 2; filter: brightness(1.12); }
+.map-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mt-code { font-size: 11px; font-weight: 800; letter-spacing: .3px; }
+.mt-count { font-size: 9.5px; opacity: .85; font-variant-numeric: tabular-nums; }
+/* coverage tiers — colored fills */
+.map-tile.tier-full { background: linear-gradient(135deg, rgba(54,211,153,.32), rgba(54,211,153,.16)); border-color: rgba(54,211,153,.55); }
+.map-tile.tier-most { background: linear-gradient(135deg, rgba(123,200,150,.26), rgba(123,200,150,.12)); border-color: rgba(123,200,150,.45); }
+.map-tile.tier-some { background: linear-gradient(135deg, rgba(251,191,36,.26), rgba(251,191,36,.12)); border-color: rgba(251,191,36,.45); }
+.map-tile.tier-none { background: rgba(255,255,255,.04); border-color: var(--line); color: var(--dim-2); }
+
+.map-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 14px 0 18px; font-size: 12px; color: var(--dim); }
+.leg-item { display: inline-flex; align-items: center; gap: 6px; }
+.leg-swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line-strong); }
+.leg-swatch.tier-full { background: rgba(54,211,153,.32); border-color: rgba(54,211,153,.55); }
+.leg-swatch.tier-most { background: rgba(123,200,150,.26); border-color: rgba(123,200,150,.45); }
+.leg-swatch.tier-some { background: rgba(251,191,36,.26); border-color: rgba(251,191,36,.45); }
+.leg-swatch.tier-none { background: rgba(255,255,255,.04); border-color: var(--line); }
+
+.map-detail { margin-top: 8px; }
+.map-detail:empty { display: none; }
+.md-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.md-head b { font-size: 17px; }
+.md-lounge {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 10px 12px; margin-top: 8px;
+}
+@media (max-width: 560px) {
+  .map-grid { gap: 4px; }
+  .mt-code { font-size: 10px; }
+  .mt-count { font-size: 8.5px; }
+  .map-verdict { gap: 12px; padding: 14px; }
+  .mv-pct { font-size: 28px; min-width: 60px; }
+}
+
 /* reduce motion if the user prefers it */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -705,6 +775,7 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
       <button data-view="trip" class="active">✈️ Plan a Trip</button>
       <button data-view="wallet">💳 My Cards</button>
       <button data-view="airports">🛫 Airports</button>
+      <button data-view="map">🗺️ Coverage Map</button>
       <button data-view="lounges">🛋️ All Lounges</button>
       <button data-view="recommend">⭐ Get a Card</button>
       <button data-view="compare">⚖️ Compare</button>
@@ -851,6 +922,18 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
     </section>
 
     <!-- AIRPORTS (card-aware lounge finder, beats LoungeBuddy/Priority Pass) -->
+    <!-- COVERAGE MAP (data-viz: India tile-grid, colored by your wallet) -->
+    <section id="view-map" class="view">
+      <div class="hero">
+        <h2>Your India coverage map</h2>
+        <p>Every state, colored by how much of its lounge access your cards actually unlock. Tap a state to see its lounges and which card walks you in.</p>
+      </div>
+      <div id="map-summary"></div>
+      <div id="map-grid" class="map-grid" role="group" aria-label="India lounge coverage by state"></div>
+      <div id="map-legend" class="map-legend"></div>
+      <div id="map-detail" class="map-detail"></div>
+    </section>
+
     <section id="view-airports" class="view">
       <div class="hero">
         <h2>Lounges by airport &amp; station</h2>
@@ -3092,6 +3175,86 @@ window.LL_SOURCE_LINKS = {
       .sort((a, b) => a.city.localeCompare(b.city) || a.code.localeCompare(b.code));
   }
 
+  // ---- coverageMap: per-state lounge coverage for the India tile map -------
+  // Groups every lounge by its Indian state/UT, then for each state computes how
+  // many of its lounges the wallet actually opens. Powers the interactive map:
+  // each state tile is colored by openCount/total, click drills into its lounges.
+  // CITY_STATE maps each lounge city to its state. Verified against the lounge
+  // dataset's cities (2026-06-22); states are real, not estimated.
+  const CITY_STATE = {
+    "Delhi": "DL", "New Delhi": "DL",
+    "Mumbai": "MH", "Pune": "MH", "Nagpur": "MH",
+    "Bengaluru": "KA", "Mangaluru": "KA", "Hubballi": "KA",
+    "Chennai": "TN", "Coimbatore": "TN", "Madurai": "TN", "Tiruchirappalli": "TN",
+    "Hyderabad": "TG",
+    "Vijayawada": "AP", "Visakhapatnam": "AP", "Tirupati": "AP",
+    "Kolkata": "WB", "Howrah": "WB", "Bagdogra": "WB",
+    "Ahmedabad": "GJ", "Surat": "GJ", "Vadodara": "GJ", "Rajkot": "GJ",
+    "Jaipur": "RJ", "Udaipur": "RJ",
+    "Lucknow": "UP", "Varanasi": "UP", "Agra": "UP", "Kanpur": "UP", "Ayodhya": "UP", "Prayagraj": "UP",
+    "Kochi": "KL", "Thiruvananthapuram": "KL", "Kozhikode": "KL", "Kannur": "KL",
+    "Bhubaneswar": "OD",
+    "Patna": "BR",
+    "Ranchi": "JH",
+    "Raipur": "CG",
+    "Bhopal": "MP", "Indore": "MP", "Gwalior": "MP",
+    "Chandigarh": "CH", "Amritsar": "PB",
+    "Dehradun": "UK",
+    "Srinagar": "JK", "Jammu": "JK",
+    "Guwahati": "AS", "Dibrugarh": "AS",
+    "Imphal": "MN",
+    "Agartala": "TR",
+    "Goa (Dabolim)": "GA", "Goa (Mopa)": "GA",
+    "Port Blair": "AN",
+  };
+  const STATE_NAME = {
+    DL: "Delhi", MH: "Maharashtra", KA: "Karnataka", TN: "Tamil Nadu", TG: "Telangana",
+    AP: "Andhra Pradesh", WB: "West Bengal", GJ: "Gujarat", RJ: "Rajasthan", UP: "Uttar Pradesh",
+    KL: "Kerala", OD: "Odisha", BR: "Bihar", JH: "Jharkhand", CG: "Chhattisgarh", MP: "Madhya Pradesh",
+    CH: "Chandigarh", PB: "Punjab", UK: "Uttarakhand", JK: "Jammu & Kashmir", AS: "Assam",
+    MN: "Manipur", TR: "Tripura", GA: "Goa", AN: "Andaman & Nicobar",
+  };
+  function stateForCity(city) {
+    return CITY_STATE[city] || null;
+  }
+  function coverageMap(allLounges, wallet, allCards, visitLog, spendThisPeriod, now) {
+    const states = new Map();
+    let mappedCities = 0, unmapped = new Set();
+    allLounges.forEach((l) => {
+      const code = CITY_STATE[l.city];
+      if (!code) { unmapped.add(l.city); return; }
+      mappedCities++;
+      if (!states.has(code)) {
+        states.set(code, { code, name: STATE_NAME[code] || code, total: 0, open: 0, blocked: 0, cities: new Set(), airport: 0, railway: 0 });
+      }
+      const s = states.get(code);
+      const matches = cardsForLounge(l, wallet, allCards, visitLog, spendThisPeriod, now);
+      const open = matches.some((m) => m.usable);
+      s.total++;
+      if (open) s.open++;
+      else if (matches.length) s.blocked++;
+      s.cities.add(l.city);
+      if (l.type === "railway") s.railway++; else s.airport++;
+    });
+    const byState = {};
+    states.forEach((s, code) => {
+      byState[code] = {
+        code: s.code, name: s.name, total: s.total, open: s.open, blocked: s.blocked,
+        pct: s.total ? Math.round((s.open / s.total) * 100) : 0,
+        cityCount: s.cities.size, airport: s.airport, railway: s.railway,
+        tier: s.total === 0 ? "none" : s.open === 0 ? "none" : s.open === s.total ? "full" : s.open >= s.total / 2 ? "most" : "some",
+      };
+    });
+    const totalLounges = mappedCities;
+    const totalOpen = Object.values(byState).reduce((a, s) => a + s.open, 0);
+    return {
+      byState, statesCovered: Object.values(byState).filter((s) => s.open > 0).length,
+      statesWithData: Object.keys(byState).length, totalLounges, totalOpen,
+      nationalPct: totalLounges ? Math.round((totalOpen / totalLounges) * 100) : 0,
+      unmapped: Array.from(unmapped),
+    };
+  }
+
   // ---- compareCards: head-to-head (beats aggregator comparison tables) ----
   // Two card ids -> a structured diff across the dimensions that matter.
   function compareCards(idA, idB, allCards, allLounges) {
@@ -3215,6 +3378,8 @@ window.LL_SOURCE_LINKS = {
     compareCards,
     valueCalc,
     bestCardOrder,
+    coverageMap,
+    stateForCity,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
@@ -4457,6 +4622,97 @@ window.LL_SOURCE_LINKS = {
   }
   ["#airport-search", "#airport-type"].forEach((s) => { const el = $(s); if (el) { el.oninput = renderAirports; el.onchange = renderAirports; } });
 
+  // ============================ COVERAGE MAP ==============================
+  // India as a tile-grid (statebin) map. Each tile is placed at the state's
+  // approximate real grid position and colored by how much of that state's
+  // lounge access YOUR wallet unlocks. Click a tile to drill into its lounges.
+  // GRID: [col,row] on a 12-wide board, north-west to south-east like the map.
+  const MAP_GRID = {
+    JK: [3, 0], CH: [3, 1], PB: [2, 1], UK: [4, 1], DL: [3, 2], RJ: [2, 3], UP: [4, 2],
+    BR: [6, 2], AS: [8, 1], TR: [8, 2], MN: [9, 2], GJ: [1, 4], MP: [3, 4], JH: [6, 3],
+    WB: [7, 3], OD: [6, 4], CG: [5, 4], MH: [2, 5], TG: [3, 5], AP: [4, 6], GA: [2, 6],
+    KA: [2, 7], TN: [3, 8], KL: [2, 8], AN: [9, 7],
+  };
+  function renderMap() {
+    const grid = $("#map-grid");
+    if (!grid) return;
+    const map = E.coverageMap(LOUNGES, state.wallet, CARDS, state.visitLog, state.spend, NOW);
+
+    // summary banner
+    const sum = $("#map-summary");
+    if (sum) {
+      const verdict = state.wallet.length === 0
+        ? `Add your cards to light up the map. Right now nothing's unlocked.`
+        : map.nationalPct >= 90 ? `🌍 You're covered almost everywhere — ${map.statesCovered} of ${map.statesWithData} states open to you.`
+        : map.nationalPct >= 50 ? `Good spread. ${map.statesCovered} of ${map.statesWithData} states have a lounge you can enter.`
+        : map.statesCovered > 0 ? `Patchy. Only ${map.statesCovered} of ${map.statesWithData} states open to you so far.`
+        : `No states unlocked yet with the cards you hold.`;
+      sum.innerHTML = `<div class="map-verdict ${map.nationalPct >= 90 ? "good" : map.nationalPct >= 50 ? "warn" : "bad"}">
+        <div class="mv-pct">${map.nationalPct}%</div>
+        <div class="mv-text"><b>${verdict}</b><div class="card-sub">${map.totalOpen} of ${map.totalLounges} mapped lounges open to your wallet, across ${map.statesWithData} states &amp; UTs.</div></div>
+      </div>`;
+    }
+
+    // tile grid
+    const tiles = Object.keys(MAP_GRID).map((code) => {
+      const s = map.byState[code];
+      const [col, row] = MAP_GRID[code];
+      const tier = s ? s.tier : "none";
+      const label = s ? `${s.open}/${s.total}` : "—";
+      const aria = s ? `${s.name}: ${s.open} of ${s.total} lounges open to you` : `${code}: no lounge data`;
+      return `<button class="map-tile tier-${tier}" data-state="${code}"
+        style="grid-column:${col + 1};grid-row:${row + 1};" title="${s ? s.name : code}" aria-label="${aria}">
+        <span class="mt-code">${code}</span>
+        <span class="mt-count">${label}</span>
+      </button>`;
+    }).join("");
+    grid.innerHTML = tiles;
+
+    // legend
+    const leg = $("#map-legend");
+    if (leg) {
+      leg.innerHTML = [
+        ["full", "All open"], ["most", "Most open"], ["some", "Some open"], ["none", "None / no data"],
+      ].map(([t, l]) => `<span class="leg-item"><span class="leg-swatch tier-${t}"></span>${l}</span>`).join("");
+    }
+
+    // click -> drill into a state
+    $$("#map-grid .map-tile").forEach((btn) => btn.onclick = () => showStateDetail(btn.dataset.state, map));
+  }
+
+  function showStateDetail(code, map) {
+    const box = $("#map-detail");
+    if (!box) return;
+    const s = map.byState[code];
+    const stateName = (s && s.name) || code;
+    if (!s) {
+      box.innerHTML = `<div class="md-head"><b>${stateName}</b></div><div class="card-sub">No lounge on file for this state yet. If you know one, the data's open to grow.</div>`;
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    // pull this state's lounges (by city -> state code), with which card opens each
+    const stateLounges = LOUNGES.filter((l) => E.stateForCity(l.city) === code);
+    const rows = stateLounges.map((l) => {
+      const matches = E.cardsForLounge(l, state.wallet, CARDS, state.visitLog, state.spend, NOW);
+      const order = E.bestCardOrder(matches);
+      const loc = l.type === "railway" ? `🚆 ${l.station}` : `🛫 ${l.airport} ${l.terminal || ""}`.trim();
+      const verdict = order.length
+        ? `<span class="chip good">enter with ${order[0].card.name}${order[0].quota.unlimited ? "" : ` · ${order[0].quota.left} left`}</span>`
+        : matches.length ? `<span class="chip warn">blocked</span>` : `<span class="chip">no card opens it</span>`;
+      return `<div class="md-lounge">
+        <div><b>${l.name}</b> ${confBadge(l.confidence)}<div class="card-sub">${loc} · ${l.city}</div></div>
+        ${verdict}
+      </div>`;
+    }).join("");
+    box.innerHTML = `<div class="md-head">
+        <b>${stateName}</b>
+        <span class="chip ${s.open ? "good" : ""}">${s.open}/${s.total} open to you</span>
+      </div>
+      <div class="card-sub" style="margin-bottom:8px;">${s.cityCount} ${s.cityCount === 1 ? "city" : "cities"} · ${s.airport} airport · ${s.railway} railway</div>
+      ${rows}`;
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   // ============================ COMPARE VIEW ==============================
   function fillCompareSelects() {
     const opts = CARDS.filter((c) => (c.programs || []).length)
@@ -4805,7 +5061,7 @@ window.LL_SOURCE_LINKS = {
   function render() {
     if (!state.experiences) state.experiences = []; // migrate older saved state
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
-    renderAirports(); renderCompare(); renderValue(); renderSuggestions();
+    renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
   }
 

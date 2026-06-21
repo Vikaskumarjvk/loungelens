@@ -41,6 +41,7 @@
       <button data-view="trip" class="active">✈️ Plan a Trip</button>
       <button data-view="wallet">💳 My Cards</button>
       <button data-view="airports">🛫 Airports</button>
+      <button data-view="map">🗺️ Coverage Map</button>
       <button data-view="lounges">🛋️ All Lounges</button>
       <button data-view="recommend">⭐ Get a Card</button>
       <button data-view="compare">⚖️ Compare</button>
@@ -187,6 +188,18 @@
     </section>
 
     <!-- AIRPORTS (card-aware lounge finder, beats LoungeBuddy/Priority Pass) -->
+    <!-- COVERAGE MAP (data-viz: India tile-grid, colored by your wallet) -->
+    <section id="view-map" class="view">
+      <div class="hero">
+        <h2>Your India coverage map</h2>
+        <p>Every state, colored by how much of its lounge access your cards actually unlock. Tap a state to see its lounges and which card walks you in.</p>
+      </div>
+      <div id="map-summary"></div>
+      <div id="map-grid" class="map-grid" role="group" aria-label="India lounge coverage by state"></div>
+      <div id="map-legend" class="map-legend"></div>
+      <div id="map-detail" class="map-detail"></div>
+    </section>
+
     <section id="view-airports" class="view">
       <div class="hero">
         <h2>Lounges by airport &amp; station</h2>

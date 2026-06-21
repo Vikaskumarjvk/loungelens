@@ -224,5 +224,28 @@ console.log("\n[19] walletScore — wallet strength signal");
   ok("no-lounge card scores lower than unlimited", basic.score < elite.score);
 }
 
+console.log("\n[20] coverageMap — per-state India coverage");
+{
+  // empty wallet: every state with data exists but nothing open
+  const empty = E.coverageMap(LOUNGES, [], CARDS, [], {}, NOW);
+  ok("empty wallet opens nothing", empty.totalOpen === 0 && empty.nationalPct === 0);
+  ok("but states with data are still grouped", empty.statesWithData > 0);
+  ok("every lounge maps to a state (no unmapped)", empty.unmapped.length === 0);
+  ok("totalLounges equals dataset size", empty.totalLounges === LOUNGES.length);
+  // unlimited + rupay wallet opens broadly
+  const strong = E.coverageMap(LOUNGES, ["hdfc-infinia", "rupay-select"], CARDS, [], {}, NOW);
+  ok("strong wallet covers states", strong.statesCovered > 0);
+  ok("national pct between 0 and 100", strong.nationalPct >= 0 && strong.nationalPct <= 100);
+  ok("more cards open more than empty", strong.totalOpen > empty.totalOpen);
+  // Delhi tile carries airport + railway and a tier
+  const dl = strong.byState.DL;
+  ok("Delhi state exists with name", dl && dl.name === "Delhi");
+  ok("Delhi tier is a known value", dl && ["full", "most", "some", "none"].includes(dl.tier));
+  ok("Delhi counts airport + railway", dl && dl.airport > 0 && dl.railway > 0);
+  // stateForCity maps known + unknown
+  ok("stateForCity maps Mumbai to MH", E.stateForCity("Mumbai") === "MH");
+  ok("stateForCity returns null for unknown", E.stateForCity("Atlantis") === null);
+}
+
 console.log(`\n==== ${pass} passed, ${fail} failed ====\n`);
 process.exit(fail === 0 ? 0 : 1);

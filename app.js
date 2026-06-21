@@ -738,6 +738,97 @@
   }
   ["#airport-search", "#airport-type"].forEach((s) => { const el = $(s); if (el) { el.oninput = renderAirports; el.onchange = renderAirports; } });
 
+  // ============================ COVERAGE MAP ==============================
+  // India as a tile-grid (statebin) map. Each tile is placed at the state's
+  // approximate real grid position and colored by how much of that state's
+  // lounge access YOUR wallet unlocks. Click a tile to drill into its lounges.
+  // GRID: [col,row] on a 12-wide board, north-west to south-east like the map.
+  const MAP_GRID = {
+    JK: [3, 0], CH: [3, 1], PB: [2, 1], UK: [4, 1], DL: [3, 2], RJ: [2, 3], UP: [4, 2],
+    BR: [6, 2], AS: [8, 1], TR: [8, 2], MN: [9, 2], GJ: [1, 4], MP: [3, 4], JH: [6, 3],
+    WB: [7, 3], OD: [6, 4], CG: [5, 4], MH: [2, 5], TG: [3, 5], AP: [4, 6], GA: [2, 6],
+    KA: [2, 7], TN: [3, 8], KL: [2, 8], AN: [9, 7],
+  };
+  function renderMap() {
+    const grid = $("#map-grid");
+    if (!grid) return;
+    const map = E.coverageMap(LOUNGES, state.wallet, CARDS, state.visitLog, state.spend, NOW);
+
+    // summary banner
+    const sum = $("#map-summary");
+    if (sum) {
+      const verdict = state.wallet.length === 0
+        ? `Add your cards to light up the map. Right now nothing's unlocked.`
+        : map.nationalPct >= 90 ? `🌍 You're covered almost everywhere — ${map.statesCovered} of ${map.statesWithData} states open to you.`
+        : map.nationalPct >= 50 ? `Good spread. ${map.statesCovered} of ${map.statesWithData} states have a lounge you can enter.`
+        : map.statesCovered > 0 ? `Patchy. Only ${map.statesCovered} of ${map.statesWithData} states open to you so far.`
+        : `No states unlocked yet with the cards you hold.`;
+      sum.innerHTML = `<div class="map-verdict ${map.nationalPct >= 90 ? "good" : map.nationalPct >= 50 ? "warn" : "bad"}">
+        <div class="mv-pct">${map.nationalPct}%</div>
+        <div class="mv-text"><b>${verdict}</b><div class="card-sub">${map.totalOpen} of ${map.totalLounges} mapped lounges open to your wallet, across ${map.statesWithData} states &amp; UTs.</div></div>
+      </div>`;
+    }
+
+    // tile grid
+    const tiles = Object.keys(MAP_GRID).map((code) => {
+      const s = map.byState[code];
+      const [col, row] = MAP_GRID[code];
+      const tier = s ? s.tier : "none";
+      const label = s ? `${s.open}/${s.total}` : "—";
+      const aria = s ? `${s.name}: ${s.open} of ${s.total} lounges open to you` : `${code}: no lounge data`;
+      return `<button class="map-tile tier-${tier}" data-state="${code}"
+        style="grid-column:${col + 1};grid-row:${row + 1};" title="${s ? s.name : code}" aria-label="${aria}">
+        <span class="mt-code">${code}</span>
+        <span class="mt-count">${label}</span>
+      </button>`;
+    }).join("");
+    grid.innerHTML = tiles;
+
+    // legend
+    const leg = $("#map-legend");
+    if (leg) {
+      leg.innerHTML = [
+        ["full", "All open"], ["most", "Most open"], ["some", "Some open"], ["none", "None / no data"],
+      ].map(([t, l]) => `<span class="leg-item"><span class="leg-swatch tier-${t}"></span>${l}</span>`).join("");
+    }
+
+    // click -> drill into a state
+    $$("#map-grid .map-tile").forEach((btn) => btn.onclick = () => showStateDetail(btn.dataset.state, map));
+  }
+
+  function showStateDetail(code, map) {
+    const box = $("#map-detail");
+    if (!box) return;
+    const s = map.byState[code];
+    const stateName = (s && s.name) || code;
+    if (!s) {
+      box.innerHTML = `<div class="md-head"><b>${stateName}</b></div><div class="card-sub">No lounge on file for this state yet. If you know one, the data's open to grow.</div>`;
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    // pull this state's lounges (by city -> state code), with which card opens each
+    const stateLounges = LOUNGES.filter((l) => E.stateForCity(l.city) === code);
+    const rows = stateLounges.map((l) => {
+      const matches = E.cardsForLounge(l, state.wallet, CARDS, state.visitLog, state.spend, NOW);
+      const order = E.bestCardOrder(matches);
+      const loc = l.type === "railway" ? `🚆 ${l.station}` : `🛫 ${l.airport} ${l.terminal || ""}`.trim();
+      const verdict = order.length
+        ? `<span class="chip good">enter with ${order[0].card.name}${order[0].quota.unlimited ? "" : ` · ${order[0].quota.left} left`}</span>`
+        : matches.length ? `<span class="chip warn">blocked</span>` : `<span class="chip">no card opens it</span>`;
+      return `<div class="md-lounge">
+        <div><b>${l.name}</b> ${confBadge(l.confidence)}<div class="card-sub">${loc} · ${l.city}</div></div>
+        ${verdict}
+      </div>`;
+    }).join("");
+    box.innerHTML = `<div class="md-head">
+        <b>${stateName}</b>
+        <span class="chip ${s.open ? "good" : ""}">${s.open}/${s.total} open to you</span>
+      </div>
+      <div class="card-sub" style="margin-bottom:8px;">${s.cityCount} ${s.cityCount === 1 ? "city" : "cities"} · ${s.airport} airport · ${s.railway} railway</div>
+      ${rows}`;
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   // ============================ COMPARE VIEW ==============================
   function fillCompareSelects() {
     const opts = CARDS.filter((c) => (c.programs || []).length)
@@ -1086,7 +1177,7 @@
   function render() {
     if (!state.experiences) state.experiences = []; // migrate older saved state
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
-    renderAirports(); renderCompare(); renderValue(); renderSuggestions();
+    renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
   }
 

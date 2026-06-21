@@ -239,6 +239,86 @@
       .sort((a, b) => a.city.localeCompare(b.city) || a.code.localeCompare(b.code));
   }
 
+  // ---- coverageMap: per-state lounge coverage for the India tile map -------
+  // Groups every lounge by its Indian state/UT, then for each state computes how
+  // many of its lounges the wallet actually opens. Powers the interactive map:
+  // each state tile is colored by openCount/total, click drills into its lounges.
+  // CITY_STATE maps each lounge city to its state. Verified against the lounge
+  // dataset's cities (2026-06-22); states are real, not estimated.
+  const CITY_STATE = {
+    "Delhi": "DL", "New Delhi": "DL",
+    "Mumbai": "MH", "Pune": "MH", "Nagpur": "MH",
+    "Bengaluru": "KA", "Mangaluru": "KA", "Hubballi": "KA",
+    "Chennai": "TN", "Coimbatore": "TN", "Madurai": "TN", "Tiruchirappalli": "TN",
+    "Hyderabad": "TG",
+    "Vijayawada": "AP", "Visakhapatnam": "AP", "Tirupati": "AP",
+    "Kolkata": "WB", "Howrah": "WB", "Bagdogra": "WB",
+    "Ahmedabad": "GJ", "Surat": "GJ", "Vadodara": "GJ", "Rajkot": "GJ",
+    "Jaipur": "RJ", "Udaipur": "RJ",
+    "Lucknow": "UP", "Varanasi": "UP", "Agra": "UP", "Kanpur": "UP", "Ayodhya": "UP", "Prayagraj": "UP",
+    "Kochi": "KL", "Thiruvananthapuram": "KL", "Kozhikode": "KL", "Kannur": "KL",
+    "Bhubaneswar": "OD",
+    "Patna": "BR",
+    "Ranchi": "JH",
+    "Raipur": "CG",
+    "Bhopal": "MP", "Indore": "MP", "Gwalior": "MP",
+    "Chandigarh": "CH", "Amritsar": "PB",
+    "Dehradun": "UK",
+    "Srinagar": "JK", "Jammu": "JK",
+    "Guwahati": "AS", "Dibrugarh": "AS",
+    "Imphal": "MN",
+    "Agartala": "TR",
+    "Goa (Dabolim)": "GA", "Goa (Mopa)": "GA",
+    "Port Blair": "AN",
+  };
+  const STATE_NAME = {
+    DL: "Delhi", MH: "Maharashtra", KA: "Karnataka", TN: "Tamil Nadu", TG: "Telangana",
+    AP: "Andhra Pradesh", WB: "West Bengal", GJ: "Gujarat", RJ: "Rajasthan", UP: "Uttar Pradesh",
+    KL: "Kerala", OD: "Odisha", BR: "Bihar", JH: "Jharkhand", CG: "Chhattisgarh", MP: "Madhya Pradesh",
+    CH: "Chandigarh", PB: "Punjab", UK: "Uttarakhand", JK: "Jammu & Kashmir", AS: "Assam",
+    MN: "Manipur", TR: "Tripura", GA: "Goa", AN: "Andaman & Nicobar",
+  };
+  function stateForCity(city) {
+    return CITY_STATE[city] || null;
+  }
+  function coverageMap(allLounges, wallet, allCards, visitLog, spendThisPeriod, now) {
+    const states = new Map();
+    let mappedCities = 0, unmapped = new Set();
+    allLounges.forEach((l) => {
+      const code = CITY_STATE[l.city];
+      if (!code) { unmapped.add(l.city); return; }
+      mappedCities++;
+      if (!states.has(code)) {
+        states.set(code, { code, name: STATE_NAME[code] || code, total: 0, open: 0, blocked: 0, cities: new Set(), airport: 0, railway: 0 });
+      }
+      const s = states.get(code);
+      const matches = cardsForLounge(l, wallet, allCards, visitLog, spendThisPeriod, now);
+      const open = matches.some((m) => m.usable);
+      s.total++;
+      if (open) s.open++;
+      else if (matches.length) s.blocked++;
+      s.cities.add(l.city);
+      if (l.type === "railway") s.railway++; else s.airport++;
+    });
+    const byState = {};
+    states.forEach((s, code) => {
+      byState[code] = {
+        code: s.code, name: s.name, total: s.total, open: s.open, blocked: s.blocked,
+        pct: s.total ? Math.round((s.open / s.total) * 100) : 0,
+        cityCount: s.cities.size, airport: s.airport, railway: s.railway,
+        tier: s.total === 0 ? "none" : s.open === 0 ? "none" : s.open === s.total ? "full" : s.open >= s.total / 2 ? "most" : "some",
+      };
+    });
+    const totalLounges = mappedCities;
+    const totalOpen = Object.values(byState).reduce((a, s) => a + s.open, 0);
+    return {
+      byState, statesCovered: Object.values(byState).filter((s) => s.open > 0).length,
+      statesWithData: Object.keys(byState).length, totalLounges, totalOpen,
+      nationalPct: totalLounges ? Math.round((totalOpen / totalLounges) * 100) : 0,
+      unmapped: Array.from(unmapped),
+    };
+  }
+
   // ---- compareCards: head-to-head (beats aggregator comparison tables) ----
   // Two card ids -> a structured diff across the dimensions that matter.
   function compareCards(idA, idB, allCards, allLounges) {
@@ -362,6 +442,8 @@
     compareCards,
     valueCalc,
     bestCardOrder,
+    coverageMap,
+    stateForCity,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
