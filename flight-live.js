@@ -137,11 +137,79 @@
 
   function clearToken() { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
 
+  // ---- flexible-date scan + price-anomaly detection (PURE helpers) -------
+
+  // list of YYYY-MM-DD strings from startDate for `days` days (inclusive).
+  function dateRange(startDate, days) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDate || "");
+    if (!m) return [];
+    var out = [];
+    // build from UTC to avoid TZ drift; no Date.now/new Date() with no args
+    var base = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    for (var i = 0; i < Math.max(1, days); i++) {
+      var d = new Date(base + i * 86400000);
+      var mm = ("0" + (d.getUTCMonth() + 1)).slice(-2), dd = ("0" + d.getUTCDate()).slice(-2);
+      out.push(d.getUTCFullYear() + "-" + mm + "-" + dd);
+    }
+    return out;
+  }
+
+  // given [{date, minPrice}] across days, flag the cheapest + statistical dips.
+  // An anomaly = a day priced well below the median (a real "fare dip"/error
+  // signal). We never invent prices; we only compare prices we actually fetched.
+  function priceAnomaly(daily) {
+    var valid = (daily || []).filter(function (d) { return d.minPrice != null && d.minPrice > 0; });
+    if (!valid.length) return { cheapest: null, median: null, days: daily || [] };
+    var prices = valid.map(function (d) { return d.minPrice; }).slice().sort(function (a, b) { return a - b; });
+    var median = prices[Math.floor(prices.length / 2)];
+    var cheapest = valid.reduce(function (a, b) { return b.minPrice < a.minPrice ? b : a; });
+    var annotated = (daily || []).map(function (d) {
+      var isCheapest = d.minPrice === cheapest.minPrice && d.minPrice != null;
+      // "dip": at least 25% below the median across the window
+      var isDip = d.minPrice != null && median > 0 && d.minPrice <= median * 0.75;
+      return Object.assign({}, d, {
+        isCheapest: isCheapest,
+        isDip: isDip,
+        vsMedianPct: d.minPrice != null && median ? Math.round(((d.minPrice - median) / median) * 100) : null,
+      });
+    });
+    return { cheapest: cheapest, median: median, days: annotated };
+  }
+
+  // scan a date range; returns per-day cheapest fare. onDay(dateStr, minPrice)
+  // is called as each day resolves so the UI can fill progressively.
+  // Bounded + sequential to respect the free-tier rate limit.
+  function searchFlexible(creds, q, onDay) {
+    var dates = dateRange(q.startDate, q.days || 7);
+    var results = [];
+    var chain = Promise.resolve();
+    dates.forEach(function (date) {
+      chain = chain.then(function () {
+        return searchLive(creds, { from: q.from, to: q.to, date: date, adults: q.adults || 1, max: 5 })
+          .then(function (res) {
+            var min = (res.rows && res.rows.length) ? res.rows[0].priceTotal : null;
+            var row = { date: date, minPrice: min, airline: (res.rows && res.rows[0]) ? res.rows[0].airline : null };
+            results.push(row);
+            if (onDay) onDay(row);
+            return row;
+          })
+          .catch(function () {
+            var row = { date: date, minPrice: null, error: true };
+            results.push(row);
+            if (onDay) onDay(row);
+            return row;
+          });
+      });
+    });
+    return chain.then(function () { return priceAnomaly(results); });
+  }
+
   var LiveAPI = {
     HOSTS: HOSTS,
     durationToMin: durationToMin, minLabel: minLabel, timeLabel: timeLabel,
     parseOffers: parseOffers, cheapestByAirline: cheapestByAirline,
     getToken: getToken, searchLive: searchLive, clearToken: clearToken,
+    dateRange: dateRange, priceAnomaly: priceAnomaly, searchFlexible: searchFlexible,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = LiveAPI;
   root.LL_FLIGHT_LIVE = LiveAPI;

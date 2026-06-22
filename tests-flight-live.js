@@ -94,5 +94,45 @@ console.log("\n[5] honesty: parser only reports what's in the response (no inven
   ok("missing carrier => fallback label, not invented airline", rows[0].airline === "Airline");
 }
 
+console.log("\n[6] dateRange builds inclusive YYYY-MM-DD lists, TZ-safe");
+{
+  const r = LV.dateRange("2026-07-12", 5);
+  ok("5 days", r.length === 5);
+  ok("starts at start", r[0] === "2026-07-12");
+  ok("last day correct", r[4] === "2026-07-16");
+  ok("crosses month boundary", LV.dateRange("2026-07-30", 3).join(",") === "2026-07-30,2026-07-31,2026-08-01");
+  ok("bad date => []", LV.dateRange("nope", 5).length === 0);
+  ok("days<1 clamps to 1", LV.dateRange("2026-07-12", 0).length === 1);
+}
+
+console.log("[7] priceAnomaly flags cheapest + statistical dips");
+{
+  const daily = [
+    { date: "2026-07-12", minPrice: 5000 },
+    { date: "2026-07-13", minPrice: 5200 },
+    { date: "2026-07-14", minPrice: 3000 }, // a real dip
+    { date: "2026-07-15", minPrice: 5100 },
+    { date: "2026-07-16", minPrice: null, error: true }, // failed day
+  ];
+  const a = LV.priceAnomaly(daily);
+  ok("cheapest is the 3000 day", a.cheapest.date === "2026-07-14" && a.cheapest.minPrice === 3000);
+  ok("median computed from valid days", a.median > 0);
+  const dip = a.days.find((d) => d.date === "2026-07-14");
+  ok("3000 flagged as dip (<=75% of median)", dip.isDip === true);
+  ok("3000 flagged cheapest", dip.isCheapest === true);
+  ok("dip shows negative vsMedianPct", dip.vsMedianPct < 0);
+  const normal = a.days.find((d) => d.date === "2026-07-13");
+  ok("5200 not a dip", normal.isDip === false);
+  const failed = a.days.find((d) => d.date === "2026-07-16");
+  ok("failed day kept, not flagged", failed.isDip === false && failed.isCheapest === false);
+}
+
+console.log("[8] priceAnomaly safe on empty / all-failed input");
+{
+  ok("empty => null cheapest", LV.priceAnomaly([]).cheapest === null);
+  const allFail = LV.priceAnomaly([{ date: "x", minPrice: null }, { date: "y", minPrice: null }]);
+  ok("all-failed => null cheapest, no crash", allFail.cheapest === null && allFail.median === null);
+}
+
 console.log(`\n==== ${pass} passed, ${fail} failed ====\n`);
 process.exit(fail === 0 ? 0 : 1);

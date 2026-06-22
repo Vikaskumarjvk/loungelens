@@ -1305,6 +1305,56 @@
       });
   }
 
+  // flexible-date scan: real fares across 14 days -> cheapest day + price dips
+  function getFlexFares() {
+    const out = $("#fl-flex-result"), status = $("#fl-live-status");
+    if (!out) return;
+    const f = state.flight || {};
+    const from = flAirportLabel(f.from), to = flAirportLabel(f.to);
+    if (!from || !to || from.code === to.code) { out.innerHTML = `<div class="empty">Enter two different cities first.</div>`; return; }
+    if (!f.date) { out.innerHTML = `<div class="empty">Pick a start date — I'll scan from there.</div>`; return; }
+    const creds = loadCreds();
+    if (!creds || !creds.clientId) {
+      out.innerHTML = `<div class="nudge">⚡ The 14-day scan uses live fares. <b class="link" id="fl-open-key2">Connect a free key (2 min) →</b></div>`;
+      const o = $("#fl-open-key2"); if (o) o.onclick = () => { const d = $("#fl-key-setup"); if (d) { d.open = true; d.scrollIntoView({ behavior: "smooth" }); } };
+      return;
+    }
+    if (!LIVE) return;
+    const DAYS = 14;
+    const dates = LIVE.dateRange(f.date, DAYS);
+    out.innerHTML = `<div class="flex-head">📅 Scanning ${DAYS} days from ${from.code} → ${to.code}…</div>
+      <div class="flex-grid" id="flex-grid">${dates.map((d) => `<div class="flex-day pending" data-d="${d}"><div class="fd-date">${d.slice(8)}/${d.slice(5, 7)}</div><div class="fd-price">…</div></div>`).join("")}</div>
+      <div class="card-sub flex-foot">Each day is a real live fare lookup (cheapest fare that day). This takes a few seconds — free-tier is rate-limited so I go one day at a time.</div>`;
+
+    const grid = $("#flex-grid");
+    const onDay = (row) => {
+      const cell = grid && grid.querySelector(`[data-d="${row.date}"]`);
+      if (!cell) return;
+      cell.classList.remove("pending");
+      if (row.minPrice == null) { cell.classList.add("noprice"); cell.querySelector(".fd-price").textContent = row.error ? "—" : "n/a"; }
+      else cell.querySelector(".fd-price").textContent = "₹" + Number(row.minPrice).toLocaleString("en-IN");
+    };
+
+    LIVE.searchFlexible(creds, { from: from.code, to: to.code, startDate: f.date, days: DAYS, adults: 1 }, onDay)
+      .then((res) => {
+        // mark cheapest + dips
+        res.days.forEach((d) => {
+          const cell = grid && grid.querySelector(`[data-d="${d.date}"]`);
+          if (!cell) return;
+          if (d.isCheapest) cell.classList.add("is-cheapest");
+          else if (d.isDip) cell.classList.add("is-dip");
+        });
+        const head = $("#fl-flex-result .flex-head");
+        if (res.cheapest && head) {
+          const dips = res.days.filter((d) => d.isDip && !d.isCheapest).length;
+          head.innerHTML = `📅 Cheapest in the next ${DAYS} days: <b>₹${Number(res.cheapest.minPrice).toLocaleString("en-IN")}</b> on ${res.cheapest.date}${res.cheapest.airline ? " (" + res.cheapest.airline + ")" : ""} · median ₹${Number(res.median).toLocaleString("en-IN")}${dips ? ` · <span class="chip warn">${dips} price dip${dips > 1 ? "s" : ""} flagged</span>` : ""}`;
+        } else if (head) {
+          head.innerHTML = `📅 No live fares returned across those ${DAYS} days. Try a different route or date.`;
+        }
+      })
+      .catch((err) => { out.innerHTML = `<div class="fl-err">Scan failed: ${(err && err.message) || "request error"}.</div>`; });
+  }
+
   function renderLiveFares(rows, from, to, creds) {
     const out = $("#fl-live-result"); if (!out) return;
     const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
@@ -1356,6 +1406,7 @@
     });
     if ($("#fl-go")) $("#fl-go").onclick = () => { persist(); renderFlights(); $("#fl-result").scrollIntoView({ behavior: "smooth", block: "start" }); };
     if ($("#fl-live")) $("#fl-live").onclick = () => { persist(); renderFlights(); getLiveFares(); const s = $("#fl-live-status"); if (s) s.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if ($("#fl-flex")) $("#fl-flex").onclick = () => { persist(); getFlexFares(); const r = $("#fl-flex-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
     if ($("#fl-swap")) $("#fl-swap").onclick = () => {
       const a = $("#fl-from"), b = $("#fl-to");
       if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); renderFlights(); }

@@ -795,6 +795,21 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .lf-pay { font-size: 12.5px; color: var(--good); background: var(--good-dim); border-radius: var(--r-sm); padding: 6px 9px; }
 .lf-foot { margin-top: 12px; }
 
+/* flexible-date scan grid */
+.flex-head { font-size: 14.5px; font-weight: 700; margin: 6px 0 12px; line-height: 1.5; }
+.flex-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+.flex-day { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 9px 4px; text-align: center; transition: transform .12s ease; }
+.fd-date { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.fd-price { font-size: 13px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.flex-day.pending .fd-price { color: var(--dim-2); animation: pulse 1.2s ease-in-out infinite; }
+.flex-day.noprice { opacity: .5; }
+.flex-day.is-cheapest { background: var(--good-dim); border-color: rgba(54,211,153,.6); box-shadow: 0 0 0 1px rgba(54,211,153,.35); }
+.flex-day.is-cheapest .fd-price { color: var(--good); }
+.flex-day.is-dip { background: var(--warn-dim); border-color: rgba(251,191,36,.5); }
+.flex-day.is-dip .fd-price { color: var(--warn); }
+.flex-foot { margin-top: 10px; }
+@media (max-width: 560px) { .flex-grid { grid-template-columns: repeat(5, 1fr); } }
+
 /* free key setup */
 .key-setup { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 4px 16px; margin: 16px 0; }
 .key-setup summary { cursor: pointer; font-weight: 700; padding: 12px 0; font-size: 14px; }
