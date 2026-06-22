@@ -38,8 +38,10 @@
       </div>
     </div>
     <nav>
-      <button data-view="trip" class="active">✈️ Plan a Trip</button>
+      <button data-view="flights" class="active">✈️ Flight Deals</button>
+      <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>
+      <button data-view="trip">🛋️ Lounge Trip</button>
       <button data-view="airports">🛫 Airports</button>
       <button data-view="map">🗺️ Coverage Map</button>
       <button data-view="lounges">🛋️ All Lounges</button>
@@ -55,8 +57,56 @@
   </header>
 
   <main>
-    <!-- TRIP PLANNER (default, the heart) -->
-    <section id="view-trip" class="view active">
+    <!-- FLIGHT DEALS (default, the new front door) -->
+    <section id="view-flights" class="view active">
+      <div class="landing-hero">
+        <div class="lh-glow"></div>
+        <div class="lh-badge">✈️ India flight deals + best way to pay</div>
+        <h2 class="lh-title">Find the fare,<br><span class="lh-grad">pay the smart way.</span></h2>
+        <p class="lh-sub">Tell me your route. I open the live search on every airline and booking site at once, and tell you which of your cards, which app offer, and which coupon saves the most. Real prices stay on the real sites. I never make a price up.</p>
+        <div class="lh-stats" id="fl-stats"></div>
+      </div>
+      <div class="hero">
+        <h2>Where to?</h2>
+        <p>Pick your route and date. I'll line up every airline + OTA with the best discount for your wallet on each.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="fl-from" placeholder="From (city or code)" list="airport-list" autocomplete="off" />
+          <button class="act ghost mini" id="fl-swap" title="Swap" aria-label="Swap origin and destination">⇄</button>
+          <input class="fb-input" id="fl-to" placeholder="To (city or code)" list="airport-list" autocomplete="off" />
+        </div>
+        <div class="fb-row">
+          <input class="fb-input" id="fl-date" type="date" aria-label="Travel date" />
+          <button class="act big" id="fl-go">Compare fares →</button>
+        </div>
+        <datalist id="airport-list"></datalist>
+      </div>
+      <div id="fl-bestpay"></div>
+      <div id="fl-result"></div>
+      <div class="honesty-note" id="fl-honesty"></div>
+    </section>
+
+    <!-- COUPONS & OFFERS -->
+    <section id="view-coupons" class="view">
+      <div class="hero">
+        <h2>Coupons &amp; offers</h2>
+        <p>Card discounts, app-only fares, wallet stacking and coupon mechanisms that recur on India flight sites. Each is tagged how sure I am and when it was last checked — tap verify to confirm today's exact code before you pay.</p>
+      </div>
+      <div class="filterbar">
+        <div class="seg" id="coupon-kind">
+          <button class="seg-btn active" data-ck="">All</button>
+          <button class="seg-btn" data-ck="card">💳 Card</button>
+          <button class="seg-btn" data-ck="app">📱 App</button>
+          <button class="seg-btn" data-ck="coupon">🎟️ Coupon</button>
+        </div>
+        <label class="check"><input type="checkbox" id="coupon-mine" /> Only offers for cards I hold</label>
+      </div>
+      <div id="coupon-list"></div>
+    </section>
+
+    <!-- TRIP PLANNER (lounge, kept) -->
+    <section id="view-trip" class="view">
       <div class="landing-hero">
         <div class="lh-glow"></div>
         <div class="lh-badge">🛋 India's lounge wallet</div>
@@ -367,8 +417,10 @@
   <script src="data/lounges.js"></script>
   <script src="data/meta.js"></script>
   <script src="data/sources.js"></script>
+  <script src="data/flights.js"></script>
   <script src="brand.js"></script>
   <script src="engine.js"></script>
+  <script src="flight-engine.js"></script>
   <script src="selfcheck.js"></script>
   <script src="profile.js"></script>
   <script src="auth.js"></script>

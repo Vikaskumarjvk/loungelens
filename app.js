@@ -3,6 +3,7 @@
   "use strict";
   const E = window.LL_ENGINE, CARDS = window.LL_CARDS, LOUNGES = window.LL_LOUNGES, META = window.LL_META, SELF = window.LL_SELF;
   const BRAND = window.LL_BRAND;
+  const FE = window.LL_FLIGHT_ENGINE, FLIGHTS = window.LL_FLIGHTS;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -17,7 +18,7 @@
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [] }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -190,7 +191,7 @@
   // ---- routing (hash-based: deep-linkable + back button works) -----------
   const VIEWS = $$("nav button").map((b) => b.dataset.view).filter(Boolean);
   function showView(view, push) {
-    if (!VIEWS.includes(view)) view = "trip";
+    if (!VIEWS.includes(view)) view = "flights";
     $$("nav button").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
     $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1116,6 +1117,178 @@
     r.readAsText(file); e.target.value = "";
   };
 
+  // ============================ FLIGHTS ===================================
+  // Honest fare comparison: deep-link to every airline + OTA's LIVE search, and
+  // compute the best way to pay (card offer / app / coupon) from the user's
+  // wallet. No fabricated prices — real fares live on the real sites.
+  const kindIcon = (k) => ({ card: "💳", app: "📱", coupon: "🎟️", price: "🏷️" }[k] || "🏷️");
+
+  function flAirportLabel(codeOrCity) {
+    const v = (codeOrCity || "").trim();
+    if (!v) return null;
+    const up = v.toUpperCase();
+    const byCode = (FLIGHTS.airports || []).find((a) => a.code === up);
+    if (byCode) return byCode;
+    const byCity = (FLIGHTS.airports || []).find((a) => a.city.toLowerCase() === v.toLowerCase());
+    if (byCity) return byCity;
+    // accept a raw 3-letter code the user typed even if not in our list
+    if (/^[A-Za-z]{3}$/.test(v)) return { code: up, city: up };
+    return null;
+  }
+
+  function fillAirportList() {
+    const dl = $("#airport-list");
+    if (!dl) return;
+    dl.innerHTML = FE.airports(FLIGHTS)
+      .map((a) => `<option value="${a.city}">${a.code} — ${a.city}</option>`).join("");
+  }
+
+  function renderFlightStats() {
+    const el = $("#fl-stats");
+    if (!el) return;
+    const providers = (FLIGHTS.providers || []).length;
+    const airlines = (FLIGHTS.providers || []).filter((p) => p.type === "airline").length;
+    const otas = (FLIGHTS.providers || []).filter((p) => p.type === "ota").length;
+    const offers = FE.allOffers(FLIGHTS).length;
+    const pill = (n, l) => `<div class="lh-stat"><b>${n}</b><span>${l}</span></div>`;
+    el.innerHTML = pill(providers, "booking sites") + pill(airlines, "airlines") + pill(otas, "OTAs") + pill(offers, "offers tracked");
+  }
+
+  function renderFlights() {
+    if (!$("#fl-result")) return;
+    const f = state.flight || (state.flight = { from: "", to: "", date: "" });
+    // reflect persisted values into inputs
+    if ($("#fl-from") && document.activeElement !== $("#fl-from")) $("#fl-from").value = f.from || "";
+    if ($("#fl-to") && document.activeElement !== $("#fl-to")) $("#fl-to").value = f.to || "";
+    if ($("#fl-date") && document.activeElement !== $("#fl-date")) $("#fl-date").value = f.date || "";
+
+    const honesty = $("#fl-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> a free app can't pull live airfares (no server), so I open the <b>real</b> live search on each site — you see the true price there. The offers below are recurring India card/app/coupon mechanisms, tagged how sure I am and when last checked. Always tap verify for today's exact code before you pay.`;
+
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+    const from = flAirportLabel(f.from), to = flAirportLabel(f.to);
+
+    // best way to pay across all providers (works even before a route is entered)
+    const bp = $("#fl-bestpay");
+    if (bp) {
+      const ranked = FE.bestPay(FLIGHTS, wallet);
+      if (!wallet.length) {
+        bp.innerHTML = `<div class="nudge">👋 Add the cards you hold and I'll mark which booking sites give you an instant discount. <b class="link" data-goto="addcard">Add my cards →</b></div>`;
+      } else if (ranked.length) {
+        const top = ranked[0];
+        bp.innerHTML = `<div class="bestpay">
+          <div class="bp-head">💡 Best way to pay (from your wallet)</div>
+          <div class="bp-card">${cardArt(top.card, { tiny: true })} <b>${top.card.name}</b> has offers on ${top.providers.slice(0, 4).join(", ")}${top.providers.length > 4 ? ` +${top.providers.length - 4} more` : ""}</div>
+          <div class="card-sub">Offers rotate — confirm today's exact discount on each site before you pay.</div>
+        </div>`;
+      } else {
+        bp.innerHTML = `<div class="card-sub" style="margin:6px 0 14px;">None of your cards match a tracked booking-site offer yet. The airline/OTA may still run a generic discount — check each site.</div>`;
+      }
+      wireGoto();
+    }
+
+    if (!from || !to) {
+      $("#fl-result").innerHTML = `<div class="empty">Enter where you're flying from and to. I'll line up every booking site with the best discount for your wallet.</div>`;
+      return;
+    }
+    if (from.code === to.code) {
+      $("#fl-result").innerHTML = `<div class="empty">Origin and destination are the same. Pick two different cities.</div>`;
+      return;
+    }
+
+    const rows = FE.comparison(FLIGHTS, from.code, to.code, f.date, wallet);
+    const dateLabel = f.date ? (FE.dateParts(f.date) ? FE.dateParts(f.date).text : f.date) : "any date";
+    const head = `<div class="fl-route">
+      <b>${from.code}</b> <span class="fl-arrow">→</span> <b>${to.code}</b>
+      <span class="card-sub">${from.city} to ${to.city} · ${dateLabel}</span>
+    </div>`;
+
+    const groupLabel = { meta: "Compare everything", airline: "Book direct (fewer fees)", ota: "Travel sites (most card offers)" };
+    let lastType = null;
+    const body = rows.map((r) => {
+      const p = r.provider;
+      const groupHead = p.type !== lastType ? `<div class="fl-group">${groupLabel[p.type] || ""}</div>` : "";
+      lastType = p.type;
+      const offerChips = r.offers.map((o) => {
+        const cls = o.inWallet ? "in-wallet" : "";
+        const who = o.offer.kind === "card" && o.offer.issuer ? o.offer.issuer + " " : "";
+        const code = o.offer.code ? ` <code class="fl-code">${o.offer.code}</code>` : "";
+        return `<div class="fl-offer ${cls}">
+          <span class="fl-offer-k">${kindIcon(o.offer.kind)}</span>
+          <span class="fl-offer-t">${who}${o.offer.title}${code} ${confBadge(o.offer.confidence)}${o.inWallet ? ` <span class="chip good">you hold this</span>` : ""}</span>
+          ${o.offer.verify ? `<a class="fl-verify" href="https://${o.offer.verify.replace(/^https?:\/\//, "")}" target="_blank" rel="noopener">verify ↗</a>` : ""}
+        </div>`;
+      }).join("");
+      const typeTag = p.type === "meta" ? `<span class="chip">compare</span>` : p.type === "airline" ? `<span class="chip rail">airline</span>` : `<span class="chip">travel site</span>`;
+      return `${groupHead}
+      <div class="fl-prov ${r.walletHits ? "has-wallet-offer" : ""}">
+        <div class="fl-prov-head">
+          <div><b>${p.name}</b> ${typeTag} ${confBadge(p.confidence)}</div>
+          <a class="act mini fl-open" href="${r.link}" target="_blank" rel="noopener">${r.prefilled ? "open live fares ↗" : "open booking site ↗"}</a>
+        </div>
+        <div class="card-sub fl-note">${p.note}</div>
+        ${offerChips || `<div class="card-sub fl-noOffer">No card/app offer tracked here — check the site for a current discount.</div>`}
+      </div>`;
+    }).join("");
+
+    $("#fl-result").innerHTML = head + body;
+  }
+
+  // flight input wiring
+  function wireFlights() {
+    const persist = () => {
+      state.flight = {
+        from: ($("#fl-from") && $("#fl-from").value) || "",
+        to: ($("#fl-to") && $("#fl-to").value) || "",
+        date: ($("#fl-date") && $("#fl-date").value) || "",
+      };
+      save();
+    };
+    ["#fl-from", "#fl-to", "#fl-date"].forEach((s) => {
+      const el = $(s);
+      if (el) el.oninput = () => { persist(); };
+    });
+    if ($("#fl-go")) $("#fl-go").onclick = () => { persist(); renderFlights(); $("#fl-result").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if ($("#fl-swap")) $("#fl-swap").onclick = () => {
+      const a = $("#fl-from"), b = $("#fl-to");
+      if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); renderFlights(); }
+    };
+  }
+
+  // ---- coupons & offers view ---------------------------------------------
+  let couponKind = "";
+  function renderCoupons() {
+    if (!$("#coupon-list")) return;
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+    const walletIssuers = new Set(wallet.map((c) => c.issuer));
+    const onlyMine = $("#coupon-mine") && $("#coupon-mine").checked;
+    let all = FE.allOffers(FLIGHTS);
+    if (couponKind) all = all.filter((o) => (o.kind || "coupon") === couponKind);
+    if (onlyMine) all = all.filter((o) => o.kind === "card" && o.issuer && walletIssuers.has(o.issuer));
+    if (!all.length) { $("#coupon-list").innerHTML = `<div class="empty">No offers match this filter.</div>`; return; }
+
+    $("#coupon-list").innerHTML = all.map((o) => {
+      const mine = o.kind === "card" && o.issuer && walletIssuers.has(o.issuer);
+      const who = o.kind === "card" && o.issuer ? `<span class="chip">${o.issuer}</span>` : "";
+      const code = o.code ? ` <code class="fl-code">${o.code}</code>` : "";
+      const checked = o.lastChecked ? `<span class="card-sub">checked ${o.lastChecked}</span>` : "";
+      const verify = o.verify ? `<a class="fl-verify" href="https://${String(o.verify).replace(/^https?:\/\//, "")}" target="_blank" rel="noopener">verify ↗</a>` : "";
+      return `<div class="coupon-row ${mine ? "in-wallet" : ""}">
+        <div class="cp-main">
+          <div class="cp-title">${kindIcon(o.kind)} ${who} <b>${o.title}</b>${code} ${confBadge(o.confidence)} ${mine ? `<span class="chip good">you hold this</span>` : ""}</div>
+          <div class="card-sub">${o.note || o.terms || ""} ${o.provider ? `· on ${o.provider}` : ""}</div>
+        </div>
+        <div class="cp-side">${checked} ${verify}</div>
+      </div>`;
+    }).join("");
+  }
+  $$("#coupon-kind .seg-btn").forEach((b) => b.onclick = () => {
+    couponKind = b.dataset.ck || "";
+    $$("#coupon-kind .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+    renderCoupons();
+  });
+  if ($("#coupon-mine")) $("#coupon-mine").onchange = renderCoupons;
+
   // ============================ SUGGESTIONS ===============================
   function renderSuggestions() {
     if (!$("#sug-list")) return;
@@ -1185,6 +1358,7 @@
     if (!state.experiences) state.experiences = []; // migrate older saved state
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
     renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
+    renderFlights(); renderCoupons();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
   }
 
@@ -1217,8 +1391,11 @@
   // init
   applyMode();
   cityDatalist();
+  fillAirportList();
   renderHeroStats();
+  renderFlightStats();
   renderTripInputs();
+  wireFlights();
   render();
   renderAuthBar();
   maybeOnboard();

@@ -762,6 +762,62 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   .mv-pct { font-size: 28px; min-width: 60px; }
 }
 
+/* ============================ FLIGHTS ============================ */
+.flight-builder { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-1); }
+.fb-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.fb-row:last-child { margin-bottom: 0; }
+.fb-input {
+  flex: 1; min-width: 0; background: var(--bg); color: var(--txt);
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 12px 13px; font-size: 15px; font-family: inherit;
+}
+.fb-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+#fl-swap { flex: 0 0 auto; font-size: 18px; padding: 8px 12px; }
+#fl-go { flex: 0 0 auto; }
+
+.bestpay { background: linear-gradient(135deg, rgba(123,110,255,.14), rgba(91,140,255,.05)); border: 1px solid rgba(123,110,255,.32); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 16px; }
+.bp-head { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+.bp-card { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; margin-bottom: 4px; }
+
+.fl-route { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 6px 0 14px; font-size: 20px; font-weight: 800; }
+.fl-route b { font-size: 22px; }
+.fl-arrow { color: var(--accent); }
+.fl-group { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); margin: 18px 0 8px; font-weight: 700; }
+.fl-group:first-of-type { margin-top: 6px; }
+
+.fl-prov { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 13px 15px; margin-bottom: 10px; }
+.fl-prov.has-wallet-offer { border-color: rgba(54,211,153,.4); }
+.fl-prov-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fl-prov-head b { font-size: 15px; }
+.fl-open { white-space: nowrap; flex: 0 0 auto; }
+.fl-note { margin: 6px 0 8px; }
+.fl-noOffer { font-style: italic; opacity: .8; }
+.fl-offer { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; margin-top: 7px; border-radius: var(--r-sm); background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+.fl-offer.in-wallet { background: var(--good-dim); border-color: rgba(54,211,153,.4); }
+.fl-offer-k { flex: 0 0 auto; font-size: 14px; }
+.fl-offer-t { flex: 1; font-size: 13px; line-height: 1.45; }
+.fl-verify { flex: 0 0 auto; font-size: 12px; color: var(--accent2); text-decoration: none; white-space: nowrap; }
+.fl-verify:hover { text-decoration: underline; }
+.fl-code { background: rgba(255,255,255,.1); border: 1px dashed var(--line-strong); border-radius: 4px; padding: 1px 6px; font-size: 12px; letter-spacing: .5px; font-weight: 700; }
+.honesty-note { margin-top: 20px; padding: 13px 15px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r-md); font-size: 13px; line-height: 1.5; color: var(--dim); }
+.honesty-note b { color: var(--txt); }
+
+/* coupons view */
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--dim); cursor: pointer; }
+.coupon-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 9px; }
+.coupon-row.in-wallet { border-color: rgba(54,211,153,.4); }
+.cp-main { flex: 1; min-width: 0; }
+.cp-title { font-size: 14px; line-height: 1.5; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cp-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+
+@media (max-width: 560px) {
+  .fb-row { flex-wrap: wrap; }
+  .fb-input { flex-basis: 100%; }
+  #fl-swap { order: 3; }
+  .fl-prov-head { align-items: flex-start; }
+  .coupon-row { flex-direction: column; }
+  .cp-side { flex-direction: row; align-items: center; }
+}
+
 /* reduce motion if the user prefers it */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -784,8 +840,10 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
       </div>
     </div>
     <nav>
-      <button data-view="trip" class="active">✈️ Plan a Trip</button>
+      <button data-view="flights" class="active">✈️ Flight Deals</button>
+      <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>
+      <button data-view="trip">🛋️ Lounge Trip</button>
       <button data-view="airports">🛫 Airports</button>
       <button data-view="map">🗺️ Coverage Map</button>
       <button data-view="lounges">🛋️ All Lounges</button>
@@ -801,8 +859,56 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   </header>
 
   <main>
-    <!-- TRIP PLANNER (default, the heart) -->
-    <section id="view-trip" class="view active">
+    <!-- FLIGHT DEALS (default, the new front door) -->
+    <section id="view-flights" class="view active">
+      <div class="landing-hero">
+        <div class="lh-glow"></div>
+        <div class="lh-badge">✈️ India flight deals + best way to pay</div>
+        <h2 class="lh-title">Find the fare,<br><span class="lh-grad">pay the smart way.</span></h2>
+        <p class="lh-sub">Tell me your route. I open the live search on every airline and booking site at once, and tell you which of your cards, which app offer, and which coupon saves the most. Real prices stay on the real sites. I never make a price up.</p>
+        <div class="lh-stats" id="fl-stats"></div>
+      </div>
+      <div class="hero">
+        <h2>Where to?</h2>
+        <p>Pick your route and date. I'll line up every airline + OTA with the best discount for your wallet on each.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="fl-from" placeholder="From (city or code)" list="airport-list" autocomplete="off" />
+          <button class="act ghost mini" id="fl-swap" title="Swap" aria-label="Swap origin and destination">⇄</button>
+          <input class="fb-input" id="fl-to" placeholder="To (city or code)" list="airport-list" autocomplete="off" />
+        </div>
+        <div class="fb-row">
+          <input class="fb-input" id="fl-date" type="date" aria-label="Travel date" />
+          <button class="act big" id="fl-go">Compare fares →</button>
+        </div>
+        <datalist id="airport-list"></datalist>
+      </div>
+      <div id="fl-bestpay"></div>
+      <div id="fl-result"></div>
+      <div class="honesty-note" id="fl-honesty"></div>
+    </section>
+
+    <!-- COUPONS & OFFERS -->
+    <section id="view-coupons" class="view">
+      <div class="hero">
+        <h2>Coupons &amp; offers</h2>
+        <p>Card discounts, app-only fares, wallet stacking and coupon mechanisms that recur on India flight sites. Each is tagged how sure I am and when it was last checked — tap verify to confirm today's exact code before you pay.</p>
+      </div>
+      <div class="filterbar">
+        <div class="seg" id="coupon-kind">
+          <button class="seg-btn active" data-ck="">All</button>
+          <button class="seg-btn" data-ck="card">💳 Card</button>
+          <button class="seg-btn" data-ck="app">📱 App</button>
+          <button class="seg-btn" data-ck="coupon">🎟️ Coupon</button>
+        </div>
+        <label class="check"><input type="checkbox" id="coupon-mine" /> Only offers for cards I hold</label>
+      </div>
+      <div id="coupon-list"></div>
+    </section>
+
+    <!-- TRIP PLANNER (lounge, kept) -->
+    <section id="view-trip" class="view">
       <div class="landing-hero">
         <div class="lh-glow"></div>
         <div class="lh-badge">🛋 India's lounge wallet</div>
@@ -2851,6 +2957,200 @@ window.LL_SOURCE_LINKS = {
 
 </script>
   <script>
+/*
+ * LoungeLens / FlightLens — flight booking providers, deep links, and the
+ * card / app / coupon discount layer (India domestic + international booking sites).
+ *
+ * HONESTY MODEL (same as the lounge data — read this):
+ *  - A free static site CANNOT fetch live airfares (CORS + no server). So this
+ *    does NOT store fake prices. Instead each provider has a real DEEP LINK that
+ *    opens the actual live search on the real site, where you see the real fare.
+ *  - linkType "prefilled" = route + date go straight into the URL (you land on
+ *    results). "search-page" = opens the booking page, you type the dates (the
+ *    airline uses POST search, no stable deep link).
+ *  - Offers (card discount / app offer / coupon) are CONFIDENCE-TAGGED with a
+ *    lastChecked date and a verify link. India bank offers rotate often, so an
+ *    offer here describes the recurring mechanism; tap verify to confirm today's
+ *    exact code + cap before you pay. NOTHING here is a guaranteed live price.
+ *
+ * URL placeholders the engine fills:
+ *   {FROM} {TO}        IATA codes, upper (DEL, BOM)
+ *   {FROM_L} {TO_L}    IATA codes, lower (del, bom)
+ *   {DATE}             YYYY-MM-DD
+ *   {DATE_YYMMDD}      260712
+ *   {DATE_DDMMYYYY}    12/07/2026
+ *   {DATE_TEXT}        12 Jul 2026  (url-encoded by the engine)
+ */
+window.LL_FLIGHTS = {
+  // ---- airports for the route picker (major India + a few intl hubs) -------
+  airports: [
+    { code: "DEL", city: "Delhi" }, { code: "BOM", city: "Mumbai" },
+    { code: "BLR", city: "Bengaluru" }, { code: "HYD", city: "Hyderabad" },
+    { code: "MAA", city: "Chennai" }, { code: "CCU", city: "Kolkata" },
+    { code: "GOI", city: "Goa (Dabolim)" }, { code: "GOX", city: "Goa (Mopa)" },
+    { code: "COK", city: "Kochi" }, { code: "PNQ", city: "Pune" },
+    { code: "AMD", city: "Ahmedabad" }, { code: "JAI", city: "Jaipur" },
+    { code: "LKO", city: "Lucknow" }, { code: "PAT", city: "Patna" },
+    { code: "GAU", city: "Guwahati" }, { code: "BBI", city: "Bhubaneswar" },
+    { code: "IXC", city: "Chandigarh" }, { code: "SXR", city: "Srinagar" },
+    { code: "TRV", city: "Thiruvananthapuram" }, { code: "CCJ", city: "Kozhikode" },
+    { code: "VNS", city: "Varanasi" }, { code: "NAG", city: "Nagpur" },
+    { code: "IXB", city: "Bagdogra" }, { code: "VTZ", city: "Visakhapatnam" },
+    { code: "RPR", city: "Raipur" }, { code: "IDR", city: "Indore" },
+    { code: "BHO", city: "Bhopal" }, { code: "ATQ", city: "Amritsar" },
+    { code: "IXR", city: "Ranchi" }, { code: "IXM", city: "Madurai" },
+    { code: "TIR", city: "Tirupati" }, { code: "RJA", city: "Rajahmundry" },
+    { code: "DED", city: "Dehradun" }, { code: "JLR", city: "Jabalpur" },
+    { code: "STV", city: "Surat" }, { code: "BDQ", city: "Vadodara" },
+    { code: "IXZ", city: "Port Blair" }, { code: "DXB", city: "Dubai" },
+    { code: "SIN", city: "Singapore" }, { code: "BKK", city: "Bangkok" },
+    { code: "LHR", city: "London Heathrow" }, { code: "JFK", city: "New York JFK" },
+  ],
+
+  // ---- booking providers ---------------------------------------------------
+  // type: meta (compares all, no booking) | airline (book direct) | ota
+  providers: [
+    {
+      id: "google-flights", name: "Google Flights", type: "meta", linkType: "prefilled",
+      url: "https://www.google.com/travel/flights?q=Flights%20from%20{FROM}%20to%20{TO}%20on%20{DATE}",
+      note: "Sees every airline's fare at once, then sends you to book. Best first stop.",
+      confidence: "high", verify: "google.com/travel/flights", offers: [],
+    },
+    {
+      id: "skyscanner", name: "Skyscanner", type: "meta", linkType: "prefilled",
+      url: "https://www.skyscanner.co.in/transport/flights/{FROM_L}/{TO_L}/{DATE_YYMMDD}/",
+      note: "Compares airlines + OTAs, flags the cheapest. No card offers of its own.",
+      confidence: "high", verify: "skyscanner.co.in", offers: [],
+    },
+    {
+      id: "indigo", name: "IndiGo (6E)", type: "airline", linkType: "search-page",
+      url: "https://www.goindigo.in/",
+      note: "Book direct, no OTA convenience fee. India's largest network.",
+      confidence: "high", verify: "goindigo.in",
+      offers: [
+        { id: "indigo-hdfc", kind: "card", issuer: "HDFC", title: "HDFC bank card instant discount runs on 6E Rewards bookings", code: null, cap: "varies", terms: "Recurring HDFC tie-up; exact % and cap rotate. Confirm on the offers page.", confidence: "low", lastChecked: "2026-06-22", verify: "goindigo.in/offers.html" },
+        { id: "indigo-6erewards", kind: "card", issuer: "Kotak", title: "Ka-ching 6E Rewards co-brand (Kotak) earns 6E points per booking", code: null, cap: "points, not cash", terms: "The IndiGo co-brand card. Points accrue, redeem on fares.", confidence: "med", lastChecked: "2026-06-22", verify: "goindigo.in/ka-ching.html" },
+      ],
+    },
+    {
+      id: "airindia", name: "Air India", type: "airline", linkType: "search-page",
+      url: "https://www.airindia.com/",
+      note: "Full-service, now includes the old Vistara network. Book direct for fewer fees.",
+      confidence: "high", verify: "airindia.com",
+      offers: [
+        { id: "ai-sbi", kind: "card", issuer: "SBI", title: "Air India SBI co-brand earns reward points + tier perks", code: null, cap: "points", terms: "Co-brand card; points on AI bookings. Instant discounts rotate.", confidence: "low", lastChecked: "2026-06-22", verify: "airindia.com/in/en/about-air-india/special-offers.html" },
+      ],
+    },
+    {
+      id: "akasa", name: "Akasa Air (QP)", type: "airline", linkType: "search-page",
+      url: "https://www.akasaair.com/",
+      note: "Newer airline, growing metro + tier-2 network. Book direct.",
+      confidence: "high", verify: "akasaair.com", offers: [],
+    },
+    {
+      id: "spicejet", name: "SpiceJet (SG)", type: "airline", linkType: "search-page",
+      url: "https://www.spicejet.com/",
+      note: "Book direct. Network is smaller than it once was; check it still flies your route.",
+      confidence: "med", verify: "spicejet.com", offers: [],
+    },
+    {
+      id: "airindiaexpress", name: "Air India Express (IX)", type: "airline", linkType: "search-page",
+      url: "https://www.airindiaexpress.com/",
+      note: "Low-cost arm of Air India. Strong on Gulf + south-India routes.",
+      confidence: "high", verify: "airindiaexpress.com", offers: [],
+    },
+    {
+      id: "alliance", name: "Alliance Air (9I)", type: "airline", linkType: "search-page",
+      url: "https://www.allianceair.in/",
+      note: "Regional carrier, smaller airports (UDAN routes).",
+      confidence: "med", verify: "allianceair.in", offers: [],
+    },
+    {
+      id: "makemytrip", name: "MakeMyTrip", type: "ota", linkType: "prefilled",
+      url: "https://www.makemytrip.com/flight/search?itinerary={FROM}-{TO}-{DATE}&tripType=O&paxType=A-1_C-0_I-0&cabinClass=E",
+      note: "Big OTA. Runs the most bank instant-discount offers, but adds a convenience fee.",
+      confidence: "med", verify: "makemytrip.com/promos/",
+      offers: [
+        { id: "mmt-hdfc", kind: "card", issuer: "HDFC", title: "HDFC card instant discount on domestic flights (recurring)", code: "MMTHDFC", cap: "up to a few hundred ₹", terms: "MMT runs a recurring HDFC offer; the code + cap change. Confirm on the offers page before you pay.", confidence: "low", lastChecked: "2026-06-22", verify: "makemytrip.com/promos/" },
+        { id: "mmt-icici", kind: "card", issuer: "ICICI", title: "ICICI card flight discount (recurring)", code: null, cap: "varies", terms: "Recurring ICICI tie-up. Exact terms rotate.", confidence: "low", lastChecked: "2026-06-22", verify: "makemytrip.com/promos/" },
+        { id: "mmt-mybiz", kind: "app", issuer: null, title: "App-only fares are often a bit cheaper than web", code: null, cap: "varies", terms: "MMT frequently prices the app lower. Worth a check.", confidence: "low", lastChecked: "2026-06-22", verify: "makemytrip.com" },
+      ],
+    },
+    {
+      id: "goibibo", name: "Goibibo", type: "ota", linkType: "search-page",
+      url: "https://www.goibibo.com/flights/",
+      note: "Same group as MakeMyTrip; sometimes different offers + 'gocash' wallet.",
+      confidence: "med", verify: "goibibo.com/offers/",
+      offers: [
+        { id: "gi-axis", kind: "card", issuer: "Axis", title: "Axis card flight offer (recurring)", code: null, cap: "varies", terms: "Recurring Axis tie-up. Confirm current terms.", confidence: "low", lastChecked: "2026-06-22", verify: "goibibo.com/offers/" },
+      ],
+    },
+    {
+      id: "cleartrip", name: "Cleartrip", type: "ota", linkType: "search-page",
+      url: "https://www.cleartrip.com/flights",
+      note: "Owned by Flipkart. Often tied to Flipkart/Axis offers + 'Cleartrip for Business'.",
+      confidence: "med", verify: "cleartrip.com/offers",
+      offers: [
+        { id: "ct-icici", kind: "card", issuer: "ICICI", title: "ICICI / Flipkart Axis card offers run here often", code: null, cap: "varies", terms: "Cleartrip + Flipkart ecosystem offers rotate. Confirm before paying.", confidence: "low", lastChecked: "2026-06-22", verify: "cleartrip.com/offers" },
+      ],
+    },
+    {
+      id: "easemytrip", name: "EaseMyTrip", type: "ota", linkType: "search-page",
+      url: "https://www.easemytrip.com/flights/",
+      note: "Often lower or zero convenience fee. Heavy on coupon codes.",
+      confidence: "med", verify: "easemytrip.com/offers/",
+      offers: [
+        { id: "emt-coupon", kind: "coupon", issuer: null, title: "EaseMyTrip runs frequent flat-off domestic codes", code: "EMTDOM", cap: "varies", terms: "Codes rotate weekly; the offers page lists today's working ones.", confidence: "low", lastChecked: "2026-06-22", verify: "easemytrip.com/offers/" },
+      ],
+    },
+    {
+      id: "yatra", name: "Yatra", type: "ota", linkType: "search-page",
+      url: "https://www.yatra.com/flights",
+      note: "Long-running OTA; bank offers + eCash wallet.",
+      confidence: "med", verify: "yatra.com/online/all-deals", offers: [],
+    },
+    {
+      id: "ixigo", name: "ixigo", type: "ota", linkType: "search-page",
+      url: "https://www.ixigo.com/flights",
+      note: "Aggregates + books. 'assured' refund add-on; app-first pricing.",
+      confidence: "med", verify: "ixigo.com/offers", offers: [],
+    },
+    {
+      id: "paytm", name: "Paytm Travel", type: "ota", linkType: "search-page",
+      url: "https://tickets.paytm.com/flights/",
+      note: "Paytm wallet cashback offers; app-first.",
+      confidence: "med", verify: "paytm.com/offer/flights/", offers: [],
+    },
+    {
+      id: "happyfares", name: "HappyFares", type: "ota", linkType: "search-page",
+      url: "https://www.happyfares.in/",
+      note: "Smaller OTA, sometimes undercuts on domestic. Check reviews before paying.",
+      confidence: "low", verify: "happyfares.in", offers: [],
+    },
+    {
+      id: "adanione", name: "Adani One", type: "ota", linkType: "search-page",
+      url: "https://www.adanione.com/flights",
+      note: "Adani's travel app; bundles airport services at Adani-run airports.",
+      confidence: "low", verify: "adanione.com", offers: [],
+    },
+  ],
+
+  // ---- cross-provider coupons / offer mechanisms ---------------------------
+  // NOT guaranteed-working codes (no free site can promise that). Each is a
+  // known recurring mechanism, confidence-tagged, with where to confirm today.
+  coupons: [
+    { id: "cpn-bank-instant", title: "Bank instant-discount days", who: "HDFC / ICICI / Axis / SBI / Kotak", note: "OTAs run rotating 'instant discount with X bank card' offers, usually capped at a few hundred rupees on domestic. Check the OTA's offers page on booking day.", confidence: "med", lastChecked: "2026-06-22", verify: "the OTA's /offers or /promos page" },
+    { id: "cpn-app-only", title: "App-only fares", who: "MakeMyTrip / ixigo / Paytm / EaseMyTrip", note: "Several OTAs price the mobile app a little under the website. Quick to check both.", confidence: "low", lastChecked: "2026-06-22", verify: "open the OTA app vs its website for the same search" },
+    { id: "cpn-wallet", title: "Wallet / cashback stacking", who: "Paytm / Goibibo goCash / Yatra eCash", note: "Some OTAs let you stack a wallet cashback on top of a card offer. Read the cap.", confidence: "low", lastChecked: "2026-06-22", verify: "the OTA's wallet/cashback terms" },
+    { id: "cpn-direct-vs-ota", title: "Book-direct can beat OTA after fees", who: "IndiGo / Air India / Akasa", note: "OTAs add a convenience fee. After a small card discount the airline's own site is sometimes cheaper. Compare both before paying.", confidence: "med", lastChecked: "2026-06-22", verify: "compare the airline site vs the OTA for the same flight" },
+    { id: "cpn-fare-error", title: "Fare-error / glitch fares", who: "any airline or OTA", note: "Genuine mistake fares appear and vanish fast. A free static app cannot auto-detect them (needs a price-history server). Communities like deal forums and Telegram channels surface them; book fast and expect possible cancellation.", confidence: "low", lastChecked: "2026-06-22", verify: "deal communities — treat as not-yet-confirmed until ticketed" },
+  ],
+
+  lastReviewed: "2026-06-22",
+};
+
+</script>
+  <script>
 /* brand.js — visual brand system for LoungeLens.
  * Maps issuers to brand colors + logo initials, and networks to gradients,
  * so every card renders as real card-art (gradient + issuer badge + network
@@ -3401,6 +3701,145 @@ window.LL_SOURCE_LINKS = {
 </script>
   <script>
 /*
+ * FlightLens engine — pure logic over LL_FLIGHTS. No DOM. Node-testable.
+ *
+ * What it does (and deliberately does NOT do):
+ *  - buildLink(): fills a provider's deep-link template with the user's route+date.
+ *  - providersFor(): returns providers ordered meta-first (compare), then airlines
+ *    (book direct, fewer fees), then OTAs.
+ *  - offersForWallet(): matches the user's WALLET cards to each provider's offers
+ *    by issuer, so we can show "your HDFC card has an offer here". This is the
+ *    "best way to pay" computation — reuses the lounge app's card dataset.
+ *  - bestPay(): across all providers, which of the user's cards has a matching
+ *    offer on the most/most-confident providers (a directional hint, not a price).
+ *  It does NOT invent prices. Live fares live on the provider's real page.
+ */
+(function (root) {
+  "use strict";
+
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+
+  // dateStr is "YYYY-MM-DD". Returns the placeholder substitutions.
+  function dateParts(dateStr) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || "");
+    if (!m) return null;
+    const [_, y, mo, d] = m;
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return {
+      ymd: y + "-" + mo + "-" + d,
+      yymmdd: y.slice(2) + mo + d,
+      ddmmyyyy: d + "/" + mo + "/" + y,
+      text: d + " " + months[Number(mo) - 1] + " " + y,
+    };
+  }
+
+  // fill a provider url template. Returns null if the template needs a date and
+  // we don't have a valid one (so the caller can fall back to the plain site).
+  function buildLink(provider, from, to, dateStr) {
+    let url = provider.url;
+    const dp = dateParts(dateStr);
+    const needsDate = /\{DATE/.test(url);
+    if (needsDate && !dp) return provider.fallbackUrl || stripToOrigin(url);
+    const F = (from || "").toUpperCase(), T = (to || "").toUpperCase();
+    url = url
+      .replace(/\{FROM_L\}/g, F.toLowerCase()).replace(/\{TO_L\}/g, T.toLowerCase())
+      .replace(/\{FROM\}/g, F).replace(/\{TO\}/g, T);
+    if (dp) {
+      url = url
+        .replace(/\{DATE_YYMMDD\}/g, dp.yymmdd)
+        .replace(/\{DATE_DDMMYYYY\}/g, encodeURIComponent(dp.ddmmyyyy))
+        .replace(/\{DATE_TEXT\}/g, encodeURIComponent(dp.text))
+        .replace(/\{DATE\}/g, dp.ymd);
+    }
+    return url;
+  }
+
+  function stripToOrigin(url) {
+    try { const u = new URL(url); return u.origin + "/"; } catch (e) { return url; }
+  }
+
+  const TYPE_ORDER = { meta: 0, airline: 1, ota: 2 };
+  const CONF_RANK = { high: 3, med: 2, low: 1 };
+
+  function providersFor(flights, opts) {
+    opts = opts || {};
+    let list = (flights.providers || []).slice();
+    if (opts.type) list = list.filter((p) => p.type === opts.type);
+    return list.sort((a, b) =>
+      (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]) ||
+      (CONF_RANK[b.confidence] - CONF_RANK[a.confidence]) ||
+      a.name.localeCompare(b.name));
+  }
+
+  // which of the user's wallet cards have a matching offer on this provider?
+  // walletCards = array of card objects {id, issuer, ...} from LL_CARDS.
+  function offersForProvider(provider, walletCards) {
+    const offers = provider.offers || [];
+    const walletIssuers = new Set((walletCards || []).map((c) => c.issuer));
+    return offers.map((o) => {
+      const matchedCards = o.kind === "card" && o.issuer
+        ? (walletCards || []).filter((c) => c.issuer === o.issuer)
+        : [];
+      const inWallet = matchedCards.length > 0 || (o.kind !== "card");
+      return { offer: o, matchedCards, inWallet: o.kind === "card" ? matchedCards.length > 0 : false, walletRelevant: o.kind === "card" ? walletIssuers.has(o.issuer) : true };
+    });
+  }
+
+  // full per-provider view for a route: link + offers, wallet-aware.
+  function comparison(flights, from, to, dateStr, walletCards, opts) {
+    return providersFor(flights, opts).map((p) => {
+      const offers = offersForProvider(p, walletCards);
+      const walletHits = offers.filter((o) => o.inWallet).length;
+      return {
+        provider: p,
+        link: buildLink(p, from, to, dateStr),
+        prefilled: p.linkType === "prefilled" && !!dateParts(dateStr),
+        offers,
+        walletHits,
+      };
+    });
+  }
+
+  // best way to pay: across all providers, score each wallet card by how many
+  // providers it has a (matching-issuer) offer on, weighted by provider confidence.
+  function bestPay(flights, walletCards) {
+    const score = new Map(); // cardId -> { card, providers:[], points }
+    (flights.providers || []).forEach((p) => {
+      (p.offers || []).forEach((o) => {
+        if (o.kind !== "card" || !o.issuer) return;
+        (walletCards || []).filter((c) => c.issuer === o.issuer).forEach((c) => {
+          if (!score.has(c.id)) score.set(c.id, { card: c, providers: [], points: 0 });
+          const e = score.get(c.id);
+          if (!e.providers.includes(p.name)) e.providers.push(p.name);
+          e.points += (CONF_RANK[p.confidence] || 1);
+        });
+      });
+    });
+    return Array.from(score.values()).sort((a, b) => b.points - a.points || b.providers.length - a.providers.length);
+  }
+
+  // all offers + coupons flattened, for the "Coupons & offers" view.
+  function allOffers(flights) {
+    const out = [];
+    (flights.providers || []).forEach((p) => {
+      (p.offers || []).forEach((o) => out.push({ ...o, provider: p.name, providerId: p.id, verify: o.verify || p.verify }));
+    });
+    (flights.coupons || []).forEach((c) => out.push({ ...c, kind: c.kind || "coupon", provider: c.who || "multiple" }));
+    return out;
+  }
+
+  function airports(flights) {
+    return (flights.airports || []).slice().sort((a, b) => a.city.localeCompare(b.city));
+  }
+
+  const Engine = { dateParts, buildLink, providersFor, offersForProvider, comparison, bestPay, allOffers, airports };
+  if (typeof module !== "undefined" && module.exports) module.exports = Engine;
+  root.LL_FLIGHT_ENGINE = Engine;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
  * LoungeLens — self-improvement module (rung 1: free, client-side, honest).
  *
  * WHAT THIS IS (and is NOT):
@@ -3899,6 +4338,7 @@ window.LL_SOURCE_LINKS = {
   "use strict";
   const E = window.LL_ENGINE, CARDS = window.LL_CARDS, LOUNGES = window.LL_LOUNGES, META = window.LL_META, SELF = window.LL_SELF;
   const BRAND = window.LL_BRAND;
+  const FE = window.LL_FLIGHT_ENGINE, FLIGHTS = window.LL_FLIGHTS;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -3913,7 +4353,7 @@ window.LL_SOURCE_LINKS = {
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [] }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -4086,7 +4526,7 @@ window.LL_SOURCE_LINKS = {
   // ---- routing (hash-based: deep-linkable + back button works) -----------
   const VIEWS = $$("nav button").map((b) => b.dataset.view).filter(Boolean);
   function showView(view, push) {
-    if (!VIEWS.includes(view)) view = "trip";
+    if (!VIEWS.includes(view)) view = "flights";
     $$("nav button").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
     $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -5012,6 +5452,178 @@ window.LL_SOURCE_LINKS = {
     r.readAsText(file); e.target.value = "";
   };
 
+  // ============================ FLIGHTS ===================================
+  // Honest fare comparison: deep-link to every airline + OTA's LIVE search, and
+  // compute the best way to pay (card offer / app / coupon) from the user's
+  // wallet. No fabricated prices — real fares live on the real sites.
+  const kindIcon = (k) => ({ card: "💳", app: "📱", coupon: "🎟️", price: "🏷️" }[k] || "🏷️");
+
+  function flAirportLabel(codeOrCity) {
+    const v = (codeOrCity || "").trim();
+    if (!v) return null;
+    const up = v.toUpperCase();
+    const byCode = (FLIGHTS.airports || []).find((a) => a.code === up);
+    if (byCode) return byCode;
+    const byCity = (FLIGHTS.airports || []).find((a) => a.city.toLowerCase() === v.toLowerCase());
+    if (byCity) return byCity;
+    // accept a raw 3-letter code the user typed even if not in our list
+    if (/^[A-Za-z]{3}$/.test(v)) return { code: up, city: up };
+    return null;
+  }
+
+  function fillAirportList() {
+    const dl = $("#airport-list");
+    if (!dl) return;
+    dl.innerHTML = FE.airports(FLIGHTS)
+      .map((a) => `<option value="${a.city}">${a.code} — ${a.city}</option>`).join("");
+  }
+
+  function renderFlightStats() {
+    const el = $("#fl-stats");
+    if (!el) return;
+    const providers = (FLIGHTS.providers || []).length;
+    const airlines = (FLIGHTS.providers || []).filter((p) => p.type === "airline").length;
+    const otas = (FLIGHTS.providers || []).filter((p) => p.type === "ota").length;
+    const offers = FE.allOffers(FLIGHTS).length;
+    const pill = (n, l) => `<div class="lh-stat"><b>${n}</b><span>${l}</span></div>`;
+    el.innerHTML = pill(providers, "booking sites") + pill(airlines, "airlines") + pill(otas, "OTAs") + pill(offers, "offers tracked");
+  }
+
+  function renderFlights() {
+    if (!$("#fl-result")) return;
+    const f = state.flight || (state.flight = { from: "", to: "", date: "" });
+    // reflect persisted values into inputs
+    if ($("#fl-from") && document.activeElement !== $("#fl-from")) $("#fl-from").value = f.from || "";
+    if ($("#fl-to") && document.activeElement !== $("#fl-to")) $("#fl-to").value = f.to || "";
+    if ($("#fl-date") && document.activeElement !== $("#fl-date")) $("#fl-date").value = f.date || "";
+
+    const honesty = $("#fl-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> a free app can't pull live airfares (no server), so I open the <b>real</b> live search on each site — you see the true price there. The offers below are recurring India card/app/coupon mechanisms, tagged how sure I am and when last checked. Always tap verify for today's exact code before you pay.`;
+
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+    const from = flAirportLabel(f.from), to = flAirportLabel(f.to);
+
+    // best way to pay across all providers (works even before a route is entered)
+    const bp = $("#fl-bestpay");
+    if (bp) {
+      const ranked = FE.bestPay(FLIGHTS, wallet);
+      if (!wallet.length) {
+        bp.innerHTML = `<div class="nudge">👋 Add the cards you hold and I'll mark which booking sites give you an instant discount. <b class="link" data-goto="addcard">Add my cards →</b></div>`;
+      } else if (ranked.length) {
+        const top = ranked[0];
+        bp.innerHTML = `<div class="bestpay">
+          <div class="bp-head">💡 Best way to pay (from your wallet)</div>
+          <div class="bp-card">${cardArt(top.card, { tiny: true })} <b>${top.card.name}</b> has offers on ${top.providers.slice(0, 4).join(", ")}${top.providers.length > 4 ? ` +${top.providers.length - 4} more` : ""}</div>
+          <div class="card-sub">Offers rotate — confirm today's exact discount on each site before you pay.</div>
+        </div>`;
+      } else {
+        bp.innerHTML = `<div class="card-sub" style="margin:6px 0 14px;">None of your cards match a tracked booking-site offer yet. The airline/OTA may still run a generic discount — check each site.</div>`;
+      }
+      wireGoto();
+    }
+
+    if (!from || !to) {
+      $("#fl-result").innerHTML = `<div class="empty">Enter where you're flying from and to. I'll line up every booking site with the best discount for your wallet.</div>`;
+      return;
+    }
+    if (from.code === to.code) {
+      $("#fl-result").innerHTML = `<div class="empty">Origin and destination are the same. Pick two different cities.</div>`;
+      return;
+    }
+
+    const rows = FE.comparison(FLIGHTS, from.code, to.code, f.date, wallet);
+    const dateLabel = f.date ? (FE.dateParts(f.date) ? FE.dateParts(f.date).text : f.date) : "any date";
+    const head = `<div class="fl-route">
+      <b>${from.code}</b> <span class="fl-arrow">→</span> <b>${to.code}</b>
+      <span class="card-sub">${from.city} to ${to.city} · ${dateLabel}</span>
+    </div>`;
+
+    const groupLabel = { meta: "Compare everything", airline: "Book direct (fewer fees)", ota: "Travel sites (most card offers)" };
+    let lastType = null;
+    const body = rows.map((r) => {
+      const p = r.provider;
+      const groupHead = p.type !== lastType ? `<div class="fl-group">${groupLabel[p.type] || ""}</div>` : "";
+      lastType = p.type;
+      const offerChips = r.offers.map((o) => {
+        const cls = o.inWallet ? "in-wallet" : "";
+        const who = o.offer.kind === "card" && o.offer.issuer ? o.offer.issuer + " " : "";
+        const code = o.offer.code ? ` <code class="fl-code">${o.offer.code}</code>` : "";
+        return `<div class="fl-offer ${cls}">
+          <span class="fl-offer-k">${kindIcon(o.offer.kind)}</span>
+          <span class="fl-offer-t">${who}${o.offer.title}${code} ${confBadge(o.offer.confidence)}${o.inWallet ? ` <span class="chip good">you hold this</span>` : ""}</span>
+          ${o.offer.verify ? `<a class="fl-verify" href="https://${o.offer.verify.replace(/^https?:\/\//, "")}" target="_blank" rel="noopener">verify ↗</a>` : ""}
+        </div>`;
+      }).join("");
+      const typeTag = p.type === "meta" ? `<span class="chip">compare</span>` : p.type === "airline" ? `<span class="chip rail">airline</span>` : `<span class="chip">travel site</span>`;
+      return `${groupHead}
+      <div class="fl-prov ${r.walletHits ? "has-wallet-offer" : ""}">
+        <div class="fl-prov-head">
+          <div><b>${p.name}</b> ${typeTag} ${confBadge(p.confidence)}</div>
+          <a class="act mini fl-open" href="${r.link}" target="_blank" rel="noopener">${r.prefilled ? "open live fares ↗" : "open booking site ↗"}</a>
+        </div>
+        <div class="card-sub fl-note">${p.note}</div>
+        ${offerChips || `<div class="card-sub fl-noOffer">No card/app offer tracked here — check the site for a current discount.</div>`}
+      </div>`;
+    }).join("");
+
+    $("#fl-result").innerHTML = head + body;
+  }
+
+  // flight input wiring
+  function wireFlights() {
+    const persist = () => {
+      state.flight = {
+        from: ($("#fl-from") && $("#fl-from").value) || "",
+        to: ($("#fl-to") && $("#fl-to").value) || "",
+        date: ($("#fl-date") && $("#fl-date").value) || "",
+      };
+      save();
+    };
+    ["#fl-from", "#fl-to", "#fl-date"].forEach((s) => {
+      const el = $(s);
+      if (el) el.oninput = () => { persist(); };
+    });
+    if ($("#fl-go")) $("#fl-go").onclick = () => { persist(); renderFlights(); $("#fl-result").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if ($("#fl-swap")) $("#fl-swap").onclick = () => {
+      const a = $("#fl-from"), b = $("#fl-to");
+      if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); renderFlights(); }
+    };
+  }
+
+  // ---- coupons & offers view ---------------------------------------------
+  let couponKind = "";
+  function renderCoupons() {
+    if (!$("#coupon-list")) return;
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+    const walletIssuers = new Set(wallet.map((c) => c.issuer));
+    const onlyMine = $("#coupon-mine") && $("#coupon-mine").checked;
+    let all = FE.allOffers(FLIGHTS);
+    if (couponKind) all = all.filter((o) => (o.kind || "coupon") === couponKind);
+    if (onlyMine) all = all.filter((o) => o.kind === "card" && o.issuer && walletIssuers.has(o.issuer));
+    if (!all.length) { $("#coupon-list").innerHTML = `<div class="empty">No offers match this filter.</div>`; return; }
+
+    $("#coupon-list").innerHTML = all.map((o) => {
+      const mine = o.kind === "card" && o.issuer && walletIssuers.has(o.issuer);
+      const who = o.kind === "card" && o.issuer ? `<span class="chip">${o.issuer}</span>` : "";
+      const code = o.code ? ` <code class="fl-code">${o.code}</code>` : "";
+      const checked = o.lastChecked ? `<span class="card-sub">checked ${o.lastChecked}</span>` : "";
+      const verify = o.verify ? `<a class="fl-verify" href="https://${String(o.verify).replace(/^https?:\/\//, "")}" target="_blank" rel="noopener">verify ↗</a>` : "";
+      return `<div class="coupon-row ${mine ? "in-wallet" : ""}">
+        <div class="cp-main">
+          <div class="cp-title">${kindIcon(o.kind)} ${who} <b>${o.title}</b>${code} ${confBadge(o.confidence)} ${mine ? `<span class="chip good">you hold this</span>` : ""}</div>
+          <div class="card-sub">${o.note || o.terms || ""} ${o.provider ? `· on ${o.provider}` : ""}</div>
+        </div>
+        <div class="cp-side">${checked} ${verify}</div>
+      </div>`;
+    }).join("");
+  }
+  $$("#coupon-kind .seg-btn").forEach((b) => b.onclick = () => {
+    couponKind = b.dataset.ck || "";
+    $$("#coupon-kind .seg-btn").forEach((x) => x.classList.toggle("active", x === b));
+    renderCoupons();
+  });
+  if ($("#coupon-mine")) $("#coupon-mine").onchange = renderCoupons;
+
   // ============================ SUGGESTIONS ===============================
   function renderSuggestions() {
     if (!$("#sug-list")) return;
@@ -5081,6 +5693,7 @@ window.LL_SOURCE_LINKS = {
     if (!state.experiences) state.experiences = []; // migrate older saved state
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
     renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
+    renderFlights(); renderCoupons();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
   }
 
@@ -5113,8 +5726,11 @@ window.LL_SOURCE_LINKS = {
   // init
   applyMode();
   cityDatalist();
+  fillAirportList();
   renderHeroStats();
+  renderFlightStats();
   renderTripInputs();
+  wireFlights();
   render();
   renderAuthBar();
   maybeOnboard();

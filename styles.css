@@ -738,6 +738,62 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   .mv-pct { font-size: 28px; min-width: 60px; }
 }
 
+/* ============================ FLIGHTS ============================ */
+.flight-builder { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-1); }
+.fb-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.fb-row:last-child { margin-bottom: 0; }
+.fb-input {
+  flex: 1; min-width: 0; background: var(--bg); color: var(--txt);
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 12px 13px; font-size: 15px; font-family: inherit;
+}
+.fb-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+#fl-swap { flex: 0 0 auto; font-size: 18px; padding: 8px 12px; }
+#fl-go { flex: 0 0 auto; }
+
+.bestpay { background: linear-gradient(135deg, rgba(123,110,255,.14), rgba(91,140,255,.05)); border: 1px solid rgba(123,110,255,.32); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 16px; }
+.bp-head { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+.bp-card { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; margin-bottom: 4px; }
+
+.fl-route { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 6px 0 14px; font-size: 20px; font-weight: 800; }
+.fl-route b { font-size: 22px; }
+.fl-arrow { color: var(--accent); }
+.fl-group { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); margin: 18px 0 8px; font-weight: 700; }
+.fl-group:first-of-type { margin-top: 6px; }
+
+.fl-prov { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 13px 15px; margin-bottom: 10px; }
+.fl-prov.has-wallet-offer { border-color: rgba(54,211,153,.4); }
+.fl-prov-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fl-prov-head b { font-size: 15px; }
+.fl-open { white-space: nowrap; flex: 0 0 auto; }
+.fl-note { margin: 6px 0 8px; }
+.fl-noOffer { font-style: italic; opacity: .8; }
+.fl-offer { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; margin-top: 7px; border-radius: var(--r-sm); background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+.fl-offer.in-wallet { background: var(--good-dim); border-color: rgba(54,211,153,.4); }
+.fl-offer-k { flex: 0 0 auto; font-size: 14px; }
+.fl-offer-t { flex: 1; font-size: 13px; line-height: 1.45; }
+.fl-verify { flex: 0 0 auto; font-size: 12px; color: var(--accent2); text-decoration: none; white-space: nowrap; }
+.fl-verify:hover { text-decoration: underline; }
+.fl-code { background: rgba(255,255,255,.1); border: 1px dashed var(--line-strong); border-radius: 4px; padding: 1px 6px; font-size: 12px; letter-spacing: .5px; font-weight: 700; }
+.honesty-note { margin-top: 20px; padding: 13px 15px; background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: var(--r-md); font-size: 13px; line-height: 1.5; color: var(--dim); }
+.honesty-note b { color: var(--txt); }
+
+/* coupons view */
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--dim); cursor: pointer; }
+.coupon-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 9px; }
+.coupon-row.in-wallet { border-color: rgba(54,211,153,.4); }
+.cp-main { flex: 1; min-width: 0; }
+.cp-title { font-size: 14px; line-height: 1.5; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cp-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+
+@media (max-width: 560px) {
+  .fb-row { flex-wrap: wrap; }
+  .fb-input { flex-basis: 100%; }
+  #fl-swap { order: 3; }
+  .fl-prov-head { align-items: flex-start; }
+  .coupon-row { flex-direction: column; }
+  .cp-side { flex-direction: row; align-items: center; }
+}
+
 /* reduce motion if the user prefers it */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
