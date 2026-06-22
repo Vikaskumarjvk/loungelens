@@ -43,6 +43,11 @@
   }
 
   // ---- helpers -----------------------------------------------------------
+  // escape any value that came from outside our own dataset (external API
+  // responses, user-typed input) before it goes into innerHTML — prevents XSS.
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   const card = (id) => CARDS.find((c) => c.id === id);
   const fmtRs = (n) => "₹" + Number(n).toLocaleString("en-IN");
   const visitsLabel = (c) =>
@@ -1164,6 +1169,15 @@
     return null;
   }
 
+  // prevent past-date flight searches (Amadeus rejects them with a vague error)
+  function setFlightDateFloor() {
+    const d = $("#fl-date");
+    if (!d) return;
+    const now = new Date();
+    const min = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2) + "-" + ("0" + now.getDate()).slice(-2);
+    d.setAttribute("min", min);
+  }
+
   function fillAirportList() {
     const dl = $("#fl-airport-list");
     if (!dl) return;
@@ -1227,8 +1241,8 @@
     const rows = FE.comparison(FLIGHTS, from.code, to.code, f.date, wallet);
     const dateLabel = f.date ? (FE.dateParts(f.date) ? FE.dateParts(f.date).text : f.date) : "any date";
     const head = `<div class="fl-route">
-      <b>${from.code}</b> <span class="fl-arrow">→</span> <b>${to.code}</b>
-      <span class="card-sub">${from.city} to ${to.city} · ${dateLabel}</span>
+      <b>${esc(from.code)}</b> <span class="fl-arrow">→</span> <b>${esc(to.code)}</b>
+      <span class="card-sub">${esc(from.city)} to ${esc(to.city)} · ${esc(dateLabel)}</span>
     </div>`;
 
     const groupLabel = { meta: "Compare everything", airline: "Book direct (fewer fees)", ota: "Travel sites (most card offers)" };
@@ -1319,14 +1333,14 @@
     }
     if (!LIVE) { status.innerHTML = `<div class="empty">Live module not loaded.</div>`; return; }
 
-    status.innerHTML = `<div class="fl-loading">⚡ Fetching live fares ${from.code} → ${to.code}…</div>`;
+    status.innerHTML = `<div class="fl-loading">⚡ Fetching live fares ${esc(from.code)} → ${esc(to.code)}…</div>`;
     out.innerHTML = "";
     LIVE.searchLive(creds, { from: from.code, to: to.code, date: f.date, adults: 1, max: 25 })
       .then((res) => {
         const rows = res.rows || [];
-        if (!rows.length) { status.innerHTML = `<div class="empty">No live fares returned for ${from.code} → ${to.code} on that date. Try another date, or this route may not be in the provider's inventory.</div>`; return; }
+        if (!rows.length) { status.innerHTML = `<div class="empty">No live fares returned for ${esc(from.code)} → ${esc(to.code)} on that date. Try another date, or this route may not be in the provider's inventory.</div>`; return; }
         renderLiveFares(rows, from, to, creds);
-        status.innerHTML = `<div class="fl-livehead">⚡ ${rows.length} live fares · ${from.code} → ${to.code} · ${FE.dateParts(f.date) ? FE.dateParts(f.date).text : f.date}${creds.env === "test" ? ` <span class="chip warn">test/sample data</span>` : ` <span class="chip good">live</span>`}</div>`;
+        status.innerHTML = `<div class="fl-livehead">⚡ ${Number(rows.length)} live fares · ${esc(from.code)} → ${esc(to.code)} · ${esc(FE.dateParts(f.date) ? FE.dateParts(f.date).text : f.date)}${creds.env === "test" ? ` <span class="chip warn">test/sample data</span>` : ` <span class="chip good">live</span>`}</div>`;
       })
       .catch((err) => {
         status.innerHTML = `<div class="fl-err">Couldn't fetch live fares: ${(err && err.message) || "request failed"}.<br><span class="card-sub">If this is an auth error, re-check your key/secret and environment in the setup below. Test keys only return sample inventory.</span></div>`;
@@ -1350,8 +1364,8 @@
     if (!LIVE) return;
     const DAYS = 14;
     const dates = LIVE.dateRange(f.date, DAYS);
-    out.innerHTML = `<div class="flex-head">📅 Scanning ${DAYS} days from ${from.code} → ${to.code}…</div>
-      <div class="flex-grid" id="flex-grid">${dates.map((d) => `<div class="flex-day pending" data-d="${d}"><div class="fd-date">${d.slice(8)}/${d.slice(5, 7)}</div><div class="fd-price">…</div></div>`).join("")}</div>
+    out.innerHTML = `<div class="flex-head">📅 Scanning ${DAYS} days from ${esc(from.code)} → ${esc(to.code)}…</div>
+      <div class="flex-grid" id="flex-grid">${dates.map((d) => `<div class="flex-day pending" data-d="${esc(d)}"><div class="fd-date">${esc(d.slice(8))}/${esc(d.slice(5, 7))}</div><div class="fd-price">…</div></div>`).join("")}</div>
       <div class="card-sub flex-foot">Each day is a real live fare lookup (cheapest fare that day). This takes a few seconds — free-tier is rate-limited so I go one day at a time.</div>`;
 
     const grid = $("#flex-grid");
@@ -1375,7 +1389,7 @@
         const head = $("#fl-flex-result .flex-head");
         if (res.cheapest && head) {
           const dips = res.days.filter((d) => d.isDip && !d.isCheapest).length;
-          head.innerHTML = `📅 Cheapest in the next ${DAYS} days: <b>₹${Number(res.cheapest.minPrice).toLocaleString("en-IN")}</b> on ${res.cheapest.date}${res.cheapest.airline ? " (" + res.cheapest.airline + ")" : ""} · median ₹${Number(res.median).toLocaleString("en-IN")}${dips ? ` · <span class="chip warn">${dips} price dip${dips > 1 ? "s" : ""} flagged</span>` : ""}`;
+          head.innerHTML = `📅 Cheapest in the next ${DAYS} days: <b>₹${Number(res.cheapest.minPrice).toLocaleString("en-IN")}</b> on ${esc(res.cheapest.date)}${res.cheapest.airline ? " (" + esc(res.cheapest.airline) + ")" : ""} · median ₹${Number(res.median).toLocaleString("en-IN")}${dips ? ` · <span class="chip warn">${Number(dips)} price dip${dips > 1 ? "s" : ""} flagged</span>` : ""}`;
         } else if (head) {
           head.innerHTML = `📅 No live fares returned across those ${DAYS} days. Try a different route or date.`;
         }
@@ -1402,12 +1416,12 @@
       const cheapestTag = r.priceTotal === min ? `<span class="chip good">cheapest</span>` : "";
       return `<div class="lf-card ${r.priceTotal === min ? "is-cheapest" : ""}">
         <div class="lf-top">
-          <div class="lf-air">${r.airline} <span class="card-sub">${r.airlineCode}</span></div>
+          <div class="lf-air">${esc(r.airline)} <span class="card-sub">${esc(r.airlineCode)}</span></div>
           <div class="lf-price">₹${Number(r.priceTotal).toLocaleString("en-IN")} ${cheapestTag}</div>
         </div>
         <div class="lf-mid">
-          <span class="lf-time">${r.depTime}</span><span class="lf-dash">—</span><span class="lf-time">${r.arrTime}</span>
-          <span class="card-sub">${r.durationLabel} · ${r.stopsLabel}${r.seatsLeft ? ` · ${r.seatsLeft} seats left` : ""}</span>
+          <span class="lf-time">${esc(r.depTime)}</span><span class="lf-dash">—</span><span class="lf-time">${esc(r.arrTime)}</span>
+          <span class="card-sub">${esc(r.durationLabel)} · ${esc(r.stopsLabel)}${r.seatsLeft ? ` · ${Number(r.seatsLeft)} seats left` : ""}</span>
         </div>
         ${payHint}
         ${link ? `<a class="act mini" href="${link}" target="_blank" rel="noopener">book on ${prov.name} ↗</a>` : `<span class="card-sub">Search this airline on the sites below.</span>`}
@@ -1579,6 +1593,7 @@
   applyMode();
   cityDatalist();
   fillAirportList();
+  setFlightDateFloor();
   renderHeroStats();
   renderFlightStats();
   renderTripInputs();

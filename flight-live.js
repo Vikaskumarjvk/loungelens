@@ -91,18 +91,34 @@
   function loadToken() { try { return JSON.parse(localStorage.getItem(TOKEN_KEY)); } catch (e) { return null; } }
   function saveToken(t) { try { localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch (e) {} }
 
+  // fetch with a hard timeout so a hung Amadeus request can't freeze the UI.
+  function fetchT(url, opts, ms) {
+    opts = opts || {};
+    if (typeof AbortController === "undefined") return fetch(url, opts); // very old browser
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, ms || 15000);
+    opts.signal = ctrl.signal;
+    return fetch(url, opts)
+      .then(function (r) { clearTimeout(timer); return r; })
+      .catch(function (e) {
+        clearTimeout(timer);
+        if (e && e.name === "AbortError") throw new Error("request timed out (the flight server didn't respond). Try again.");
+        throw e;
+      });
+  }
+
   // get (cached) OAuth token. creds = {clientId, clientSecret, env}
   function getToken(creds) {
     var cached = loadToken();
     var nowSec = Math.floor(Date.now() / 1000);
     if (cached && cached.access_token && cached.exp > nowSec + 30) return Promise.resolve(cached.access_token);
     var host = HOSTS[creds.env] || HOSTS.test;
-    return fetch(host + "/v1/security/oauth2/token", {
+    return fetchT(host + "/v1/security/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: "grant_type=client_credentials&client_id=" + encodeURIComponent(creds.clientId) +
             "&client_secret=" + encodeURIComponent(creds.clientSecret),
-    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    }, 15000).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
         if (!res.ok || !res.j.access_token) {
           var msg = (res.j && (res.j.error_description || res.j.title)) || "auth failed";
@@ -123,7 +139,7 @@
         "&departureDate=" + encodeURIComponent(q.date) +
         "&adults=" + (q.adults || 1) +
         "&currencyCode=INR&max=" + (q.max || 20) + "&nonStop=false";
-      return fetch(url, { headers: { Authorization: "Bearer " + token } })
+      return fetchT(url, { headers: { Authorization: "Bearer " + token } }, 15000)
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
         .then(function (res) {
           if (!res.ok) {
