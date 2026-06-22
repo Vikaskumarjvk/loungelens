@@ -9,7 +9,7 @@
  * This fixes the earlier cache-first bug where users were stuck on a stale version.
  * Bump CACHE_VERSION on each release so old caches are purged on activate.
  */
-const CACHE_VERSION = "loungelens-v15-2026-06-22-flexscan";
+const CACHE_VERSION = "loungelens-v16-2026-06-22-collapsenav";
 const SHELL = [
   "./",
   "./index.html",

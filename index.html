@@ -36,8 +36,11 @@
         <button class="act mini ghost" id="login-open">👤 Log in</button>
         <span id="auth-who" hidden><span id="auth-name"></span> <button class="act mini ghost" id="logout-btn">Log out</button></span>
       </div>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="true" aria-controls="main-nav">
+        <span class="nt-icon">☰</span><span class="nt-label" id="nav-toggle-label">Menu</span><span class="nt-chev">⌄</span>
+      </button>
     </div>
-    <nav>
+    <nav id="main-nav">
       <button data-view="flights" class="active">✈️ Flight Deals</button>
       <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>

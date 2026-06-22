@@ -188,18 +188,46 @@
     document.body.classList.add("advanced-mode");
   }
 
+  // ---- collapsible nav (mobile: folds away so it never covers content) ----
+  const NAV_KEY = "loungelens.navCollapsed";
+  const isMobileNav = () => window.matchMedia("(max-width: 959px)").matches;
+  function setNavCollapsed(collapsed) {
+    document.body.classList.toggle("nav-collapsed", collapsed);
+    const t = $("#nav-toggle");
+    if (t) t.setAttribute("aria-expanded", String(!collapsed));
+    try { localStorage.setItem(NAV_KEY, collapsed ? "1" : "0"); } catch (e) {}
+  }
+  function updateNavToggleLabel(view) {
+    const btn = $$("nav button").find((b) => b.dataset.view === view);
+    const lbl = $("#nav-toggle-label");
+    if (lbl && btn) lbl.textContent = btn.textContent.trim();
+  }
+  if ($("#nav-toggle")) $("#nav-toggle").onclick = () => setNavCollapsed(!document.body.classList.contains("nav-collapsed"));
+
   // ---- routing (hash-based: deep-linkable + back button works) -----------
   const VIEWS = $$("nav button").map((b) => b.dataset.view).filter(Boolean);
   function showView(view, push) {
     if (!VIEWS.includes(view)) view = "flights";
     $$("nav button").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
     $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
+    updateNavToggleLabel(view);
+    // on mobile, fold the menu away after a pick so it stops covering the page
+    if (isMobileNav()) setNavCollapsed(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (push && location.hash !== "#" + view) history.replaceState(null, "", "#" + view);
   }
   $$("nav button").forEach((b) =>
     b.addEventListener("click", () => b.dataset.view && showView(b.dataset.view, true))
   );
+  // initial collapsed state: respect saved pref; default collapsed on mobile
+  (function initNav() {
+    let saved = null;
+    try { saved = localStorage.getItem(NAV_KEY); } catch (e) {}
+    const collapsed = saved != null ? saved === "1" : isMobileNav();
+    setNavCollapsed(collapsed);
+    const active = $$("nav button").find((b) => b.classList.contains("active"));
+    updateNavToggleLabel(active ? active.dataset.view : "flights");
+  })();
   // respond to back/forward + deep links
   window.addEventListener("hashchange", () => showView((location.hash || "").replace("#", ""), false));
   // on load, honor a deep-link hash if present
