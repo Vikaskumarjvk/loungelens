@@ -9,7 +9,7 @@
  * This fixes the earlier cache-first bug where users were stuck on a stale version.
  * Bump CACHE_VERSION on each release so old caches are purged on activate.
  */
-const CACHE_VERSION = "loungelens-v20-2026-06-22-enrich4";
+const CACHE_VERSION = "loungelens-v21-2026-06-22-enrich5";
 const SHELL = [
   "./",
   "./index.html",

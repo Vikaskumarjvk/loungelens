@@ -1418,7 +1418,7 @@ window.LL_CARDS = [
   { id: "axis-reserve", name: "Axis Reserve", issuer: "Axis", network: "mastercard",
     domesticVisits: "unlimited", period: "year", spendGate: null, programs: ["dreamfolks", "priority", "mastercard"], railway: true,
     ease: 1, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Super-premium, invite/HNW.",
-    feeNote: "₹50,000. Unlimited domestic + Priority Pass.", confidence: "low", verify: "axisbank.com" },
+    feeNote: "₹50,000. Unlimited domestic + Priority Pass.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
   { id: "axis-vistara", name: "Axis Vistara (legacy)", issuer: "Axis", network: "visa",
     domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: false,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Co-brand; note Vistara merged into Air India — verify status.",
@@ -1441,9 +1441,9 @@ window.LL_CARDS = [
     eligibility: "Mid income; faster for existing ICICI customers.", feeNote: "₹500+. 1 domestic/quarter (spend-gated) + railway.",
     confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
   { id: "icici-rubyx", name: "ICICI Rubyx", issuer: "ICICI", network: "visa",
-    domesticVisits: 4, period: "year", spendGate: null, programs: ["dreamfolks", "visa", "mastercard"], railway: true,
+    domesticVisits: 2, period: "quarter", spendGate: { amount: 75000, per: "quarter", note: "2 domestic lounge visits/quarter unlock only after spending ₹75,000 the previous quarter." }, programs: ["dreamfolks", "visa", "mastercard"], railway: true,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Mid income.",
-    feeNote: "₹3000, waivable. Dual network, domestic + railway.", confidence: "low", verify: "icici.com" },
+    feeNote: "₹3000, waivable. Dual network, domestic + railway.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
   { id: "icici-sapphiro", name: "ICICI Sapphiro", issuer: "ICICI", network: "visa",
     domesticVisits: 16, period: "year", spendGate: { amount: 75000, per: "quarter", note: "4 domestic lounge/quarter (16/year) unlock only after spending ₹75,000 the preceding quarter." }, programs: ["dreamfolks", "priority", "visa"], railway: true,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Mid-high income.",
@@ -1451,7 +1451,7 @@ window.LL_CARDS = [
   { id: "icici-emeralde", name: "ICICI Emeralde Private Metal", issuer: "ICICI", network: "visa",
     domesticVisits: "unlimited", period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa"], railway: true,
     ease: 1, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Super-premium, HNW.",
-    feeNote: "₹12,499. Unlimited domestic + Priority Pass.", confidence: "low", verify: "icici.com" },
+    feeNote: "₹12,499. Unlimited domestic + Priority Pass.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
   { id: "icici-amazon-no2", name: "ICICI HPCL / co-brands", issuer: "ICICI", network: "visa",
     domesticVisits: 1, period: "quarter", spendGate: { amount: 50000, per: "quarter", note: "Co-brand lounge often spend-gated." },
     programs: ["dreamfolks", "visa"], railway: false, ease: 4, ltf: false, fyf: true, approvalSpeed: "normal",
@@ -1475,13 +1475,13 @@ window.LL_CARDS = [
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Mid-high income.",
     feeNote: "₹4999, waivable. Domestic + Priority Pass.", confidence: "med", verify: "sbicard.com" },
   { id: "sbi-aurum", name: "SBI Aurum", issuer: "SBI", network: "visa",
-    domesticVisits: "unlimited", period: "year", spendGate: null, programs: ["dreamfolks", "priority", "visa", "mastercard"], railway: false,
+    domesticVisits: 4, period: "quarter", spendGate: null, programs: ["dreamfolks", "priority", "visa", "mastercard"], railway: false,
     ease: 2, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Premium, invite-led.",
-    feeNote: "₹9999. Unlimited domestic + Priority Pass.", confidence: "low", verify: "sbicard.com" },
+    feeNote: "₹9999. Unlimited domestic + Priority Pass.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
   { id: "sbi-pulse", name: "SBI Pulse", issuer: "SBI", network: "mastercard",
     domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "mastercard"], railway: false,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Lifestyle/fitness co-brand.",
-    feeNote: "₹1499. Domestic lounge.", confidence: "low", verify: "sbicard.com" },
+    feeNote: "₹1499. Domestic lounge.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
 
   // ==================================================================
   // IDFC FIRST BANK
@@ -1544,9 +1544,9 @@ window.LL_CARDS = [
   // RBL BANK
   // ==================================================================
   { id: "rbl-icon", name: "RBL World Safari / Icon", issuer: "RBL", network: "mastercard",
-    domesticVisits: 8, period: "year", spendGate: null, programs: ["dreamfolks", "priority", "mastercard"], railway: false,
+    domesticVisits: 8, period: "year", spendGate: { amount: 35000, per: "quarter", note: "2 domestic lounge visits/quarter (8/year) unlock only after spending ₹35,000 the previous quarter." }, programs: ["dreamfolks", "priority", "mastercard"], railway: false,
     ease: 3, ltf: false, fyf: false, approvalSpeed: "normal", eligibility: "Travel card.",
-    feeNote: "Domestic + Priority Pass, zero forex on Safari.", confidence: "low", verify: "rblbank.com" },
+    feeNote: "Domestic + Priority Pass, zero forex on Safari.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
 
   // ==================================================================
   // YES BANK
@@ -1569,11 +1569,11 @@ window.LL_CARDS = [
     feeNote: "₹5000. 8 domestic visits/yr.", confidence: "med", verify: "americanexpress.com/in" },
   { id: "amex-mrcc", name: "Amex Membership Rewards (MRCC)", issuer: "Amex", network: "amex",
     domesticVisits: 0, period: "year", spendGate: null, programs: [], railway: false, ease: 3, ltf: false, fyf: true, approvalSpeed: "slow",
-    eligibility: "Entry Amex.", feeNote: "₹1500. No lounge — baseline.", confidence: "low", verify: "americanexpress.com/in" },
+    eligibility: "Entry Amex.", feeNote: "₹1500. No lounge — baseline.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
   { id: "amex-platinum", name: "Amex Platinum Charge", issuer: "Amex", network: "amex",
     domesticVisits: "unlimited", period: "year", spendGate: null, programs: ["dreamfolks", "priority"], railway: false,
     ease: 1, ltf: false, fyf: false, approvalSpeed: "slow", eligibility: "Super-premium charge card, HNW.",
-    feeNote: "₹66,000. Unlimited lounge + Priority Pass + Centurion network.", confidence: "low", verify: "americanexpress.com/in" },
+    feeNote: "₹66,000. Unlimited lounge + Priority Pass + Centurion network.", confidence: "high", verify: "cardinsider.com (verified 2026-06-22)" },
 
   // ==================================================================
   // STANDARD CHARTERED / HSBC / OTHER FOREIGN
