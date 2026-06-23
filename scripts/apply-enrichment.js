@@ -39,13 +39,29 @@ for (const ch of changes) {
   if (!guard) { skipped.push({ id: ch.id, why: "no confirmedSource (not independently verified)" }); continue; }
   if (!byId.has(ch.id)) { skipped.push({ id: ch.id, why: "id not found in cards.js" }); continue; }
 
-  // isolate this card's block: from `{ id: "<id>"` to the matching ` },`
+  // isolate this card's block: from the `{` that opens this card to its MATCHING
+  // closing `}`. We must brace-count, because a nested spendGate object like
+  // `spendGate: { amount: 50000, ... }` contains its own `},` that would
+  // otherwise be mistaken for the card's end (silent partial-apply bug).
   const idTok = 'id: "' + ch.id + '"';
   const start = src.indexOf(idTok);
   if (start < 0) { skipped.push({ id: ch.id, why: "block not located in raw source" }); continue; }
   const braceStart = src.lastIndexOf("{", start);
-  const braceEnd = src.indexOf("},", start);
-  if (braceStart < 0 || braceEnd < 0) { skipped.push({ id: ch.id, why: "could not bound block" }); continue; }
+  if (braceStart < 0) { skipped.push({ id: ch.id, why: "could not find block open" }); continue; }
+  // walk forward from braceStart, tracking depth + string state, to the matching close
+  let depth = 0, inStr = false, strCh = "", braceEnd = -1;
+  for (let i = braceStart; i < src.length; i++) {
+    const c = src[i];
+    if (inStr) {
+      if (c === "\\") { i++; continue; }
+      if (c === strCh) inStr = false;
+      continue;
+    }
+    if (c === '"' || c === "'") { inStr = true; strCh = c; continue; }
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) { braceEnd = i; break; } }
+  }
+  if (braceEnd < 0) { skipped.push({ id: ch.id, why: "could not bound block (unbalanced braces)" }); continue; }
   let block = src.slice(braceStart, braceEnd + 1);
   const before = block;
 
