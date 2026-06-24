@@ -4,6 +4,7 @@
   const E = window.LL_ENGINE, CARDS = window.LL_CARDS, LOUNGES = window.LL_LOUNGES, META = window.LL_META, SELF = window.LL_SELF;
   const BRAND = window.LL_BRAND;
   const FE = window.LL_FLIGHT_ENGINE, FLIGHTS = window.LL_FLIGHTS;
+  const TE = window.LL_TRIP_ENGINE, HOTELS = window.LL_HOTELS, DEALS = window.LL_DEALS;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -18,7 +19,7 @@
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" } }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -1185,6 +1186,245 @@
       .map((a) => `<option value="${a.city}">${a.code} — ${a.city}</option>`).join("");
   }
 
+  // ======================= PLAN A TRIP (optimizer) =======================
+  // persisted plan inputs live on state.plan
+  function planState() {
+    if (!state.plan) state.plan = { from: "", to: "", depart: "", nights: 3, adults: 2 };
+    return state.plan;
+  }
+  function renderPlanStats() {
+    const el = $("#plan-stats"); if (!el) return;
+    const sites = (FLIGHTS.providers || []).length + (HOTELS.providers || []).length + (DEALS.services || []).length;
+    const pill = (n, l) => `<div class="lh-stat"><b>${n}</b><span>${l}</span></div>`;
+    el.innerHTML = pill(CARDS.length, "cards") + pill(LOUNGES.length, "lounges") + pill(sites, "booking sites") + pill("0", "fake prices");
+  }
+  function wirePlan() {
+    const p = planState();
+    if ($("#tp-from")) $("#tp-from").value = p.from || "";
+    if ($("#tp-to")) $("#tp-to").value = p.to || "";
+    if ($("#tp-depart")) { $("#tp-depart").value = p.depart || ""; const f = todayISO(); $("#tp-depart").setAttribute("min", f); }
+    if ($("#tp-nights")) $("#tp-nights").value = p.nights || 3;
+    if ($("#tp-adults")) $("#tp-adults").value = p.adults || 2;
+    const persist = () => {
+      state.plan = {
+        from: ($("#tp-from") && $("#tp-from").value) || "",
+        to: ($("#tp-to") && $("#tp-to").value) || "",
+        depart: ($("#tp-depart") && $("#tp-depart").value) || "",
+        nights: ($("#tp-nights") && +$("#tp-nights").value) || 3,
+        adults: ($("#tp-adults") && +$("#tp-adults").value) || 2,
+      };
+      save();
+    };
+    ["#tp-from", "#tp-to", "#tp-depart", "#tp-nights", "#tp-adults"].forEach((s) => { const el = $(s); if (el) el.oninput = persist; });
+    if ($("#tp-swap")) $("#tp-swap").onclick = () => { const a = $("#tp-from"), b = $("#tp-to"); if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); } };
+    if ($("#tp-plan")) $("#tp-plan").onclick = () => { persist(); renderPlanResult(); const r = $("#plan-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  }
+  function todayISO() { const n = new Date(); return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2); }
+
+  function renderPlanResult() {
+    const out = $("#plan-result"); if (!out || !TE) return;
+    const p = planState();
+    if (!p.from || !p.to) { out.innerHTML = `<div class="empty">Tell me where you're going from and to, then build the plan.</div>`; return; }
+    const plan = TE.planTrip(
+      { from: p.from, to: p.to, depart: p.depart, nights: p.nights, adults: p.adults },
+      { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW }
+    );
+    const r = plan.route, d = plan.dates;
+    const routeHead = `<div class="plan-route">
+      <div class="pr-cities"><b>${esc(r.origin ? r.origin.city : p.from)}</b> <span class="fl-arrow">→</span> <b>${esc(r.dest ? r.dest.city : p.to)}</b></div>
+      <div class="card-sub">${esc(r.from || "?")} → ${esc(r.to || "?")} · ${d.depart ? esc(d.depart) : "pick a date"}${d.nights ? ` · ${d.nights} night${d.nights > 1 ? "s" : ""}` : ""} · ${d.adults} traveller${d.adults > 1 ? "s" : ""}</div>
+    </div>`;
+
+    // best card banner
+    let bestCardHtml = "";
+    if (!state.wallet.length) {
+      bestCardHtml = `<div class="nudge">👋 Add the cards you hold and I'll pick the single best card to pay on this whole trip. <b class="link" data-goto="addcard">Add my cards →</b></div>`;
+    } else if (plan.bestCard.length) {
+      const bc = plan.bestCard[0];
+      bestCardHtml = `<div class="bestpay plan-bestcard">
+        <div class="bp-head">💳 Best card for this trip</div>
+        <div class="bp-card">${cardArt(bc.card, { tiny: true })} <b>${esc(bc.card.name)}</b> — has offers on ${bc.places.length} of this trip's booking site${bc.places.length > 1 ? "s" : ""}</div>
+        <div class="card-sub">Offers rotate. Confirm today's exact discount + cap on each site before you pay.</div>
+      </div>`;
+    } else {
+      bestCardHtml = `<div class="card-sub" style="margin:8px 0;">None of your cards match a tracked offer on this trip's sites yet — the sites may still run a generic discount.</div>`;
+    }
+
+    // the optimizer step cards
+    const step = (icon, title, bodyHtml) => `<div class="plan-step"><div class="ps-head">${icon} <b>${title}</b></div>${bodyHtml}</div>`;
+
+    // flights step
+    const topFlights = plan.flights.slice(0, 4);
+    const flightBody = topFlights.length ? `<div class="ps-links">${topFlights.map((f) => {
+      const hit = f.walletHits ? `<span class="chip good">card offer</span>` : "";
+      return `<a class="plan-link" href="${f.link}" target="_blank" rel="noopener"><span>${esc(f.provider.name)} ${hit}</span><span class="pl-go">${f.prefilled ? "live fares ↗" : "open ↗"}</span></a>`;
+    }).join("")}</div><div class="card-sub">Start with the compare site — it sees every airline at once. <b class="link" data-goto="flights">Full flight view + live fares →</b></div>` : `<div class="card-sub">Enter a date for flight links.</div>`;
+
+    // stay step
+    const topStay = plan.stay.slice(0, 4);
+    const stayBody = `<div class="ps-links">${topStay.map((s) => {
+      const hit = s.walletHits ? `<span class="chip good">card offer</span>` : "";
+      return `<a class="plan-link" href="${s.link}" target="_blank" rel="noopener"><span>${esc(s.provider.name)} ${hit}</span><span class="pl-go">${s.prefilled ? "live rates ↗" : "open ↗"}</span></a>`;
+    }).join("")}</div><div class="card-sub"><b class="link" data-goto="hotels">Full hotel view →</b></div>`;
+
+    // lounges step
+    const loungeLine = (lab, lg) => {
+      if (!lg || !lg.total) return `<div class="card-sub">${lab}: no lounge data for this city.</div>`;
+      if (!state.wallet.length) return `<div class="card-sub">${lab}: ${lg.total} lounge${lg.total > 1 ? "s" : ""} here — add your cards to see which you can enter.</div>`;
+      return `<div class="card-sub">${lab}: <b class="${lg.openCount ? "good-txt" : ""}">${lg.openCount}/${lg.total}</b> lounge${lg.total > 1 ? "s" : ""} your cards open.</div>`;
+    };
+    const loungeBody = `${loungeLine("At " + (r.origin ? r.origin.city : p.from), plan.lounges.origin)}${loungeLine("At " + (r.dest ? r.dest.city : p.to), plan.lounges.dest)}<div class="card-sub"><b class="link" data-goto="trip">Full lounge trip view →</b></div>`;
+
+    // on-trip step
+    const ontripBody = `<div class="card-sub">Cabs, eSIM, forex, dining and things to do at ${esc(r.dest ? r.dest.city : p.to)}. <b class="link" data-goto="ontrip">Open on-trip deals →</b></div>`;
+
+    // savings checklist
+    const savingsBody = `<ul class="plan-savings">${plan.savings.map((s) => `<li><span class="psv-ic">${s.icon}</span> ${esc(s.text)}</li>`).join("")}</ul>`;
+
+    out.innerHTML = routeHead + bestCardHtml +
+      step("✈️", "Flights", flightBody) +
+      step("🏨", "Stay", stayBody) +
+      step("🛋️", "Lounges on the way", loungeBody) +
+      step("🧳", "While you're there", ontripBody) +
+      step("✅", "Your money-saving checklist", savingsBody) +
+      `<div class="honesty-note">Every link opens the <b>real</b> live search on the real site — that's where the true price is. I never invent a fare or a total. Offers are recurring India card/app/coupon mechanisms, confidence-tagged; confirm today's exact terms before you pay.</div>`;
+    wireGoto();
+  }
+
+  // =============================== HOTELS =================================
+  function hotelState() {
+    if (!state.hotel) state.hotel = { city: "", checkin: "", checkout: "", adults: 2 };
+    return state.hotel;
+  }
+  function fillHotelCityList() {
+    const dl = $("#hotel-city-list"); if (!dl) return;
+    dl.innerHTML = (HOTELS.cities || []).map((c) => `<option value="${c}"></option>`).join("");
+  }
+  function wireHotels() {
+    const h = hotelState();
+    if ($("#ho-city")) $("#ho-city").value = h.city || "";
+    if ($("#ho-checkin")) { $("#ho-checkin").value = h.checkin || ""; $("#ho-checkin").setAttribute("min", todayISO()); }
+    if ($("#ho-checkout")) { $("#ho-checkout").value = h.checkout || ""; $("#ho-checkout").setAttribute("min", todayISO()); }
+    if ($("#ho-adults")) $("#ho-adults").value = h.adults || 2;
+    const persist = () => {
+      state.hotel = {
+        city: ($("#ho-city") && $("#ho-city").value) || "",
+        checkin: ($("#ho-checkin") && $("#ho-checkin").value) || "",
+        checkout: ($("#ho-checkout") && $("#ho-checkout").value) || "",
+        adults: ($("#ho-adults") && +$("#ho-adults").value) || 2,
+      };
+      save();
+    };
+    ["#ho-city", "#ho-checkin", "#ho-checkout", "#ho-adults"].forEach((s) => { const el = $(s); if (el) el.oninput = persist; });
+    if ($("#ho-go")) $("#ho-go").onclick = () => { persist(); renderHotels(); const r = $("#hotel-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  }
+  function renderHotels() {
+    if (!$("#hotel-result") || !TE) return;
+    const h = hotelState();
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+
+    // hotel coupons (recurring mechanisms)
+    const cp = $("#hotel-coupons");
+    if (cp) cp.innerHTML = (HOTELS.coupons || []).map((o) => `<div class="coupon-row">
+      <div class="cp-main"><div class="cp-title">🏨 <b>${esc(o.title)}</b> ${confBadge(o.confidence)}</div>
+      <div class="card-sub">${esc(o.note)} · ${esc(o.who)}</div></div>
+      <div class="cp-side"><span class="card-sub">checked ${esc(o.lastChecked)}</span> ${o.verify ? `<a class="fl-verify" href="https://${esc(String(o.verify).replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">verify ↗</a>` : ""}</div>
+    </div>`).join("");
+
+    const honesty = $("#hotel-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> a free app can't pull live room rates, so I open the <b>real</b> live search on each site where the true price is. Offers are recurring India bank/app/coupon mechanisms, tagged how sure I am and when last checked. Confirm today's exact terms before you pay.`;
+
+    // best card for hotels (across providers)
+    const bp = $("#hotel-bestpay");
+    if (bp) {
+      const ranked = TE.bestCardForTrip({ stayCompare: (HOTELS.providers || []).map((p) => ({ provider: p, offers: TE.offersForWallet(p, wallet) })) }, wallet);
+      if (!wallet.length) bp.innerHTML = `<div class="nudge">👋 Add your cards and I'll mark which hotel sites give you an instant discount. <b class="link" data-goto="addcard">Add my cards →</b></div>`;
+      else if (ranked.length) bp.innerHTML = `<div class="bestpay"><div class="bp-head">💡 Best card for hotels (your wallet)</div><div class="bp-card">${cardArt(ranked[0].card, { tiny: true })} <b>${esc(ranked[0].card.name)}</b> has offers on ${ranked[0].places.length} hotel site${ranked[0].places.length > 1 ? "s" : ""}</div></div>`;
+      else bp.innerHTML = `<div class="card-sub" style="margin:6px 0 12px;">No tracked hotel offer matches your cards yet — sites may still run a generic discount.</div>`;
+      wireGoto();
+    }
+
+    if (!h.city) { $("#hotel-result").innerHTML = `<div class="empty">Enter a city (and your dates) — I'll line up every hotel site with the best discount for your wallet.</div>`; return; }
+
+    const rows = (HOTELS.providers || []).map((p) => ({
+      provider: p,
+      link: TE.buildStayLink(p, h.city, h.checkin, h.checkout, h.adults),
+      prefilled: p.linkType === "prefilled" && !!(TE.parseISO(h.checkin) && TE.parseISO(h.checkout)),
+      offers: TE.offersForWallet(p, wallet),
+      walletHits: TE.offersForWallet(p, wallet).filter((o) => o.inWallet).length,
+    }));
+    const ranked = TE.rankProviders(HOTELS.providers); // for grouping order
+    const ordered = ranked.map((p) => rows.find((r) => r.provider.id === p.id)).filter(Boolean);
+
+    const groupLabel = { meta: "Compare everything", chain: "Book direct (member rates + points)", ota: "Travel sites (most card offers)" };
+    let lastType = null;
+    const nights = TE.nightsBetween(h.checkin, h.checkout);
+    const head = `<div class="fl-route"><b>${esc(h.city)}</b> <span class="card-sub">${h.checkin && h.checkout ? esc(h.checkin) + " → " + esc(h.checkout) + (nights ? " · " + nights + " night" + (nights > 1 ? "s" : "") : "") : "pick your dates"} · ${h.adults} guest${h.adults > 1 ? "s" : ""}</span></div>`;
+    const body = ordered.map((r) => {
+      const p = r.provider;
+      const groupHead = p.type !== lastType ? `<div class="fl-group">${groupLabel[p.type] || ""}</div>` : "";
+      lastType = p.type;
+      const offerChips = r.offers.map((o) => {
+        const cls = o.inWallet ? "in-wallet" : "";
+        const who = o.offer.kind === "card" && o.offer.issuer ? o.offer.issuer + " " : "";
+        const code = o.offer.code ? ` <code class="fl-code">${esc(o.offer.code)}</code>` : "";
+        return `<div class="fl-offer ${cls}"><span class="fl-offer-k">${kindIcon(o.offer.kind)}</span>
+          <span class="fl-offer-t">${esc(who)}${esc(o.offer.title)}${code} ${confBadge(o.offer.confidence)}${o.inWallet ? ` <span class="chip good">you hold this</span>` : ""}</span>
+          ${o.offer.verify ? `<a class="fl-verify" href="https://${esc(String(o.offer.verify).replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">verify ↗</a>` : ""}</div>`;
+      }).join("");
+      const typeTag = p.type === "meta" ? `<span class="chip">compare</span>` : p.type === "chain" ? `<span class="chip rail">hotel group</span>` : `<span class="chip">travel site</span>`;
+      return `${groupHead}<div class="fl-prov ${r.walletHits ? "has-wallet-offer" : ""}">
+        <div class="fl-prov-head"><div><b>${esc(p.name)}</b> ${typeTag} ${confBadge(p.confidence)}</div>
+        <a class="act mini fl-open" href="${r.link}" target="_blank" rel="noopener">${r.prefilled ? "open live rates ↗" : "open hotel site ↗"}</a></div>
+        <div class="card-sub fl-note">${esc(p.note)}</div>
+        ${offerChips || `<div class="card-sub fl-noOffer">No card/app offer tracked here — check the site for a current discount.</div>`}
+      </div>`;
+    }).join("");
+    $("#hotel-result").innerHTML = head + body;
+  }
+
+  // ============================== ON-TRIP =================================
+  function ontripState() { if (!state.ontrip) state.ontrip = { city: "" }; return state.ontrip; }
+  function wireOntrip() {
+    const o = ontripState();
+    if ($("#ot-city")) $("#ot-city").value = o.city || "";
+    if ($("#ot-city")) $("#ot-city").oninput = () => { state.ontrip = { city: $("#ot-city").value || "" }; save(); };
+    if ($("#ot-go")) $("#ot-go").onclick = () => { state.ontrip = { city: ($("#ot-city") && $("#ot-city").value) || "" }; save(); renderOntrip(); const r = $("#ontrip-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  }
+  function renderOntrip() {
+    if (!$("#ontrip-result") || !TE) return;
+    const o = ontripState();
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+
+    const tips = $("#ontrip-tips");
+    if (tips) tips.innerHTML = `<div class="section-h">💡 On-trip money plays</div>` + (DEALS.tips || []).map((t) => `<div class="coupon-row">
+      <div class="cp-main"><div class="cp-title">💡 <b>${esc(t.title)}</b> ${confBadge(t.confidence)}</div><div class="card-sub">${esc(t.note)} · ${esc(t.who)}</div></div>
+      <div class="cp-side"><span class="card-sub">checked ${esc(t.lastChecked)}</span></div></div>`).join("");
+
+    const honesty = $("#ontrip-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> each link opens the real app/site for that service. Offers are recurring mechanisms (bank tie-ups, app codes, wallet cashback), tagged how sure I am. Confirm today's exact terms in the app before you pay.`;
+
+    const city = (o.city || "").trim();
+    const out = (DEALS.categories || []).map((cat) => {
+      const svcs = (DEALS.services || []).filter((s) => s.category === cat.id);
+      const cards = svcs.map((s) => {
+        const link = TE.buildDealLink(s, city);
+        const offers = TE.offersForWallet(s, wallet);
+        const walletHit = offers.some((x) => x.inWallet);
+        const offerLine = offers.length ? offers.map((x) => {
+          const mine = x.inWallet ? ` <span class="chip good">you hold this</span>` : "";
+          const who = x.offer.kind === "card" && x.offer.issuer ? x.offer.issuer + " " : "";
+          return `<div class="dl-offer">${kindIcon(x.offer.kind)} ${esc(who)}${esc(x.offer.title)} ${confBadge(x.offer.confidence)}${mine}${x.offer.verify ? ` <a class="fl-verify" href="https://${esc(String(x.offer.verify).replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">verify ↗</a>` : ""}</div>`;
+        }).join("") : `<div class="card-sub">No tracked offer — check the app for a current one.</div>`;
+        return `<div class="ot-svc ${walletHit ? "has-wallet-offer" : ""}">
+          <div class="ot-svc-head"><b>${esc(s.name)}</b> ${confBadge(s.confidence)} <a class="act mini" href="${link}" target="_blank" rel="noopener">open ↗</a></div>
+          <div class="card-sub">${esc(s.note)}</div>${offerLine}</div>`;
+      }).join("");
+      return `<div class="ot-cat"><div class="ot-cat-head">${cat.label}</div><div class="card-sub ot-cat-blurb">${esc(cat.blurb)}</div><div class="ot-grid">${cards}</div></div>`;
+    }).join("");
+    $("#ontrip-result").innerHTML = (city ? `<div class="fl-route"><b>${esc(city)}</b> <span class="card-sub">links tailored to this city where supported</span></div>` : `<div class="card-sub" style="margin:8px 0;">Tip: type a destination city above to tailor the cab/activity links to it.</div>`) + out;
+  }
+
   function renderFlightStats() {
     const el = $("#fl-stats");
     if (!el) return;
@@ -1546,9 +1786,11 @@
   if ($("#about-version")) {
     const nCredit = CARDS.filter((c) => cardType(c) === "credit").length;
     const nDebit = CARDS.filter((c) => cardType(c) === "debit").length;
+    const nFlightSites = (FLIGHTS.providers || []).length, nHotelSites = (HOTELS.providers || []).length, nDealSvcs = (DEALS.services || []).length;
     $("#about-version").textContent =
-      "LoungeLens · data reviewed " + (META.lastReviewed || "—") + " · " + CARDS.length +
-      " cards (" + nCredit + " credit, " + nDebit + " debit) · " + LOUNGES.length + " lounges · all data stored locally";
+      "TripLens · data reviewed " + (META.lastReviewed || "—") + " · " + CARDS.length +
+      " cards (" + nCredit + " credit, " + nDebit + " debit) · " + LOUNGES.length + " lounges · " +
+      (nFlightSites + nHotelSites) + " booking sites · " + nDealSvcs + " on-trip services · all data stored locally";
   }
   $("#reset-all").onclick = () => {
     if (confirm("Clear your cards, visits and trip from this browser?")) { state = blank(); save(); applyMode(); render(); renderTripInputs(); }
@@ -1560,7 +1802,9 @@
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
     renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
     renderFlights(); renderCoupons();
+    renderPlanStats(); renderHotels(); renderOntrip();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
+    if ($("#plan-result") && $("#plan-result").innerHTML.trim()) renderPlanResult();
   }
 
   // ---- modal UX polish: Esc to close, click-backdrop to close -----------
@@ -1593,11 +1837,16 @@
   applyMode();
   cityDatalist();
   fillAirportList();
+  fillHotelCityList();
   setFlightDateFloor();
   renderHeroStats();
   renderFlightStats();
+  renderPlanStats();
   renderTripInputs();
   wireFlights();
+  wirePlan();
+  wireHotels();
+  wireOntrip();
   render();
   renderAuthBar();
   maybeOnboard();

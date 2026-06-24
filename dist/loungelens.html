@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LoungeLens — your real lounge access, one view</title>
-  <meta name="description" content="Every airport & railway lounge your credit cards actually open in India. Plan a trip, track visits, find the easiest card to get." />
+  <title>TripLens — plan the whole trip, pay the smart way</title>
+  <meta name="description" content="One free app for the whole trip: flights, hotels, lounges, cabs and local deals — with the best card to pay on every booking. India-first. No fake prices, ever." />
   <meta name="theme-color" content="#0d1117" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛋️</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="LoungeLens" />
+  <meta name="apple-mobile-web-app-title" content="TripLens" />
   <!-- Open Graph: a real link preview when shared in WhatsApp/chat -->
-  <meta property="og:title" content="LoungeLens" />
-  <meta property="og:description" content="See every airport & railway lounge your credit cards actually open in India." />
+  <meta property="og:title" content="TripLens" />
+  <meta property="og:description" content="Plan the whole trip — flights, hotels, lounges, cabs, local deals — and pay with the best card on every booking. Free." />
   <meta property="og:type" content="website" />
   <!-- Inter as a progressive enhancement: looks premium online, falls back to
        the system sans stack offline (so the PWA still works with no internet). -->
@@ -886,15 +886,53 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   html { scroll-behavior: auto; }
 }
 
+/* ===================================================================== */
+/* TripLens — trip planner / hotels / on-trip deals (added 2026-06-24)   */
+/* Uses the same design tokens as the rest of the app.                   */
+/* ===================================================================== */
+
+/* --- Plan a Trip builder --- */
+.plan-builder { gap: 12px; }
+.tp-lbl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); flex: 1; min-width: 92px; }
+.tp-lbl .fb-input { width: 100%; }
+.tp-num { max-width: 100%; }
+
+/* the optimizer result */
+.plan-route { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 14px 0 10px; box-shadow: var(--shadow-1); }
+.pr-cities { font-size: 19px; }
+.plan-bestcard { margin: 10px 0 14px; }
+.plan-step { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 10px 0; box-shadow: var(--shadow-1); }
+.ps-head { font-size: 15px; margin-bottom: 8px; }
+.ps-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 8px 0; }
+.plan-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: var(--r-sm); background: var(--panel2); border: 1px solid var(--line); color: var(--txt); text-decoration: none; font-size: 13px; transition: border-color .15s, transform .1s; }
+.plan-link:hover { border-color: var(--accent); transform: translateY(-1px); }
+.plan-link .pl-go { color: var(--accent2); font-size: 12px; white-space: nowrap; }
+.plan-savings { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+.plan-savings li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--txt); line-height: 1.45; }
+.psv-ic { flex: 0 0 auto; }
+.good-txt { color: var(--good); }
+
+/* --- Hotels + On-trip reuse flight classes; a few extras --- */
+.ot-cat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 12px 0; box-shadow: var(--shadow-1); }
+.ot-cat-head { font-size: 16px; font-weight: 700; }
+.ot-cat-blurb { margin: 4px 0 10px; }
+.ot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ot-svc { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 11px 12px; }
+.ot-svc.has-wallet-offer { border-color: var(--good); box-shadow: 0 0 0 1px var(--good-dim); }
+.ot-svc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.ot-svc-head b { flex: 1; min-width: 90px; }
+.dl-offer { font-size: 12.5px; color: var(--dim); margin-top: 6px; line-height: 1.4; }
+.dl-offer:first-of-type { margin-top: 8px; }
+
 </style>
 </head>
 <body>
   <header>
     <div class="brand">
-      <span class="logo">🛋️</span>
+      <span class="logo">🧭</span>
       <div>
-        <h1>LoungeLens</h1>
-        <span class="tag">every lounge your cards actually open — airport + railway</span>
+        <h1>TripLens</h1>
+        <span class="tag">the whole trip, planned — flights · hotels · lounges · deals · the smart card to pay</span>
       </div>
       <div class="auth-bar" id="auth-bar">
         <button class="act mini ghost" id="login-open">👤 Log in</button>
@@ -905,7 +943,10 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
       </button>
     </div>
     <nav id="main-nav">
-      <button data-view="flights" class="active">✈️ Flight Deals</button>
+      <button data-view="plan" class="active">🧭 Plan a Trip</button>
+      <button data-view="flights">✈️ Flights</button>
+      <button data-view="hotels">🏨 Hotels</button>
+      <button data-view="ontrip">🧳 On-Trip Deals</button>
       <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>
       <button data-view="trip">🛋️ Lounge Trip</button>
@@ -924,8 +965,75 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   </header>
 
   <main>
-    <!-- FLIGHT DEALS (default, the new front door) -->
-    <section id="view-flights" class="view active">
+    <!-- PLAN A TRIP (the front door: the Trip Cost Optimizer) -->
+    <section id="view-plan" class="view active">
+      <div class="landing-hero">
+        <div class="lh-glow"></div>
+        <div class="lh-badge">🧭 the whole trip, optimized</div>
+        <h2 class="lh-title">Plan it once.<br><span class="lh-grad">Pay the smart way.</span></h2>
+        <p class="lh-sub">One plan for the entire trip — flights, hotel, airport lounges, cabs and local deals — with the single best card to swipe on every booking. Real fares live on the real sites. I never make a price up.</p>
+        <div class="lh-stats" id="plan-stats"></div>
+      </div>
+      <div class="trip-builder plan-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="tp-from" placeholder="From (city or code)" list="fl-airport-list" autocomplete="off" aria-label="Origin" />
+          <button class="act ghost mini" id="tp-swap" title="Swap" aria-label="Swap origin and destination">⇄</button>
+          <input class="fb-input" id="tp-to" placeholder="To (city or code)" list="fl-airport-list" autocomplete="off" aria-label="Destination" />
+        </div>
+        <div class="fb-row">
+          <label class="tp-lbl">Depart <input class="fb-input" id="tp-depart" type="date" aria-label="Departure date" /></label>
+          <label class="tp-lbl">Nights <input class="fb-input tp-num" id="tp-nights" type="number" min="1" max="60" value="3" aria-label="Nights" /></label>
+          <label class="tp-lbl">Travellers <input class="fb-input tp-num" id="tp-adults" type="number" min="1" max="9" value="2" aria-label="Travellers" /></label>
+        </div>
+        <button class="act big" id="tp-plan">🧭 Build my trip plan →</button>
+      </div>
+      <div id="plan-result"></div>
+    </section>
+
+    <!-- HOTELS -->
+    <section id="view-hotels" class="view">
+      <div class="hero">
+        <h2>Hotels — best site, best card</h2>
+        <p>Pick your city and dates. I line up every booking site (compare-first), open the live search there, and flag which of your cards has an offer. Real rates stay on the real sites — I never invent a price.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="ho-city" placeholder="City (e.g. Goa)" list="hotel-city-list" autocomplete="off" aria-label="City" />
+        </div>
+        <div class="fb-row">
+          <label class="tp-lbl">Check-in <input class="fb-input" id="ho-checkin" type="date" aria-label="Check-in date" /></label>
+          <label class="tp-lbl">Check-out <input class="fb-input" id="ho-checkout" type="date" aria-label="Check-out date" /></label>
+          <label class="tp-lbl">Guests <input class="fb-input tp-num" id="ho-adults" type="number" min="1" max="9" value="2" aria-label="Guests" /></label>
+        </div>
+        <button class="act big" id="ho-go">Compare hotel sites →</button>
+        <datalist id="hotel-city-list"></datalist>
+      </div>
+      <div id="hotel-bestpay"></div>
+      <div id="hotel-result"></div>
+      <div class="section-h">🏨 Hotel money-saving plays</div>
+      <div id="hotel-coupons"></div>
+      <div class="honesty-note" id="hotel-honesty"></div>
+    </section>
+
+    <!-- ON-TRIP DEALS (cabs, eSIM/forex, dining, activities) -->
+    <section id="view-ontrip" class="view">
+      <div class="hero">
+        <h2>On-trip essentials &amp; local deals</h2>
+        <p>Everything for while you're there — cabs, intercity travel, eSIM and forex, dining and things to do — each with the live app/site and the card or coupon that cuts the bill. Pick a city to tailor the links.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="ot-city" placeholder="Destination city (optional)" list="hotel-city-list" autocomplete="off" aria-label="Destination city" />
+          <button class="act" id="ot-go">Show deals →</button>
+        </div>
+      </div>
+      <div id="ontrip-tips"></div>
+      <div id="ontrip-result"></div>
+      <div class="honesty-note" id="ontrip-honesty"></div>
+    </section>
+
+    <!-- FLIGHT DEALS -->
+    <section id="view-flights" class="view">
       <div class="landing-hero">
         <div class="lh-glow"></div>
         <div class="lh-badge">✈️ India flight deals + best way to pay</div>
@@ -1239,13 +1347,13 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
     <!-- ABOUT / TRUST -->
     <section id="view-about" class="view">
       <div class="hero">
-        <h2>About LoungeLens</h2>
-        <p>A free, private tool to see which lounges your credit cards actually open in India.</p>
+        <h2>About TripLens</h2>
+        <p>A free, private app for the whole trip — flights, hotels, airport lounges, cabs and local deals — with the smartest card to pay on every booking. India-first.</p>
       </div>
 
       <div class="about-card">
         <h3>⚠️ Not financial advice</h3>
-        <p>LoungeLens helps you understand lounge access. It does not recommend taking on debt and is not affiliated with any bank, card issuer, DreamFolks, Priority Pass, or any lounge operator. Card and lounge rules in India change often. Always confirm the current terms with your bank and at the lounge desk before you rely on access. Apply for credit cards responsibly.</p>
+        <p>TripLens helps you plan travel and understand which cards help you pay less. It does not recommend taking on debt and is not affiliated with any bank, card issuer, airline, hotel, OTA, DreamFolks, Priority Pass, or any lounge operator. Travel prices and card/lounge rules in India change often. Always confirm the current price and terms on the booking site and with your bank before you rely on them. Apply for credit cards responsibly.</p>
       </div>
 
       <div class="about-card">
@@ -1273,15 +1381,15 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   <!-- first-run onboarding -->
   <div id="onboard" class="modal" hidden>
     <div class="modal-box">
-      <div class="modal-logo">🛋️</div>
-      <h2>Welcome to LoungeLens</h2>
-      <p>Three quick things:</p>
+      <div class="modal-logo">🧭</div>
+      <h2>Welcome to TripLens</h2>
+      <p>One app for the whole trip. Three quick things:</p>
       <ol class="onboard-list">
         <li><b>Add the cards you hold</b> — tap them once, saved on this device.</li>
-        <li><b>Plan a trip</b> — type your cities, see exactly which lounge each card opens.</li>
-        <li><b>Before you fly</b> — glance at Data Health to see what to double-check.</li>
+        <li><b>Plan a trip</b> — type where you're going, get flights, hotels, lounges and local deals in one plan.</li>
+        <li><b>Pay the smart way</b> — I flag the single best card to swipe on every booking.</li>
       </ol>
-      <p class="onboard-fine">Free. Private. Nothing leaves your device. Not financial advice.</p>
+      <p class="onboard-fine">Free. Private. Nothing leaves your device. No fake prices. Not financial advice.</p>
       <button class="act big" id="onboard-start">Get started →</button>
     </div>
   </div>
@@ -3248,6 +3356,351 @@ window.LL_FLIGHTS = {
 
 </script>
   <script>
+/*
+ * TripLens — hotel booking providers, deep links, and the card / app / coupon
+ * discount layer for hotels (India domestic + a few intl hubs).
+ *
+ * HONESTY MODEL (identical to flights.js / lounges.js — read this):
+ *  - A free static site CANNOT fetch live room rates (CORS + no server). So this
+ *    file stores NO fake prices. Each provider has a real DEEP LINK that opens the
+ *    actual live search on the real site, where you see today's real rate.
+ *  - linkType "prefilled" = city + dates go into the URL (you land on results that
+ *    just work with a plain city-name query, e.g. Booking.com / Google Hotels).
+ *    "search-page" = opens the hotels home/search page, you type the dates (the
+ *    site needs internal city ids or POST search, so no stable public deep link).
+ *  - Offers (card discount / app offer / coupon) are CONFIDENCE-TAGGED with a
+ *    lastChecked date + a verify link. India bank-hotel offers rotate often, so an
+ *    offer here describes the recurring mechanism; tap verify to confirm today's
+ *    exact code + cap before you pay. NOTHING here is a guaranteed live rate.
+ *
+ * URL placeholders the engine fills (see trip-engine.js buildStayLink):
+ *   {CITY}            city name, url-encoded ("New Delhi")
+ *   {CITY_L}          city name lower, url-encoded
+ *   {CHECKIN}         YYYY-MM-DD
+ *   {CHECKOUT}        YYYY-MM-DD
+ *   {CHECKIN_DDMMYYYY} {CHECKOUT_DDMMYYYY}
+ *   {ADULTS}          guest count (defaults 2)
+ */
+window.LL_HOTELS = {
+  // cities the stay picker offers (mirrors flight + lounge city coverage) ----
+  cities: [
+    "Delhi", "Mumbai", "Bengaluru", "Hyderabad", "Chennai", "Kolkata",
+    "Goa", "Kochi", "Pune", "Ahmedabad", "Jaipur", "Udaipur", "Lucknow",
+    "Varanasi", "Guwahati", "Chandigarh", "Srinagar", "Thiruvananthapuram",
+    "Visakhapatnam", "Indore", "Amritsar", "Dehradun", "Port Blair",
+    "Shimla", "Manali", "Rishikesh", "Darjeeling", "Munnar", "Ooty",
+    "Dubai", "Singapore", "Bangkok",
+  ],
+
+  // ---- booking providers ---------------------------------------------------
+  // type: meta (compares many, no booking) | ota | chain (hotel group direct)
+  providers: [
+    {
+      id: "google-hotels", name: "Google Hotels", type: "meta", linkType: "prefilled",
+      url: "https://www.google.com/travel/search?q=hotels%20in%20{CITY}&checkin={CHECKIN}&checkout={CHECKOUT}",
+      note: "Compares rates across every booking site at once, then sends you to book. Best first stop.",
+      confidence: "high", verify: "google.com/travel/search", offers: [],
+    },
+    {
+      id: "trivago", name: "Trivago", type: "meta", linkType: "search-page",
+      url: "https://www.trivago.in/",
+      note: "Hotel meta-search — lines up the same hotel's price across sites so you spot the cheapest.",
+      confidence: "high", verify: "trivago.in", offers: [],
+    },
+    {
+      id: "booking", name: "Booking.com", type: "ota", linkType: "prefilled",
+      url: "https://www.booking.com/searchresults.html?ss={CITY}&checkin={CHECKIN}&checkout={CHECKOUT}&group_adults={ADULTS}&no_rooms=1",
+      note: "Huge inventory, free-cancellation filter, Genius loyalty discounts. Prefilled search.",
+      confidence: "high", verify: "booking.com/deals",
+      offers: [
+        { id: "bk-genius", kind: "app", issuer: null, title: "Booking.com Genius levels give 10-20% off select stays (free loyalty)", code: null, cap: "10-20%", terms: "Log in; Genius discount auto-applies on eligible hotels. Free to join.", confidence: "med", lastChecked: "2026-06-24", verify: "booking.com/genius.html" },
+      ],
+    },
+    {
+      id: "agoda", name: "Agoda", type: "ota", linkType: "search-page",
+      url: "https://www.agoda.com/",
+      note: "Strong on Asia + India; aggressive app-only and member prices. Uses internal city ids, so type your dates on its page.",
+      confidence: "high", verify: "agoda.com/deals",
+      offers: [
+        { id: "ag-app", kind: "app", issuer: null, title: "Agoda app/member prices often beat the public web rate", code: null, cap: "varies", terms: "Sign in or open the app for member-only rates on the same room.", confidence: "med", lastChecked: "2026-06-24", verify: "agoda.com" },
+      ],
+    },
+    {
+      id: "makemytrip-hotels", name: "MakeMyTrip Hotels", type: "ota", linkType: "search-page",
+      url: "https://www.makemytrip.com/hotels/",
+      note: "Big India OTA; runs the most bank instant-discount offers on hotels. Adds a fee sometimes — compare net.",
+      confidence: "med", verify: "makemytrip.com/promos/",
+      offers: [
+        { id: "mmth-hdfc", kind: "card", issuer: "HDFC", title: "HDFC card instant discount on hotels (recurring)", code: null, cap: "up to a few thousand ₹", terms: "MMT runs a recurring HDFC hotel offer; code + cap rotate. Confirm on the offers page.", confidence: "low", lastChecked: "2026-06-24", verify: "makemytrip.com/promos/" },
+        { id: "mmth-icici", kind: "card", issuer: "ICICI", title: "ICICI card hotel discount (recurring)", code: null, cap: "varies", terms: "Recurring ICICI tie-up on hotels. Terms rotate.", confidence: "low", lastChecked: "2026-06-24", verify: "makemytrip.com/promos/" },
+      ],
+    },
+    {
+      id: "goibibo-hotels", name: "Goibibo Hotels", type: "ota", linkType: "search-page",
+      url: "https://www.goibibo.com/hotels/",
+      note: "Same group as MakeMyTrip; 'gocash' wallet + sometimes different bank offers.",
+      confidence: "med", verify: "goibibo.com/offers/",
+      offers: [
+        { id: "gih-axis", kind: "card", issuer: "Axis", title: "Axis card hotel offer (recurring)", code: null, cap: "varies", terms: "Recurring Axis tie-up on Goibibo hotels. Confirm current terms.", confidence: "low", lastChecked: "2026-06-24", verify: "goibibo.com/offers/" },
+      ],
+    },
+    {
+      id: "cleartrip-hotels", name: "Cleartrip Hotels", type: "ota", linkType: "search-page",
+      url: "https://www.cleartrip.com/hotels",
+      note: "Flipkart-owned; Flipkart/Axis ecosystem offers run here often.",
+      confidence: "med", verify: "cleartrip.com/offers",
+      offers: [
+        { id: "cth-axis", kind: "card", issuer: "Axis", title: "Flipkart Axis card offers run on Cleartrip hotels", code: null, cap: "varies", terms: "Cleartrip + Flipkart ecosystem offers rotate. Confirm before paying.", confidence: "low", lastChecked: "2026-06-24", verify: "cleartrip.com/offers" },
+      ],
+    },
+    {
+      id: "easemytrip-hotels", name: "EaseMyTrip Hotels", type: "ota", linkType: "search-page",
+      url: "https://www.easemytrip.com/hotels/",
+      note: "Heavy on coupon codes + low/zero convenience fee on hotels.",
+      confidence: "med", verify: "easemytrip.com/offers/",
+      offers: [
+        { id: "emth-coupon", kind: "coupon", issuer: null, title: "EaseMyTrip runs frequent flat-off hotel codes", code: "EMTHOTEL", cap: "varies", terms: "Codes rotate; the offers page lists today's working ones.", confidence: "low", lastChecked: "2026-06-24", verify: "easemytrip.com/offers/" },
+      ],
+    },
+    {
+      id: "oyo", name: "OYO", type: "ota", linkType: "search-page",
+      url: "https://www.oyorooms.com/",
+      note: "Budget-focused chain aggregator; app-only OYO Money + frequent codes. Check reviews per property.",
+      confidence: "med", verify: "oyorooms.com/offers",
+      offers: [
+        { id: "oyo-app", kind: "app", issuer: null, title: "OYO app codes + OYO Money wallet stack on budget stays", code: null, cap: "varies", terms: "App routinely cheaper than web; wallet + code stack. Read property reviews first.", confidence: "low", lastChecked: "2026-06-24", verify: "oyorooms.com/offers" },
+      ],
+    },
+    {
+      id: "treebo", name: "Treebo", type: "chain", linkType: "search-page",
+      url: "https://www.treebo.com/",
+      note: "Quality-controlled budget chain; book direct on their site/app for best price guarantee.",
+      confidence: "med", verify: "treebo.com", offers: [],
+    },
+    {
+      id: "tajitc", name: "Taj / IHCL (direct)", type: "chain", linkType: "search-page",
+      url: "https://www.tajhotels.com/",
+      note: "Book Taj / Vivanta / SeleQtions direct for member rates + Tata NeuPass points. Premium.",
+      confidence: "high", verify: "tajhotels.com/en-in/offers",
+      offers: [
+        { id: "taj-neu", kind: "app", issuer: null, title: "Tata Neu / NeuPass earns NeuCoins on direct Taj bookings", code: null, cap: "points", terms: "Book via Tata Neu or direct with NeuPass for points + member rates.", confidence: "low", lastChecked: "2026-06-24", verify: "tataneu.com" },
+      ],
+    },
+    {
+      id: "itchotels", name: "ITC Hotels (direct)", type: "chain", linkType: "search-page",
+      url: "https://www.itchotels.com/",
+      note: "ITC luxury + Welcomhotel/Fortune. Book direct for Club ITC points + member rates.",
+      confidence: "high", verify: "itchotels.com/in/en/offers", offers: [],
+    },
+    {
+      id: "marriott", name: "Marriott Bonvoy (direct)", type: "chain", linkType: "search-page",
+      url: "https://www.marriott.com/",
+      note: "Bonvoy direct beats OTAs for members (points + late checkout). Big India footprint.",
+      confidence: "high", verify: "marriott.com/loyalty.mi", offers: [],
+    },
+    {
+      id: "airbnb", name: "Airbnb", type: "ota", linkType: "prefilled",
+      url: "https://www.airbnb.co.in/s/{CITY}/homes?checkin={CHECKIN}&checkout={CHECKOUT}&adults={ADULTS}",
+      note: "Apartments / homestays / longer stays — often better value than hotels for groups + weekly stays.",
+      confidence: "high", verify: "airbnb.co.in", offers: [],
+    },
+  ],
+
+  // ---- cross-provider hotel coupon / offer mechanisms ---------------------
+  // NOT guaranteed codes (no free site can promise that). Each is a recurring
+  // mechanism, confidence-tagged, with where to confirm today.
+  coupons: [
+    { id: "hcpn-bank-instant", title: "Bank instant-discount on hotels", who: "HDFC / ICICI / Axis / SBI", note: "OTAs run rotating 'instant discount with X bank card' on hotels, usually a higher cap than flights (a few thousand rupees). Check the OTA's offers page on booking day.", confidence: "med", lastChecked: "2026-06-24", verify: "the OTA's /offers or /promos page" },
+    { id: "hcpn-direct-vs-ota", title: "Book-direct chains beat OTAs for members", who: "Taj / ITC / Marriott / Hyatt", note: "Loyalty members get member rates + points + perks (late checkout, upgrades) booking direct that OTAs don't match. Compare the chain site vs the OTA.", confidence: "med", lastChecked: "2026-06-24", verify: "the chain's loyalty/offers page" },
+    { id: "hcpn-app-only", title: "App-only hotel rates", who: "Agoda / OYO / MakeMyTrip", note: "Several apps price hotels under their website for the same room. Quick to check both.", confidence: "low", lastChecked: "2026-06-24", verify: "open the app vs the website for the same search" },
+    { id: "hcpn-freecancel", title: "Book free-cancellation, rebook if it drops", who: "Booking.com / Agoda", note: "Lock a free-cancellation rate early, watch the price, rebook cheaper if it falls before the cancellation deadline. Zero-risk hedge.", confidence: "med", lastChecked: "2026-06-24", verify: "the booking's cancellation policy" },
+    { id: "hcpn-longstay", title: "Weekly / monthly stay discounts", who: "Airbnb / Agoda", note: "7+ and 28+ night stays unlock built-in weekly/monthly discounts, often 10-40% off the nightly rate.", confidence: "med", lastChecked: "2026-06-24", verify: "the listing's price breakdown for your dates" },
+  ],
+
+  lastReviewed: "2026-06-24",
+};
+
+</script>
+  <script>
+/*
+ * TripLens — on-trip essentials + local deals layer.
+ * Cabs, intercity travel, eSIM/forex, dining, activities/attractions, and the
+ * card / app / coupon discount mechanisms that recur on each.
+ *
+ * HONESTY MODEL (same as flights/hotels/lounges):
+ *  - No fake prices. Each service has a real DEEP LINK to the live site/app.
+ *  - Offers are CONFIDENCE-TAGGED with lastChecked + a verify link. They describe
+ *    a RECURRING mechanism, not a guaranteed live code. Confirm before you pay.
+ *  - linkType "prefilled" = the city goes into the URL. "search-page" = opens the
+ *    app/site home (most cab/eSIM apps need GPS or login, no public deep link).
+ *
+ * URL placeholders the engine fills (see trip-engine.js buildDealLink):
+ *   {CITY}   city name, url-encoded
+ *   {CITY_L} city name lower, url-encoded
+ */
+window.LL_DEALS = {
+  // category buckets the UI renders as sections
+  categories: [
+    { id: "cab", label: "🚕 Cabs & local rides", blurb: "Getting around the city — compare app prices, they differ a lot per ride." },
+    { id: "intercity", label: "🚆 Intercity travel", blurb: "Trains, buses, self-drive between cities — often cheaper than a second flight." },
+    { id: "connectivity", label: "📶 eSIM, data & forex", blurb: "Stay connected + spend abroad without the airport-counter markup." },
+    { id: "dining", label: "🍽️ Dining & food deals", blurb: "Restaurant discounts and food-delivery offers while you travel." },
+    { id: "activities", label: "🎟️ Things to do", blurb: "Attractions, tours and experiences — book ahead, skip queues, pay less." },
+  ],
+
+  // ---- services ------------------------------------------------------------
+  // category matches a categories[].id. type is informational.
+  services: [
+    // ===== CABS =====
+    {
+      id: "uber", name: "Uber", category: "cab", type: "app", linkType: "search-page",
+      url: "https://m.uber.com/",
+      note: "Compare with Ola/Rapido on the same ride — the cheapest flips by city + time of day.",
+      confidence: "high", verify: "uber.com",
+      offers: [
+        { id: "uber-card", kind: "card", issuer: "HDFC", title: "Bank card offers on Uber rotate (HDFC/ICICI/Amex)", code: null, cap: "varies", terms: "Check the Uber app 'Offers' tab + your bank's app on the day.", confidence: "low", lastChecked: "2026-06-24", verify: "Uber app → Offers" },
+      ],
+    },
+    {
+      id: "ola", name: "Ola", category: "cab", type: "app", linkType: "search-page",
+      url: "https://book.olacabs.com/",
+      note: "Often undercuts Uber on outstation + auto. Ola Money wallet cashback stacks.",
+      confidence: "high", verify: "olacabs.com", offers: [],
+    },
+    {
+      id: "rapido", name: "Rapido", category: "cab", type: "app", linkType: "search-page",
+      url: "https://rapido.bike/",
+      note: "Bike taxis + autos — usually the cheapest for short hops + beating traffic.",
+      confidence: "med", verify: "rapido.bike", offers: [],
+    },
+    {
+      id: "blusmart", name: "BluSmart", category: "cab", type: "app", linkType: "search-page",
+      url: "https://blusmart.com/",
+      note: "All-electric, fixed upfront price (no surge), airport runs. Limited to a few metros — check it serves your city.",
+      confidence: "med", verify: "blusmart.com", offers: [],
+    },
+
+    // ===== INTERCITY =====
+    {
+      id: "irctc", name: "IRCTC (trains)", category: "intercity", type: "site", linkType: "search-page",
+      url: "https://www.irctc.co.in/",
+      note: "The only official train-ticket source. Often far cheaper than a short flight + reaches non-airport towns.",
+      confidence: "high", verify: "irctc.co.in", offers: [],
+    },
+    {
+      id: "redbus", name: "redBus", category: "intercity", type: "ota", linkType: "prefilled",
+      url: "https://www.redbus.in/bus-tickets/{CITY_L}-to-",
+      note: "Buses across India; frequent flat-off codes + wallet cashback.",
+      confidence: "high", verify: "redbus.in/offers",
+      offers: [
+        { id: "rb-coupon", kind: "coupon", issuer: null, title: "redBus runs recurring first-booking + flat-off codes", code: null, cap: "varies", terms: "Codes rotate; the offers page lists today's. Stack with bank offers when allowed.", confidence: "low", lastChecked: "2026-06-24", verify: "redbus.in/offers" },
+      ],
+    },
+    {
+      id: "zoomcar", name: "Zoomcar (self-drive)", category: "intercity", type: "app", linkType: "search-page",
+      url: "https://www.zoomcar.com/",
+      note: "Self-drive rentals; good value for a group doing a multi-stop trip vs per-head flights.",
+      confidence: "med", verify: "zoomcar.com", offers: [],
+    },
+    {
+      id: "abhibus", name: "AbhiBus", category: "intercity", type: "ota", linkType: "search-page",
+      url: "https://www.abhibus.com/",
+      note: "Alternative bus OTA; sometimes different operators + codes than redBus. Compare both.",
+      confidence: "med", verify: "abhibus.com/offers", offers: [],
+    },
+
+    // ===== CONNECTIVITY =====
+    {
+      id: "airalo", name: "Airalo (eSIM)", category: "connectivity", type: "app", linkType: "search-page",
+      url: "https://www.airalo.com/",
+      note: "Travel eSIM for 190+ countries — buy data before you land, skip the airport SIM counter markup.",
+      confidence: "high", verify: "airalo.com",
+      offers: [
+        { id: "airalo-code", kind: "coupon", issuer: null, title: "Airalo runs recurring first-purchase % codes", code: null, cap: "varies", terms: "Search 'Airalo promo' on the day; new-user codes recur. Confirm validity in-app.", confidence: "low", lastChecked: "2026-06-24", verify: "airalo.com" },
+      ],
+    },
+    {
+      id: "niyo", name: "Niyo / Fi (forex card)", category: "connectivity", type: "app", linkType: "search-page",
+      url: "https://www.goniyo.com/",
+      note: "Zero-markup forex debit cards beat airport money-changers + most credit-card forex markup abroad. Load before you fly.",
+      confidence: "med", verify: "goniyo.com", offers: [],
+    },
+    {
+      id: "bookmyforex", name: "BookMyForex", category: "connectivity", type: "ota", linkType: "search-page",
+      url: "https://www.bookmyforex.com/",
+      note: "Compare live forex-card + currency rates, doorstep delivery. Far better than airport counters.",
+      confidence: "med", verify: "bookmyforex.com", offers: [],
+    },
+
+    // ===== DINING =====
+    {
+      id: "eazydiner", name: "EazyDiner", category: "dining", type: "app", linkType: "search-page",
+      url: "https://www.eazydiner.com/",
+      note: "Restaurant deals + Prime gets up to 50% off bills at partner restaurants. Strong in metros.",
+      confidence: "med", verify: "eazydiner.com",
+      offers: [
+        { id: "eazy-card", kind: "card", issuer: null, title: "Bank-card dining offers run via EazyDiner Prime often", code: null, cap: "up to 25-50%", terms: "Prime + bank tie-ups rotate; check the app for your city + card.", confidence: "low", lastChecked: "2026-06-24", verify: "eazydiner.com" },
+      ],
+    },
+    {
+      id: "zomato", name: "Zomato", category: "dining", type: "app", linkType: "search-page",
+      url: "https://www.zomato.com/",
+      note: "Delivery + dining-out; Gold/District membership + bank offers cut bills. Per-city offers vary.",
+      confidence: "high", verify: "zomato.com", offers: [],
+    },
+    {
+      id: "swiggy", name: "Swiggy", category: "dining", type: "app", linkType: "search-page",
+      url: "https://www.swiggy.com/",
+      note: "Food delivery + Dineout for restaurant discounts. Bank + One membership offers stack.",
+      confidence: "high", verify: "swiggy.com",
+      offers: [
+        { id: "swiggy-card", kind: "card", issuer: "HDFC", title: "HDFC Swiggy co-brand + rotating bank offers", code: null, cap: "up to 10%", terms: "The HDFC Swiggy card earns cashback on Swiggy; other bank offers rotate in-app.", confidence: "low", lastChecked: "2026-06-24", verify: "swiggy.com/offers" },
+      ],
+    },
+
+    // ===== ACTIVITIES =====
+    {
+      id: "thrillophilia", name: "Thrillophilia", category: "activities", type: "ota", linkType: "search-page",
+      url: "https://www.thrillophilia.com/",
+      note: "Tours, day-trips + adventure activities across India; book ahead for better prices than at the gate.",
+      confidence: "med", verify: "thrillophilia.com", offers: [],
+    },
+    {
+      id: "getyourguide", name: "GetYourGuide", category: "activities", type: "ota", linkType: "prefilled",
+      url: "https://www.getyourguide.com/s/?q={CITY}",
+      note: "Skip-the-line tickets + tours worldwide; free cancellation on most. Good for intl legs.",
+      confidence: "high", verify: "getyourguide.com", offers: [],
+    },
+    {
+      id: "district", name: "District (by Zomato)", category: "activities", type: "app", linkType: "search-page",
+      url: "https://www.district.in/",
+      note: "Events, movies, comedy + dining-out (the old Paytm Insider + Zomato events). Bank offers on tickets recur.",
+      confidence: "med", verify: "district.in", offers: [],
+    },
+    {
+      id: "bookmyshow", name: "BookMyShow", category: "activities", type: "app", linkType: "search-page",
+      url: "https://in.bookmyshow.com/",
+      note: "Movies + live events; frequent bank-card ticket offers (buy-one-get-one recurs).",
+      confidence: "high", verify: "in.bookmyshow.com/offers",
+      offers: [
+        { id: "bms-card", kind: "card", issuer: null, title: "BookMyShow buy-1-get-1 + flat-off bank-card offers recur", code: null, cap: "varies", terms: "Card BOGO + flat-off rotate by bank; check the Offers page for your card.", confidence: "low", lastChecked: "2026-06-24", verify: "in.bookmyshow.com/offers" },
+      ],
+    },
+  ],
+
+  // ---- cross-cutting on-trip money-saving mechanisms ----------------------
+  tips: [
+    { id: "dtip-cab-compare", title: "Always price 2-3 cab apps for the same ride", who: "Uber / Ola / Rapido / BluSmart", note: "The cheapest app flips by city, time and surge. 30 seconds of comparing routinely saves 20-40% on airport + city rides.", confidence: "high", lastChecked: "2026-06-24", verify: "open each app for the same pickup/drop" },
+    { id: "dtip-forex", title: "Load a zero-markup forex card before you fly", who: "Niyo / Fi / BookMyForex", note: "Airport counters + most credit cards add 2-3.5% forex markup. A zero-markup forex card or a no-forex-fee card saves that on every swipe abroad.", confidence: "med", lastChecked: "2026-06-24", verify: "your card's forex markup vs a zero-markup forex card" },
+    { id: "dtip-esim", title: "Buy an eSIM before landing", who: "Airalo / international roaming", note: "An eSIM bought before you travel is far cheaper than airport SIM kiosks or home-network roaming, and works the moment you land.", confidence: "med", lastChecked: "2026-06-24", verify: "Airalo data plan vs your roaming pack" },
+    { id: "dtip-train-vs-flight", title: "A train can beat a short second flight", who: "IRCTC", note: "For sub-500km hops, an AC train often costs a fraction of a flight, reaches the city centre, and skips airport time. Worth checking before booking a connecting flight.", confidence: "high", lastChecked: "2026-06-24", verify: "irctc.co.in fare vs the flight fare" },
+  ],
+
+  lastReviewed: "2026-06-24",
+};
+
+</script>
+  <script>
 /* brand.js — visual brand system for LoungeLens.
  * Maps issuers to brand colors + logo initials, and networks to gradients,
  * so every card renders as real card-art (gradient + issuer badge + network
@@ -4172,6 +4625,293 @@ window.LL_FLIGHTS = {
 </script>
   <script>
 /*
+ * TripLens — Trip Cost Optimizer engine. The brain of the trip planner.
+ *
+ * Pure functions over the existing datasets (LL_FLIGHTS, LL_HOTELS, LL_DEALS,
+ * LL_LOUNGES, LL_CARDS) + the user's wallet. NO DOM. Node-testable (tests-trip.js).
+ *
+ * WHAT IT DOES
+ *  Given a trip {from, to, depart, return?, nights?, adults?} and the user's wallet:
+ *   - assembles every leg of the journey into one plan
+ *   - flights:  best booking sites (meta-first) + which of YOUR cards has an offer
+ *   - stay:     best hotel sites for the destination + which card pays best
+ *   - lounges:  which lounges your wallet opens at origin + destination airports
+ *   - on-trip:  cab / eSIM / dining / activity deep links for the destination
+ *   - bestCard: across the whole trip, the single card that wins the most offers
+ *   - savings:  a transparent CHECKLIST of real levers (not a fabricated number)
+ *
+ * HONESTY MODEL (hard rule, same as every data file):
+ *   This engine NEVER invents a price or a total. It computes structure, deep
+ *   links, and which card+offer applies where. The real numbers live on the real
+ *   booking sites the deep links open. Any rupee figure here is a user INPUT
+ *   (e.g. "a lounge visit is worth ₹1200 to me"), never a scraped/guessed fare.
+ */
+(function (root) {
+  "use strict";
+
+  // --- pull sibling engines if present (graceful in Node tests) -----------
+  function flightEngine() { return root.LL_FLIGHT_ENGINE || (typeof require !== "undefined" ? safeReq("./flight-engine.js") : null); }
+  function loungeEngine() { return root.LL_ENGINE || (typeof require !== "undefined" ? safeReq("./engine.js") : null); }
+  function safeReq(p) { try { return require(p); } catch (e) { return null; } }
+
+  // --- date helpers -------------------------------------------------------
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function parseISO(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+    return m ? { y: +m[1], mo: +m[2], d: +m[3], iso: s } : null;
+  }
+  function addDays(iso, days) {
+    const p = parseISO(iso); if (!p) return null;
+    const dt = new Date(Date.UTC(p.y, p.mo - 1, p.d));
+    dt.setUTCDate(dt.getUTCDate() + days);
+    return dt.getUTCFullYear() + "-" + pad2(dt.getUTCMonth() + 1) + "-" + pad2(dt.getUTCDate());
+  }
+  function nightsBetween(checkin, checkout) {
+    const a = parseISO(checkin), b = parseISO(checkout);
+    if (!a || !b) return null;
+    const ms = Date.UTC(b.y, b.mo - 1, b.d) - Date.UTC(a.y, a.mo - 1, a.d);
+    const n = Math.round(ms / 86400000);
+    return n > 0 ? n : null;
+  }
+  function ddmmyyyy(iso) { const p = parseISO(iso); return p ? pad2(p.d) + "/" + pad2(p.mo) + "/" + p.y : ""; }
+
+  // --- stay deep-link builder (mirrors flight-engine.buildLink) -----------
+  function buildStayLink(provider, city, checkin, checkout, adults) {
+    let url = provider.url;
+    const needsDate = /\{CHECKIN/.test(url) || /\{CHECKOUT/.test(url);
+    const haveDates = parseISO(checkin) && parseISO(checkout);
+    if (needsDate && !haveDates) return provider.fallbackUrl || stripToOrigin(url);
+    const C = city || "", CL = (city || "").toLowerCase();
+    url = url
+      .replace(/\{CITY_L\}/g, encodeURIComponent(CL))
+      .replace(/\{CITY\}/g, encodeURIComponent(C))
+      .replace(/\{ADULTS\}/g, String(adults || 2));
+    if (haveDates) {
+      url = url
+        .replace(/\{CHECKIN_DDMMYYYY\}/g, encodeURIComponent(ddmmyyyy(checkin)))
+        .replace(/\{CHECKOUT_DDMMYYYY\}/g, encodeURIComponent(ddmmyyyy(checkout)))
+        .replace(/\{CHECKIN\}/g, checkin)
+        .replace(/\{CHECKOUT\}/g, checkout);
+    }
+    return url;
+  }
+  function buildDealLink(service, city) {
+    let url = service.url;
+    const C = city || "", CL = (city || "").toLowerCase();
+    return url
+      .replace(/\{CITY_L\}/g, encodeURIComponent(CL))
+      .replace(/\{CITY\}/g, encodeURIComponent(C));
+  }
+  function stripToOrigin(url) { try { const u = new URL(url); return u.origin + "/"; } catch (e) { return url; } }
+
+  // --- ordering (meta first, then by confidence) --------------------------
+  const TYPE_ORDER = { meta: 0, chain: 1, ota: 2, airline: 1, app: 2, site: 1 };
+  const CONF_RANK = { high: 3, med: 2, low: 1 };
+  function rankProviders(list) {
+    return (list || []).slice().sort((a, b) =>
+      ((TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9)) ||
+      ((CONF_RANK[b.confidence] || 0) - (CONF_RANK[a.confidence] || 0)) ||
+      a.name.localeCompare(b.name));
+  }
+
+  // --- wallet helpers -----------------------------------------------------
+  function walletCards(wallet, allCards) {
+    return (wallet || []).map((id) => (allCards || []).find((c) => c.id === id)).filter(Boolean);
+  }
+  // which wallet cards have a matching-issuer offer on this provider/service?
+  function offersForWallet(node, wCards) {
+    const out = [];
+    (node.offers || []).forEach((o) => {
+      if (o.kind === "card" && o.issuer) {
+        const matched = wCards.filter((c) => c.issuer === o.issuer);
+        if (matched.length) out.push({ offer: o, matchedCards: matched, inWallet: true });
+        else out.push({ offer: o, matchedCards: [], inWallet: false });
+      } else {
+        out.push({ offer: o, matchedCards: [], inWallet: false }); // app/coupon = everyone
+      }
+    });
+    return out;
+  }
+
+  // --- city <-> airport code resolution -----------------------------------
+  // Accepts a city name OR an IATA code; returns {code, city} using LL_FLIGHTS.
+  function resolvePlace(input, flights) {
+    const q = (input || "").trim();
+    if (!q) return null;
+    const up = q.toUpperCase();
+    const airports = (flights && flights.airports) || [];
+    let hit = airports.find((a) => a.code === up);
+    if (hit) return { code: hit.code, city: hit.city };
+    hit = airports.find((a) => a.city.toLowerCase() === q.toLowerCase());
+    if (hit) return { code: hit.code, city: hit.city };
+    // partial city match
+    hit = airports.find((a) => a.city.toLowerCase().includes(q.toLowerCase()));
+    if (hit) return { code: hit.code, city: hit.city };
+    return { code: up.length === 3 ? up : null, city: q }; // unknown: keep raw
+  }
+
+  // --- lounge coverage at a place (uses lounge engine if wallet present) ---
+  function loungesAtCity(city, wallet, allCards, allLounges, visitLog, spend, now) {
+    const LE = loungeEngine();
+    const cityLounges = (allLounges || []).filter(
+      (l) => l.city && city && l.city.toLowerCase() === city.toLowerCase() && l.type !== "railway"
+    );
+    if (!LE || !wallet || !wallet.length) {
+      return { lounges: cityLounges.map((l) => ({ lounge: l, matches: [], open: false })), openCount: 0, total: cityLounges.length };
+    }
+    const rows = cityLounges.map((lounge) => {
+      const matches = LE.cardsForLounge(lounge, wallet, allCards, visitLog || [], spend || {}, now || new Date());
+      return { lounge, matches, open: matches.some((m) => m.usable) };
+    });
+    return { lounges: rows, openCount: rows.filter((r) => r.open).length, total: rows.length };
+  }
+
+  // --- the main builder ---------------------------------------------------
+  // trip = { from, to, depart, return (opt), nights (opt), adults (opt) }
+  // ctx  = { flights, hotels, deals, lounges, cards, wallet, visitLog, spend, now }
+  function planTrip(trip, ctx) {
+    trip = trip || {}; ctx = ctx || {};
+    const flights = ctx.flights || root.LL_FLIGHTS || {};
+    const hotels = ctx.hotels || root.LL_HOTELS || {};
+    const deals = ctx.deals || root.LL_DEALS || {};
+    const lounges = ctx.lounges || root.LL_LOUNGES || [];
+    const cards = ctx.cards || root.LL_CARDS || [];
+    const wallet = ctx.wallet || [];
+    const wCards = walletCards(wallet, cards);
+    const now = ctx.now || new Date();
+
+    const origin = resolvePlace(trip.from, flights);
+    const dest = resolvePlace(trip.to, flights);
+
+    // dates: derive checkout from nights or return; default 2 nights
+    const depart = parseISO(trip.depart) ? trip.depart : null;
+    let checkout = parseISO(trip.return) ? trip.return : null;
+    let nights = trip.nights ? Math.max(1, +trip.nights) : null;
+    if (depart && !checkout && nights) checkout = addDays(depart, nights);
+    if (depart && checkout && !nights) nights = nightsBetween(depart, checkout);
+    if (depart && !checkout && !nights) { nights = 2; checkout = addDays(depart, 2); }
+    const adults = Math.max(1, +trip.adults || 2);
+
+    // ---- 1. FLIGHTS leg ----
+    const FE = flightEngine();
+    const flightFrom = origin ? origin.code : (trip.from || "");
+    const flightTo = dest ? dest.code : (trip.to || "");
+    let flightCompare = [];
+    if (FE && flights.providers) {
+      flightCompare = FE.comparison(flights, flightFrom, flightTo, depart, wCards, {});
+    }
+
+    // ---- 2. STAY leg ----
+    const destCity = dest ? dest.city : (trip.to || "");
+    const stayCompare = rankProviders(hotels.providers).map((p) => ({
+      provider: p,
+      link: buildStayLink(p, destCity, depart, checkout, adults),
+      prefilled: p.linkType === "prefilled" && !!(parseISO(depart) && parseISO(checkout)),
+      offers: offersForWallet(p, wCards),
+      walletHits: offersForWallet(p, wCards).filter((o) => o.inWallet).length,
+    }));
+
+    // ---- 3. LOUNGES at both ends ----
+    const loungeOrigin = origin ? loungesAtCity(origin.city, wallet, cards, lounges, ctx.visitLog, ctx.spend, now) : null;
+    const loungeDest = dest ? loungesAtCity(dest.city, wallet, cards, lounges, ctx.visitLog, ctx.spend, now) : null;
+
+    // ---- 4. ON-TRIP deals for the destination city ----
+    const dealsByCat = {};
+    (deals.categories || []).forEach((cat) => {
+      const svcs = (deals.services || []).filter((s) => s.category === cat.id).map((s) => ({
+        service: s,
+        link: buildDealLink(s, destCity),
+        offers: offersForWallet(s, wCards),
+      }));
+      dealsByCat[cat.id] = { category: cat, services: svcs };
+    });
+
+    // ---- 5. BEST CARD across the whole trip ----
+    const bestCard = bestCardForTrip({ flightCompare, stayCompare, dealsByCat }, wCards);
+
+    // ---- 6. SAVINGS CHECKLIST (transparent levers, never a fake total) ----
+    const savings = savingsChecklist({ flightCompare, stayCompare, loungeOrigin, loungeDest, bestCard, nights }, hotels, deals);
+
+    return {
+      route: { origin, dest, from: flightFrom, to: flightTo },
+      dates: { depart, checkout, nights, adults },
+      flights: flightCompare,
+      stay: stayCompare,
+      lounges: { origin: loungeOrigin, dest: loungeDest },
+      deals: dealsByCat,
+      bestCard,
+      savings,
+      wallet: { count: wCards.length },
+    };
+  }
+
+  // across flights + stay + deals, which single wallet card wins the most
+  // (matching-issuer) offers, weighted by provider confidence?
+  function bestCardForTrip(parts, wCards) {
+    const score = new Map(); // cardId -> {card, points, where:Set}
+    const bump = (node, link, label) => {
+      (node.offers || []).forEach((o) => {
+        if (!o.offer) return;
+        const off = o.offer;
+        if (off.kind !== "card" || !off.issuer) return;
+        (o.matchedCards || []).forEach((c) => {
+          if (!score.has(c.id)) score.set(c.id, { card: c, points: 0, where: new Set() });
+          const e = score.get(c.id);
+          e.points += (CONF_RANK[off.confidence] || 1);
+          e.where.add(label);
+        });
+      });
+    };
+    (parts.flightCompare || []).forEach((f) => bump({ offers: f.offers }, f.link, "flights:" + (f.provider && f.provider.name)));
+    (parts.stayCompare || []).forEach((s) => bump({ offers: s.offers }, s.link, "stay:" + (s.provider && s.provider.name)));
+    Object.values(parts.dealsByCat || {}).forEach((cat) => {
+      (cat.services || []).forEach((sv) => bump({ offers: sv.offers }, sv.link, "deal:" + (sv.service && sv.service.name)));
+    });
+    return Array.from(score.values())
+      .map((e) => ({ card: e.card, points: e.points, places: Array.from(e.where) }))
+      .sort((a, b) => b.points - a.points || b.places.length - a.places.length);
+  }
+
+  // a transparent list of the real money-saving levers on THIS trip. Each item
+  // is an action the user can verify — NOT a fabricated savings number.
+  function savingsChecklist(parts, hotels, deals) {
+    const items = [];
+    // flights: compare meta + best card offer
+    const metaFlight = (parts.flightCompare || []).find((f) => f.provider && f.provider.type === "meta");
+    if (metaFlight) items.push({ icon: "✈️", text: "Compare all airlines at once on " + metaFlight.provider.name + " before booking — it sees every fare." });
+    if (parts.bestCard && parts.bestCard[0]) {
+      const bc = parts.bestCard[0];
+      items.push({ icon: "💳", text: "Pay with your " + bc.card.name + " — it has offers across " + bc.places.length + " of this trip's booking sites." });
+    }
+    // stay
+    const metaStay = (parts.stayCompare || []).find((s) => s.provider && s.provider.type === "meta");
+    if (metaStay) items.push({ icon: "🏨", text: "Check " + metaStay.provider.name + " first for the stay — it compares the same hotel across every site." });
+    if (parts.nights && parts.nights >= 7) items.push({ icon: "📅", text: "Your stay is " + parts.nights + " nights — Airbnb/Agoda weekly discounts (10-40% off) kick in. Worth checking vs hotels." });
+    // free-cancel hedge always applies
+    items.push({ icon: "🔁", text: "Book a free-cancellation rate early, then rebook if the price drops before the deadline. Zero-risk." });
+    // lounges
+    const loungeOpen = (parts.loungeOrigin ? parts.loungeOrigin.openCount : 0) + (parts.loungeDest ? parts.loungeDest.openCount : 0);
+    if (loungeOpen > 0) items.push({ icon: "🛋️", text: "Your cards open " + loungeOpen + " lounge(s) on this route — free food + a seat while you wait. Use them." });
+    else items.push({ icon: "🛋️", text: "Add the cards you hold to see which airport lounges you can walk into free on this route." });
+    // on-trip
+    items.push({ icon: "🚕", text: "At the destination, price 2-3 cab apps for each ride — the cheapest flips by city + time." });
+    items.push({ icon: "🚆", text: "For a short connecting hop, check a train/bus — often a fraction of a second flight." });
+    return items;
+  }
+
+  const Engine = {
+    parseISO, addDays, nightsBetween, ddmmyyyy,
+    buildStayLink, buildDealLink, rankProviders,
+    resolvePlace, walletCards, offersForWallet, loungesAtCity,
+    planTrip, bestCardForTrip, savingsChecklist,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = Engine;
+  root.LL_TRIP_ENGINE = Engine;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
  * LoungeLens — self-improvement module (rung 1: free, client-side, honest).
  *
  * WHAT THIS IS (and is NOT):
@@ -4671,6 +5411,7 @@ window.LL_FLIGHTS = {
   const E = window.LL_ENGINE, CARDS = window.LL_CARDS, LOUNGES = window.LL_LOUNGES, META = window.LL_META, SELF = window.LL_SELF;
   const BRAND = window.LL_BRAND;
   const FE = window.LL_FLIGHT_ENGINE, FLIGHTS = window.LL_FLIGHTS;
+  const TE = window.LL_TRIP_ENGINE, HOTELS = window.LL_HOTELS, DEALS = window.LL_DEALS;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -4685,7 +5426,7 @@ window.LL_FLIGHTS = {
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" } }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -5852,6 +6593,245 @@ window.LL_FLIGHTS = {
       .map((a) => `<option value="${a.city}">${a.code} — ${a.city}</option>`).join("");
   }
 
+  // ======================= PLAN A TRIP (optimizer) =======================
+  // persisted plan inputs live on state.plan
+  function planState() {
+    if (!state.plan) state.plan = { from: "", to: "", depart: "", nights: 3, adults: 2 };
+    return state.plan;
+  }
+  function renderPlanStats() {
+    const el = $("#plan-stats"); if (!el) return;
+    const sites = (FLIGHTS.providers || []).length + (HOTELS.providers || []).length + (DEALS.services || []).length;
+    const pill = (n, l) => `<div class="lh-stat"><b>${n}</b><span>${l}</span></div>`;
+    el.innerHTML = pill(CARDS.length, "cards") + pill(LOUNGES.length, "lounges") + pill(sites, "booking sites") + pill("0", "fake prices");
+  }
+  function wirePlan() {
+    const p = planState();
+    if ($("#tp-from")) $("#tp-from").value = p.from || "";
+    if ($("#tp-to")) $("#tp-to").value = p.to || "";
+    if ($("#tp-depart")) { $("#tp-depart").value = p.depart || ""; const f = todayISO(); $("#tp-depart").setAttribute("min", f); }
+    if ($("#tp-nights")) $("#tp-nights").value = p.nights || 3;
+    if ($("#tp-adults")) $("#tp-adults").value = p.adults || 2;
+    const persist = () => {
+      state.plan = {
+        from: ($("#tp-from") && $("#tp-from").value) || "",
+        to: ($("#tp-to") && $("#tp-to").value) || "",
+        depart: ($("#tp-depart") && $("#tp-depart").value) || "",
+        nights: ($("#tp-nights") && +$("#tp-nights").value) || 3,
+        adults: ($("#tp-adults") && +$("#tp-adults").value) || 2,
+      };
+      save();
+    };
+    ["#tp-from", "#tp-to", "#tp-depart", "#tp-nights", "#tp-adults"].forEach((s) => { const el = $(s); if (el) el.oninput = persist; });
+    if ($("#tp-swap")) $("#tp-swap").onclick = () => { const a = $("#tp-from"), b = $("#tp-to"); if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); } };
+    if ($("#tp-plan")) $("#tp-plan").onclick = () => { persist(); renderPlanResult(); const r = $("#plan-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  }
+  function todayISO() { const n = new Date(); return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2); }
+
+  function renderPlanResult() {
+    const out = $("#plan-result"); if (!out || !TE) return;
+    const p = planState();
+    if (!p.from || !p.to) { out.innerHTML = `<div class="empty">Tell me where you're going from and to, then build the plan.</div>`; return; }
+    const plan = TE.planTrip(
+      { from: p.from, to: p.to, depart: p.depart, nights: p.nights, adults: p.adults },
+      { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW }
+    );
+    const r = plan.route, d = plan.dates;
+    const routeHead = `<div class="plan-route">
+      <div class="pr-cities"><b>${esc(r.origin ? r.origin.city : p.from)}</b> <span class="fl-arrow">→</span> <b>${esc(r.dest ? r.dest.city : p.to)}</b></div>
+      <div class="card-sub">${esc(r.from || "?")} → ${esc(r.to || "?")} · ${d.depart ? esc(d.depart) : "pick a date"}${d.nights ? ` · ${d.nights} night${d.nights > 1 ? "s" : ""}` : ""} · ${d.adults} traveller${d.adults > 1 ? "s" : ""}</div>
+    </div>`;
+
+    // best card banner
+    let bestCardHtml = "";
+    if (!state.wallet.length) {
+      bestCardHtml = `<div class="nudge">👋 Add the cards you hold and I'll pick the single best card to pay on this whole trip. <b class="link" data-goto="addcard">Add my cards →</b></div>`;
+    } else if (plan.bestCard.length) {
+      const bc = plan.bestCard[0];
+      bestCardHtml = `<div class="bestpay plan-bestcard">
+        <div class="bp-head">💳 Best card for this trip</div>
+        <div class="bp-card">${cardArt(bc.card, { tiny: true })} <b>${esc(bc.card.name)}</b> — has offers on ${bc.places.length} of this trip's booking site${bc.places.length > 1 ? "s" : ""}</div>
+        <div class="card-sub">Offers rotate. Confirm today's exact discount + cap on each site before you pay.</div>
+      </div>`;
+    } else {
+      bestCardHtml = `<div class="card-sub" style="margin:8px 0;">None of your cards match a tracked offer on this trip's sites yet — the sites may still run a generic discount.</div>`;
+    }
+
+    // the optimizer step cards
+    const step = (icon, title, bodyHtml) => `<div class="plan-step"><div class="ps-head">${icon} <b>${title}</b></div>${bodyHtml}</div>`;
+
+    // flights step
+    const topFlights = plan.flights.slice(0, 4);
+    const flightBody = topFlights.length ? `<div class="ps-links">${topFlights.map((f) => {
+      const hit = f.walletHits ? `<span class="chip good">card offer</span>` : "";
+      return `<a class="plan-link" href="${f.link}" target="_blank" rel="noopener"><span>${esc(f.provider.name)} ${hit}</span><span class="pl-go">${f.prefilled ? "live fares ↗" : "open ↗"}</span></a>`;
+    }).join("")}</div><div class="card-sub">Start with the compare site — it sees every airline at once. <b class="link" data-goto="flights">Full flight view + live fares →</b></div>` : `<div class="card-sub">Enter a date for flight links.</div>`;
+
+    // stay step
+    const topStay = plan.stay.slice(0, 4);
+    const stayBody = `<div class="ps-links">${topStay.map((s) => {
+      const hit = s.walletHits ? `<span class="chip good">card offer</span>` : "";
+      return `<a class="plan-link" href="${s.link}" target="_blank" rel="noopener"><span>${esc(s.provider.name)} ${hit}</span><span class="pl-go">${s.prefilled ? "live rates ↗" : "open ↗"}</span></a>`;
+    }).join("")}</div><div class="card-sub"><b class="link" data-goto="hotels">Full hotel view →</b></div>`;
+
+    // lounges step
+    const loungeLine = (lab, lg) => {
+      if (!lg || !lg.total) return `<div class="card-sub">${lab}: no lounge data for this city.</div>`;
+      if (!state.wallet.length) return `<div class="card-sub">${lab}: ${lg.total} lounge${lg.total > 1 ? "s" : ""} here — add your cards to see which you can enter.</div>`;
+      return `<div class="card-sub">${lab}: <b class="${lg.openCount ? "good-txt" : ""}">${lg.openCount}/${lg.total}</b> lounge${lg.total > 1 ? "s" : ""} your cards open.</div>`;
+    };
+    const loungeBody = `${loungeLine("At " + (r.origin ? r.origin.city : p.from), plan.lounges.origin)}${loungeLine("At " + (r.dest ? r.dest.city : p.to), plan.lounges.dest)}<div class="card-sub"><b class="link" data-goto="trip">Full lounge trip view →</b></div>`;
+
+    // on-trip step
+    const ontripBody = `<div class="card-sub">Cabs, eSIM, forex, dining and things to do at ${esc(r.dest ? r.dest.city : p.to)}. <b class="link" data-goto="ontrip">Open on-trip deals →</b></div>`;
+
+    // savings checklist
+    const savingsBody = `<ul class="plan-savings">${plan.savings.map((s) => `<li><span class="psv-ic">${s.icon}</span> ${esc(s.text)}</li>`).join("")}</ul>`;
+
+    out.innerHTML = routeHead + bestCardHtml +
+      step("✈️", "Flights", flightBody) +
+      step("🏨", "Stay", stayBody) +
+      step("🛋️", "Lounges on the way", loungeBody) +
+      step("🧳", "While you're there", ontripBody) +
+      step("✅", "Your money-saving checklist", savingsBody) +
+      `<div class="honesty-note">Every link opens the <b>real</b> live search on the real site — that's where the true price is. I never invent a fare or a total. Offers are recurring India card/app/coupon mechanisms, confidence-tagged; confirm today's exact terms before you pay.</div>`;
+    wireGoto();
+  }
+
+  // =============================== HOTELS =================================
+  function hotelState() {
+    if (!state.hotel) state.hotel = { city: "", checkin: "", checkout: "", adults: 2 };
+    return state.hotel;
+  }
+  function fillHotelCityList() {
+    const dl = $("#hotel-city-list"); if (!dl) return;
+    dl.innerHTML = (HOTELS.cities || []).map((c) => `<option value="${c}"></option>`).join("");
+  }
+  function wireHotels() {
+    const h = hotelState();
+    if ($("#ho-city")) $("#ho-city").value = h.city || "";
+    if ($("#ho-checkin")) { $("#ho-checkin").value = h.checkin || ""; $("#ho-checkin").setAttribute("min", todayISO()); }
+    if ($("#ho-checkout")) { $("#ho-checkout").value = h.checkout || ""; $("#ho-checkout").setAttribute("min", todayISO()); }
+    if ($("#ho-adults")) $("#ho-adults").value = h.adults || 2;
+    const persist = () => {
+      state.hotel = {
+        city: ($("#ho-city") && $("#ho-city").value) || "",
+        checkin: ($("#ho-checkin") && $("#ho-checkin").value) || "",
+        checkout: ($("#ho-checkout") && $("#ho-checkout").value) || "",
+        adults: ($("#ho-adults") && +$("#ho-adults").value) || 2,
+      };
+      save();
+    };
+    ["#ho-city", "#ho-checkin", "#ho-checkout", "#ho-adults"].forEach((s) => { const el = $(s); if (el) el.oninput = persist; });
+    if ($("#ho-go")) $("#ho-go").onclick = () => { persist(); renderHotels(); const r = $("#hotel-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  }
+  function renderHotels() {
+    if (!$("#hotel-result") || !TE) return;
+    const h = hotelState();
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+
+    // hotel coupons (recurring mechanisms)
+    const cp = $("#hotel-coupons");
+    if (cp) cp.innerHTML = (HOTELS.coupons || []).map((o) => `<div class="coupon-row">
+      <div class="cp-main"><div class="cp-title">🏨 <b>${esc(o.title)}</b> ${confBadge(o.confidence)}</div>
+      <div class="card-sub">${esc(o.note)} · ${esc(o.who)}</div></div>
+      <div class="cp-side"><span class="card-sub">checked ${esc(o.lastChecked)}</span> ${o.verify ? `<a class="fl-verify" href="https://${esc(String(o.verify).replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">verify ↗</a>` : ""}</div>
+    </div>`).join("");
+
+    const honesty = $("#hotel-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> a free app can't pull live room rates, so I open the <b>real</b> live search on each site where the true price is. Offers are recurring India bank/app/coupon mechanisms, tagged how sure I am and when last checked. Confirm today's exact terms before you pay.`;
+
+    // best card for hotels (across providers)
+    const bp = $("#hotel-bestpay");
+    if (bp) {
+      const ranked = TE.bestCardForTrip({ stayCompare: (HOTELS.providers || []).map((p) => ({ provider: p, offers: TE.offersForWallet(p, wallet) })) }, wallet);
+      if (!wallet.length) bp.innerHTML = `<div class="nudge">👋 Add your cards and I'll mark which hotel sites give you an instant discount. <b class="link" data-goto="addcard">Add my cards →</b></div>`;
+      else if (ranked.length) bp.innerHTML = `<div class="bestpay"><div class="bp-head">💡 Best card for hotels (your wallet)</div><div class="bp-card">${cardArt(ranked[0].card, { tiny: true })} <b>${esc(ranked[0].card.name)}</b> has offers on ${ranked[0].places.length} hotel site${ranked[0].places.length > 1 ? "s" : ""}</div></div>`;
+      else bp.innerHTML = `<div class="card-sub" style="margin:6px 0 12px;">No tracked hotel offer matches your cards yet — sites may still run a generic discount.</div>`;
+      wireGoto();
+    }
+
+    if (!h.city) { $("#hotel-result").innerHTML = `<div class="empty">Enter a city (and your dates) — I'll line up every hotel site with the best discount for your wallet.</div>`; return; }
+
+    const rows = (HOTELS.providers || []).map((p) => ({
+      provider: p,
+      link: TE.buildStayLink(p, h.city, h.checkin, h.checkout, h.adults),
+      prefilled: p.linkType === "prefilled" && !!(TE.parseISO(h.checkin) && TE.parseISO(h.checkout)),
+      offers: TE.offersForWallet(p, wallet),
+      walletHits: TE.offersForWallet(p, wallet).filter((o) => o.inWallet).length,
+    }));
+    const ranked = TE.rankProviders(HOTELS.providers); // for grouping order
+    const ordered = ranked.map((p) => rows.find((r) => r.provider.id === p.id)).filter(Boolean);
+
+    const groupLabel = { meta: "Compare everything", chain: "Book direct (member rates + points)", ota: "Travel sites (most card offers)" };
+    let lastType = null;
+    const nights = TE.nightsBetween(h.checkin, h.checkout);
+    const head = `<div class="fl-route"><b>${esc(h.city)}</b> <span class="card-sub">${h.checkin && h.checkout ? esc(h.checkin) + " → " + esc(h.checkout) + (nights ? " · " + nights + " night" + (nights > 1 ? "s" : "") : "") : "pick your dates"} · ${h.adults} guest${h.adults > 1 ? "s" : ""}</span></div>`;
+    const body = ordered.map((r) => {
+      const p = r.provider;
+      const groupHead = p.type !== lastType ? `<div class="fl-group">${groupLabel[p.type] || ""}</div>` : "";
+      lastType = p.type;
+      const offerChips = r.offers.map((o) => {
+        const cls = o.inWallet ? "in-wallet" : "";
+        const who = o.offer.kind === "card" && o.offer.issuer ? o.offer.issuer + " " : "";
+        const code = o.offer.code ? ` <code class="fl-code">${esc(o.offer.code)}</code>` : "";
+        return `<div class="fl-offer ${cls}"><span class="fl-offer-k">${kindIcon(o.offer.kind)}</span>
+          <span class="fl-offer-t">${esc(who)}${esc(o.offer.title)}${code} ${confBadge(o.offer.confidence)}${o.inWallet ? ` <span class="chip good">you hold this</span>` : ""}</span>
+          ${o.offer.verify ? `<a class="fl-verify" href="https://${esc(String(o.offer.verify).replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">verify ↗</a>` : ""}</div>`;
+      }).join("");
+      const typeTag = p.type === "meta" ? `<span class="chip">compare</span>` : p.type === "chain" ? `<span class="chip rail">hotel group</span>` : `<span class="chip">travel site</span>`;
+      return `${groupHead}<div class="fl-prov ${r.walletHits ? "has-wallet-offer" : ""}">
+        <div class="fl-prov-head"><div><b>${esc(p.name)}</b> ${typeTag} ${confBadge(p.confidence)}</div>
+        <a class="act mini fl-open" href="${r.link}" target="_blank" rel="noopener">${r.prefilled ? "open live rates ↗" : "open hotel site ↗"}</a></div>
+        <div class="card-sub fl-note">${esc(p.note)}</div>
+        ${offerChips || `<div class="card-sub fl-noOffer">No card/app offer tracked here — check the site for a current discount.</div>`}
+      </div>`;
+    }).join("");
+    $("#hotel-result").innerHTML = head + body;
+  }
+
+  // ============================== ON-TRIP =================================
+  function ontripState() { if (!state.ontrip) state.ontrip = { city: "" }; return state.ontrip; }
+  function wireOntrip() {
+    const o = ontripState();
+    if ($("#ot-city")) $("#ot-city").value = o.city || "";
+    if ($("#ot-city")) $("#ot-city").oninput = () => { state.ontrip = { city: $("#ot-city").value || "" }; save(); };
+    if ($("#ot-go")) $("#ot-go").onclick = () => { state.ontrip = { city: ($("#ot-city") && $("#ot-city").value) || "" }; save(); renderOntrip(); const r = $("#ontrip-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  }
+  function renderOntrip() {
+    if (!$("#ontrip-result") || !TE) return;
+    const o = ontripState();
+    const wallet = state.wallet.map((id) => card(id)).filter(Boolean);
+
+    const tips = $("#ontrip-tips");
+    if (tips) tips.innerHTML = `<div class="section-h">💡 On-trip money plays</div>` + (DEALS.tips || []).map((t) => `<div class="coupon-row">
+      <div class="cp-main"><div class="cp-title">💡 <b>${esc(t.title)}</b> ${confBadge(t.confidence)}</div><div class="card-sub">${esc(t.note)} · ${esc(t.who)}</div></div>
+      <div class="cp-side"><span class="card-sub">checked ${esc(t.lastChecked)}</span></div></div>`).join("");
+
+    const honesty = $("#ontrip-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> each link opens the real app/site for that service. Offers are recurring mechanisms (bank tie-ups, app codes, wallet cashback), tagged how sure I am. Confirm today's exact terms in the app before you pay.`;
+
+    const city = (o.city || "").trim();
+    const out = (DEALS.categories || []).map((cat) => {
+      const svcs = (DEALS.services || []).filter((s) => s.category === cat.id);
+      const cards = svcs.map((s) => {
+        const link = TE.buildDealLink(s, city);
+        const offers = TE.offersForWallet(s, wallet);
+        const walletHit = offers.some((x) => x.inWallet);
+        const offerLine = offers.length ? offers.map((x) => {
+          const mine = x.inWallet ? ` <span class="chip good">you hold this</span>` : "";
+          const who = x.offer.kind === "card" && x.offer.issuer ? x.offer.issuer + " " : "";
+          return `<div class="dl-offer">${kindIcon(x.offer.kind)} ${esc(who)}${esc(x.offer.title)} ${confBadge(x.offer.confidence)}${mine}${x.offer.verify ? ` <a class="fl-verify" href="https://${esc(String(x.offer.verify).replace(/^https?:\/\//, ""))}" target="_blank" rel="noopener">verify ↗</a>` : ""}</div>`;
+        }).join("") : `<div class="card-sub">No tracked offer — check the app for a current one.</div>`;
+        return `<div class="ot-svc ${walletHit ? "has-wallet-offer" : ""}">
+          <div class="ot-svc-head"><b>${esc(s.name)}</b> ${confBadge(s.confidence)} <a class="act mini" href="${link}" target="_blank" rel="noopener">open ↗</a></div>
+          <div class="card-sub">${esc(s.note)}</div>${offerLine}</div>`;
+      }).join("");
+      return `<div class="ot-cat"><div class="ot-cat-head">${cat.label}</div><div class="card-sub ot-cat-blurb">${esc(cat.blurb)}</div><div class="ot-grid">${cards}</div></div>`;
+    }).join("");
+    $("#ontrip-result").innerHTML = (city ? `<div class="fl-route"><b>${esc(city)}</b> <span class="card-sub">links tailored to this city where supported</span></div>` : `<div class="card-sub" style="margin:8px 0;">Tip: type a destination city above to tailor the cab/activity links to it.</div>`) + out;
+  }
+
   function renderFlightStats() {
     const el = $("#fl-stats");
     if (!el) return;
@@ -6213,9 +7193,11 @@ window.LL_FLIGHTS = {
   if ($("#about-version")) {
     const nCredit = CARDS.filter((c) => cardType(c) === "credit").length;
     const nDebit = CARDS.filter((c) => cardType(c) === "debit").length;
+    const nFlightSites = (FLIGHTS.providers || []).length, nHotelSites = (HOTELS.providers || []).length, nDealSvcs = (DEALS.services || []).length;
     $("#about-version").textContent =
-      "LoungeLens · data reviewed " + (META.lastReviewed || "—") + " · " + CARDS.length +
-      " cards (" + nCredit + " credit, " + nDebit + " debit) · " + LOUNGES.length + " lounges · all data stored locally";
+      "TripLens · data reviewed " + (META.lastReviewed || "—") + " · " + CARDS.length +
+      " cards (" + nCredit + " credit, " + nDebit + " debit) · " + LOUNGES.length + " lounges · " +
+      (nFlightSites + nHotelSites) + " booking sites · " + nDealSvcs + " on-trip services · all data stored locally";
   }
   $("#reset-all").onclick = () => {
     if (confirm("Clear your cards, visits and trip from this browser?")) { state = blank(); save(); applyMode(); render(); renderTripInputs(); }
@@ -6227,7 +7209,9 @@ window.LL_FLIGHTS = {
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
     renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
     renderFlights(); renderCoupons();
+    renderPlanStats(); renderHotels(); renderOntrip();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
+    if ($("#plan-result") && $("#plan-result").innerHTML.trim()) renderPlanResult();
   }
 
   // ---- modal UX polish: Esc to close, click-backdrop to close -----------
@@ -6260,11 +7244,16 @@ window.LL_FLIGHTS = {
   applyMode();
   cityDatalist();
   fillAirportList();
+  fillHotelCityList();
   setFlightDateFloor();
   renderHeroStats();
   renderFlightStats();
+  renderPlanStats();
   renderTripInputs();
   wireFlights();
+  wirePlan();
+  wireHotels();
+  wireOntrip();
   render();
   renderAuthBar();
   maybeOnboard();

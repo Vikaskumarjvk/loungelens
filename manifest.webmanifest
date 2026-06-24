@@ -1,7 +1,7 @@
 {
-  "name": "LoungeLens — lounge access for your cards",
-  "short_name": "LoungeLens",
-  "description": "See every airport and railway lounge your Indian credit cards actually open. Plan trips, track free visits, find the easiest card to get.",
+  "name": "TripLens — plan the whole trip, pay the smart way",
+  "short_name": "TripLens",
+  "description": "One free app for the whole trip: flights, hotels, airport lounges, cabs and local deals in India — with the best card to pay on every booking. No fake prices.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

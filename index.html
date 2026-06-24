@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LoungeLens — your real lounge access, one view</title>
-  <meta name="description" content="Every airport & railway lounge your credit cards actually open in India. Plan a trip, track visits, find the easiest card to get." />
+  <title>TripLens — plan the whole trip, pay the smart way</title>
+  <meta name="description" content="One free app for the whole trip: flights, hotels, lounges, cabs and local deals — with the best card to pay on every booking. India-first. No fake prices, ever." />
   <meta name="theme-color" content="#0d1117" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛋️</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="LoungeLens" />
+  <meta name="apple-mobile-web-app-title" content="TripLens" />
   <!-- Open Graph: a real link preview when shared in WhatsApp/chat -->
-  <meta property="og:title" content="LoungeLens" />
-  <meta property="og:description" content="See every airport & railway lounge your credit cards actually open in India." />
+  <meta property="og:title" content="TripLens" />
+  <meta property="og:description" content="Plan the whole trip — flights, hotels, lounges, cabs, local deals — and pay with the best card on every booking. Free." />
   <meta property="og:type" content="website" />
   <!-- Inter as a progressive enhancement: looks premium online, falls back to
        the system sans stack offline (so the PWA still works with no internet). -->
@@ -27,10 +27,10 @@
 <body>
   <header>
     <div class="brand">
-      <span class="logo">🛋️</span>
+      <span class="logo">🧭</span>
       <div>
-        <h1>LoungeLens</h1>
-        <span class="tag">every lounge your cards actually open — airport + railway</span>
+        <h1>TripLens</h1>
+        <span class="tag">the whole trip, planned — flights · hotels · lounges · deals · the smart card to pay</span>
       </div>
       <div class="auth-bar" id="auth-bar">
         <button class="act mini ghost" id="login-open">👤 Log in</button>
@@ -41,7 +41,10 @@
       </button>
     </div>
     <nav id="main-nav">
-      <button data-view="flights" class="active">✈️ Flight Deals</button>
+      <button data-view="plan" class="active">🧭 Plan a Trip</button>
+      <button data-view="flights">✈️ Flights</button>
+      <button data-view="hotels">🏨 Hotels</button>
+      <button data-view="ontrip">🧳 On-Trip Deals</button>
       <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>
       <button data-view="trip">🛋️ Lounge Trip</button>
@@ -60,8 +63,75 @@
   </header>
 
   <main>
-    <!-- FLIGHT DEALS (default, the new front door) -->
-    <section id="view-flights" class="view active">
+    <!-- PLAN A TRIP (the front door: the Trip Cost Optimizer) -->
+    <section id="view-plan" class="view active">
+      <div class="landing-hero">
+        <div class="lh-glow"></div>
+        <div class="lh-badge">🧭 the whole trip, optimized</div>
+        <h2 class="lh-title">Plan it once.<br><span class="lh-grad">Pay the smart way.</span></h2>
+        <p class="lh-sub">One plan for the entire trip — flights, hotel, airport lounges, cabs and local deals — with the single best card to swipe on every booking. Real fares live on the real sites. I never make a price up.</p>
+        <div class="lh-stats" id="plan-stats"></div>
+      </div>
+      <div class="trip-builder plan-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="tp-from" placeholder="From (city or code)" list="fl-airport-list" autocomplete="off" aria-label="Origin" />
+          <button class="act ghost mini" id="tp-swap" title="Swap" aria-label="Swap origin and destination">⇄</button>
+          <input class="fb-input" id="tp-to" placeholder="To (city or code)" list="fl-airport-list" autocomplete="off" aria-label="Destination" />
+        </div>
+        <div class="fb-row">
+          <label class="tp-lbl">Depart <input class="fb-input" id="tp-depart" type="date" aria-label="Departure date" /></label>
+          <label class="tp-lbl">Nights <input class="fb-input tp-num" id="tp-nights" type="number" min="1" max="60" value="3" aria-label="Nights" /></label>
+          <label class="tp-lbl">Travellers <input class="fb-input tp-num" id="tp-adults" type="number" min="1" max="9" value="2" aria-label="Travellers" /></label>
+        </div>
+        <button class="act big" id="tp-plan">🧭 Build my trip plan →</button>
+      </div>
+      <div id="plan-result"></div>
+    </section>
+
+    <!-- HOTELS -->
+    <section id="view-hotels" class="view">
+      <div class="hero">
+        <h2>Hotels — best site, best card</h2>
+        <p>Pick your city and dates. I line up every booking site (compare-first), open the live search there, and flag which of your cards has an offer. Real rates stay on the real sites — I never invent a price.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="ho-city" placeholder="City (e.g. Goa)" list="hotel-city-list" autocomplete="off" aria-label="City" />
+        </div>
+        <div class="fb-row">
+          <label class="tp-lbl">Check-in <input class="fb-input" id="ho-checkin" type="date" aria-label="Check-in date" /></label>
+          <label class="tp-lbl">Check-out <input class="fb-input" id="ho-checkout" type="date" aria-label="Check-out date" /></label>
+          <label class="tp-lbl">Guests <input class="fb-input tp-num" id="ho-adults" type="number" min="1" max="9" value="2" aria-label="Guests" /></label>
+        </div>
+        <button class="act big" id="ho-go">Compare hotel sites →</button>
+        <datalist id="hotel-city-list"></datalist>
+      </div>
+      <div id="hotel-bestpay"></div>
+      <div id="hotel-result"></div>
+      <div class="section-h">🏨 Hotel money-saving plays</div>
+      <div id="hotel-coupons"></div>
+      <div class="honesty-note" id="hotel-honesty"></div>
+    </section>
+
+    <!-- ON-TRIP DEALS (cabs, eSIM/forex, dining, activities) -->
+    <section id="view-ontrip" class="view">
+      <div class="hero">
+        <h2>On-trip essentials &amp; local deals</h2>
+        <p>Everything for while you're there — cabs, intercity travel, eSIM and forex, dining and things to do — each with the live app/site and the card or coupon that cuts the bill. Pick a city to tailor the links.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <input class="fb-input" id="ot-city" placeholder="Destination city (optional)" list="hotel-city-list" autocomplete="off" aria-label="Destination city" />
+          <button class="act" id="ot-go">Show deals →</button>
+        </div>
+      </div>
+      <div id="ontrip-tips"></div>
+      <div id="ontrip-result"></div>
+      <div class="honesty-note" id="ontrip-honesty"></div>
+    </section>
+
+    <!-- FLIGHT DEALS -->
+    <section id="view-flights" class="view">
       <div class="landing-hero">
         <div class="lh-glow"></div>
         <div class="lh-badge">✈️ India flight deals + best way to pay</div>
@@ -375,13 +445,13 @@
     <!-- ABOUT / TRUST -->
     <section id="view-about" class="view">
       <div class="hero">
-        <h2>About LoungeLens</h2>
-        <p>A free, private tool to see which lounges your credit cards actually open in India.</p>
+        <h2>About TripLens</h2>
+        <p>A free, private app for the whole trip — flights, hotels, airport lounges, cabs and local deals — with the smartest card to pay on every booking. India-first.</p>
       </div>
 
       <div class="about-card">
         <h3>⚠️ Not financial advice</h3>
-        <p>LoungeLens helps you understand lounge access. It does not recommend taking on debt and is not affiliated with any bank, card issuer, DreamFolks, Priority Pass, or any lounge operator. Card and lounge rules in India change often. Always confirm the current terms with your bank and at the lounge desk before you rely on access. Apply for credit cards responsibly.</p>
+        <p>TripLens helps you plan travel and understand which cards help you pay less. It does not recommend taking on debt and is not affiliated with any bank, card issuer, airline, hotel, OTA, DreamFolks, Priority Pass, or any lounge operator. Travel prices and card/lounge rules in India change often. Always confirm the current price and terms on the booking site and with your bank before you rely on them. Apply for credit cards responsibly.</p>
       </div>
 
       <div class="about-card">
@@ -409,15 +479,15 @@
   <!-- first-run onboarding -->
   <div id="onboard" class="modal" hidden>
     <div class="modal-box">
-      <div class="modal-logo">🛋️</div>
-      <h2>Welcome to LoungeLens</h2>
-      <p>Three quick things:</p>
+      <div class="modal-logo">🧭</div>
+      <h2>Welcome to TripLens</h2>
+      <p>One app for the whole trip. Three quick things:</p>
       <ol class="onboard-list">
         <li><b>Add the cards you hold</b> — tap them once, saved on this device.</li>
-        <li><b>Plan a trip</b> — type your cities, see exactly which lounge each card opens.</li>
-        <li><b>Before you fly</b> — glance at Data Health to see what to double-check.</li>
+        <li><b>Plan a trip</b> — type where you're going, get flights, hotels, lounges and local deals in one plan.</li>
+        <li><b>Pay the smart way</b> — I flag the single best card to swipe on every booking.</li>
       </ol>
-      <p class="onboard-fine">Free. Private. Nothing leaves your device. Not financial advice.</p>
+      <p class="onboard-fine">Free. Private. Nothing leaves your device. No fake prices. Not financial advice.</p>
       <button class="act big" id="onboard-start">Get started →</button>
     </div>
   </div>
@@ -457,10 +527,13 @@
   <script src="data/meta.js"></script>
   <script src="data/sources.js"></script>
   <script src="data/flights.js"></script>
+  <script src="data/hotels.js"></script>
+  <script src="data/deals.js"></script>
   <script src="brand.js"></script>
   <script src="engine.js"></script>
   <script src="flight-engine.js"></script>
   <script src="flight-live.js"></script>
+  <script src="trip-engine.js"></script>
   <script src="selfcheck.js"></script>
   <script src="profile.js"></script>
   <script src="auth.js"></script>

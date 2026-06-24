@@ -861,3 +861,41 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   html { scroll-behavior: auto; }
 }
+
+/* ===================================================================== */
+/* TripLens — trip planner / hotels / on-trip deals (added 2026-06-24)   */
+/* Uses the same design tokens as the rest of the app.                   */
+/* ===================================================================== */
+
+/* --- Plan a Trip builder --- */
+.plan-builder { gap: 12px; }
+.tp-lbl { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); flex: 1; min-width: 92px; }
+.tp-lbl .fb-input { width: 100%; }
+.tp-num { max-width: 100%; }
+
+/* the optimizer result */
+.plan-route { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 14px 0 10px; box-shadow: var(--shadow-1); }
+.pr-cities { font-size: 19px; }
+.plan-bestcard { margin: 10px 0 14px; }
+.plan-step { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 10px 0; box-shadow: var(--shadow-1); }
+.ps-head { font-size: 15px; margin-bottom: 8px; }
+.ps-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 8px 0; }
+.plan-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-radius: var(--r-sm); background: var(--panel2); border: 1px solid var(--line); color: var(--txt); text-decoration: none; font-size: 13px; transition: border-color .15s, transform .1s; }
+.plan-link:hover { border-color: var(--accent); transform: translateY(-1px); }
+.plan-link .pl-go { color: var(--accent2); font-size: 12px; white-space: nowrap; }
+.plan-savings { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+.plan-savings li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--txt); line-height: 1.45; }
+.psv-ic { flex: 0 0 auto; }
+.good-txt { color: var(--good); }
+
+/* --- Hotels + On-trip reuse flight classes; a few extras --- */
+.ot-cat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 12px 0; box-shadow: var(--shadow-1); }
+.ot-cat-head { font-size: 16px; font-weight: 700; }
+.ot-cat-blurb { margin: 4px 0 10px; }
+.ot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ot-svc { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 11px 12px; }
+.ot-svc.has-wallet-offer { border-color: var(--good); box-shadow: 0 0 0 1px var(--good-dim); }
+.ot-svc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.ot-svc-head b { flex: 1; min-width: 90px; }
+.dl-offer { font-size: 12.5px; color: var(--dim); margin-top: 6px; line-height: 1.4; }
+.dl-offer:first-of-type { margin-top: 8px; }
