@@ -30,7 +30,7 @@ window.LL_DEALS = {
     // ===== CABS =====
     {
       id: "uber", name: "Uber", category: "cab", type: "app", linkType: "search-page",
-      url: "https://m.uber.com/",
+      url: "https://www.uber.com/in/en/",
       note: "Compare with Ola/Rapido on the same ride — the cheapest flips by city + time of day.",
       confidence: "high", verify: "uber.com",
       offers: [

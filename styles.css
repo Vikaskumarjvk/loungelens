@@ -1009,3 +1009,13 @@ nav button.active::after {
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 2px solid var(--accent2); outline-offset: 2px; border-radius: var(--r-sm);
 }
+
+/* --- Live data: route geometry, weather, currency converter (2026-06-24) --- */
+.pr-geo { font-size: 13.5px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pr-weather { margin-top: 6px; min-height: 0; }
+.pr-wx { font-size: 13.5px; }
+.fx-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; margin: 6px 0 14px; box-shadow: var(--shadow-1); }
+.fx-amt { max-width: 160px; }
+.fx-result { margin-top: 10px; min-height: 20px; }
+.fx-out { font-size: 16px; }
+.fx-big { color: var(--good); font-size: 19px; }

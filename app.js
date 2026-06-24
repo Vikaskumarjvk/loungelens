@@ -6,6 +6,7 @@
   const FE = window.LL_FLIGHT_ENGINE, FLIGHTS = window.LL_FLIGHTS;
   const TE = window.LL_TRIP_ENGINE, HOTELS = window.LL_HOTELS, DEALS = window.LL_DEALS;
   const IT = window.LL_ITINERARY, BUD = window.LL_BUDGET;
+  const GEO = window.LL_GEO, LD = window.LL_LIVE;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -20,7 +21,7 @@
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, trips: [], openTripId: null, tripSeq: 1 }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -1231,9 +1232,22 @@
       { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW }
     );
     const r = plan.route, d = plan.dates;
+    // live route geometry: real great-circle distance + honest flight-time estimate
+    let geoLine = "";
+    if (GEO && r.from && r.to) {
+      const km = GEO.distanceKm(r.from, r.to);
+      if (km != null) {
+        const ft = GEO.fmtDuration(GEO.flightTimeMin(r.from, r.to));
+        const tvf = GEO.trainVsFly(r.from, r.to);
+        const leanChip = tvf ? `<span class="chip ${tvf.lean === "fly" ? "" : "rail"}">${tvf.lean === "train" ? "🚆 train often wins" : tvf.lean === "either" ? "🚆/✈️ compare both" : "✈️ fly"}</span>` : "";
+        geoLine = `<div class="pr-geo">📏 ${km.toLocaleString("en-IN")} km · ~${ft} in the air <span class="card-sub">(estimate)</span> ${leanChip}</div>`;
+      }
+    }
     const routeHead = `<div class="plan-route">
       <div class="pr-cities"><b>${esc(r.origin ? r.origin.city : p.from)}</b> <span class="fl-arrow">→</span> <b>${esc(r.dest ? r.dest.city : p.to)}</b></div>
       <div class="card-sub">${esc(r.from || "?")} → ${esc(r.to || "?")} · ${d.depart ? esc(d.depart) : "pick a date"}${d.nights ? ` · ${d.nights} night${d.nights > 1 ? "s" : ""}` : ""} · ${d.adults} traveller${d.adults > 1 ? "s" : ""}</div>
+      ${geoLine}
+      <div id="plan-weather" class="pr-weather"></div>
     </div>`;
 
     // best card banner
@@ -1292,6 +1306,25 @@
       `<div class="honesty-note">Every link opens the <b>real</b> live search on the real site — that's where the true price is. I never invent a fare or a total. Offers are recurring India card/app/coupon mechanisms, confidence-tagged; confirm today's exact terms before you pay.</div>`;
     if ($("#plan-save-trip")) $("#plan-save-trip").onclick = saveCurrentPlanAsTrip;
     wireGoto();
+    // live weather for the destination over the travel dates (real Open-Meteo)
+    loadPlanWeather(r.dest ? r.dest.code : null, r.dest ? r.dest.city : p.to, d.depart);
+  }
+
+  function loadPlanWeather(destCode, destCity, depart) {
+    const el = $("#plan-weather"); if (!el || !LD || !GEO) return;
+    const coords = destCode && GEO.AIRPORT_COORDS[destCode];
+    if (!coords) { el.innerHTML = ""; return; }
+    el.innerHTML = `<span class="card-sub">⛅ loading live forecast for ${esc(destCity)}…</span>`;
+    LD.getWeather(coords[0], coords[1], 14).then((wx) => {
+      const w = wx.parsed; if (!w) { el.innerHTML = ""; return; }
+      const flagBits = [];
+      if (w.suggest.cold) flagBits.push("🧥 pack warm");
+      if (w.suggest.monsoon) flagBits.push("🌧️ rain likely");
+      if (w.suggest.hot) flagBits.push("☀️ hot");
+      const range = (w.lowMin != null && w.avgMax != null) ? `${w.lowMin}–${w.avgMax}°C` : "";
+      el.innerHTML = `<span class="pr-wx">⛅ ${esc(destCity)} next 2 weeks: <b>${range}</b>${w.peakRain != null ? ` · up to ${w.peakRain}% rain` : ""}${flagBits.length ? ` · <span class="chip">${flagBits.join(" · ")}</span>` : ""}</span>
+        <span class="card-sub">${wx.fromCache ? "cached forecast" : "live forecast"}</span>`;
+    }).catch(() => { el.innerHTML = ""; });
   }
 
   // =============================== HOTELS =================================
@@ -1391,8 +1424,50 @@
   function wireOntrip() {
     const o = ontripState();
     if ($("#ot-city")) $("#ot-city").value = o.city || "";
-    if ($("#ot-city")) $("#ot-city").oninput = () => { state.ontrip = { city: $("#ot-city").value || "" }; save(); };
-    if ($("#ot-go")) $("#ot-go").onclick = () => { state.ontrip = { city: ($("#ot-city") && $("#ot-city").value) || "" }; save(); renderOntrip(); const r = $("#ontrip-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if ($("#ot-city")) $("#ot-city").oninput = () => { state.ontrip = Object.assign(ontripState(), { city: $("#ot-city").value || "" }); save(); };
+    if ($("#ot-go")) $("#ot-go").onclick = () => { state.ontrip = Object.assign(ontripState(), { city: ($("#ot-city") && $("#ot-city").value) || "" }); save(); renderOntrip(); const r = $("#ontrip-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    wireFx();
+  }
+
+  // ---- LIVE currency converter (real ECB rates via live-data.js) ---------
+  const FX_CURS = ["INR", "USD", "EUR", "GBP", "AED", "SGD", "THB", "MYR", "JPY", "LKR", "AUD", "CAD"];
+  function wireFx() {
+    const fromSel = $("#fx-from"), toSel = $("#fx-to");
+    if (!fromSel || !toSel || !LD) return;
+    const f = state.fx || (state.fx = { from: "INR", to: "USD", amount: 1000 });
+    const opts = FX_CURS.map((c) => `<option value="${c}">${c}</option>`).join("");
+    fromSel.innerHTML = opts; toSel.innerHTML = opts;
+    fromSel.value = f.from; toSel.value = f.to;
+    if ($("#fx-amount")) $("#fx-amount").value = f.amount;
+    const run = () => {
+      state.fx = {
+        from: fromSel.value, to: toSel.value,
+        amount: ($("#fx-amount") && +$("#fx-amount").value) || 0,
+      };
+      save();
+      runFx();
+    };
+    fromSel.onchange = run; toSel.onchange = run;
+    if ($("#fx-amount")) $("#fx-amount").oninput = run;
+    if ($("#fx-swap")) $("#fx-swap").onclick = () => { const t = fromSel.value; fromSel.value = toSel.value; toSel.value = t; run(); };
+    runFx();
+  }
+  function runFx() {
+    const out = $("#fx-result"); if (!out || !LD) return;
+    const f = state.fx || { from: "INR", to: "USD", amount: 1000 };
+    if (!(f.amount > 0)) { out.innerHTML = `<span class="card-sub">Enter an amount.</span>`; return; }
+    if (f.from === f.to) { out.innerHTML = `<b>${LD.round2(f.amount).toLocaleString("en-IN")} ${esc(f.to)}</b> <span class="card-sub">(same currency)</span>`; return; }
+    out.innerHTML = `<span class="card-sub">Fetching live rate…</span>`;
+    // use `from` as the base so we get a direct rate
+    LD.getRates(f.from, f.to).then((fx) => {
+      const v = LD.convert(f.amount, f.from, f.to, fx.base, fx.rates);
+      if (v == null) { out.innerHTML = `<span class="fl-err">Couldn't convert ${esc(f.from)}→${esc(f.to)} (currency not in ECB set).</span>`; return; }
+      const per = LD.convert(1, f.from, f.to, fx.base, fx.rates);
+      out.innerHTML = `<div class="fx-out"><b>${f.amount.toLocaleString("en-IN")} ${esc(f.from)}</b> = <b class="fx-big">${v.toLocaleString("en-IN")} ${esc(f.to)}</b></div>
+        <div class="card-sub">1 ${esc(f.from)} = ${per} ${esc(f.to)} · ECB rate ${esc(fx.date)}${fx.fromCache ? " (cached, offline)" : ""}</div>`;
+    }).catch((e) => {
+      out.innerHTML = `<span class="fl-err">Live rate unavailable (${esc((e && e.message) || "offline")}). Try again when online.</span>`;
+    });
   }
   function renderOntrip() {
     if (!$("#ontrip-result") || !TE) return;
@@ -1454,8 +1529,30 @@
     save();
     showView("trips", true);
     renderTrips();
+    autoWeatherFlags(t);
     toast("Trip saved + starter itinerary filled in.");
   }
+  // auto-set a trip's packing flags from the REAL forecast at its destination.
+  // Runs async after the trip is created; re-renders if anything changed.
+  function autoWeatherFlags(t) {
+    if (!LD || !GEO) return;
+    const dest = TE ? TE.resolvePlace(t.to, FLIGHTS) : null;
+    const code = dest && dest.code;
+    const coords = code && GEO.AIRPORT_COORDS[code];
+    if (!coords) return;
+    // mark intl if the destination is one of the known intl hubs
+    const INTL = new Set(["DXB", "SIN", "BKK", "LHR", "JFK"]);
+    LD.getWeather(coords[0], coords[1], 14).then((wx) => {
+      const s = wx.parsed && wx.parsed.suggest; if (!s) return;
+      t.packFlags = t.packFlags || {};
+      let changed = false;
+      const setFlag = (k, v) => { if (v && !t.packFlags[k]) { t.packFlags[k] = true; changed = true; } };
+      setFlag("cold", s.cold); setFlag("monsoon", s.monsoon);
+      if (INTL.has(code) && !t.packFlags.intl) { t.packFlags.intl = true; changed = true; }
+      if (changed) { save(); if (state.openTripId === t.id) renderTrips(); }
+    }).catch(() => {});
+  }
+
   // a monotonically rising seed base so item ids never collide across trips
   function countAllItemsSeed() {
     let n = 100000;
@@ -1479,6 +1576,7 @@
         IT.seedFromPlan(t, plan, { seedStart: countAllItemsSeed() });
       }
       trips().push(t); state.openTripId = t.id; save(); renderTrips();
+      autoWeatherFlags(t);
       toast("Trip created.");
     };
     if ($("#nt-depart")) $("#nt-depart").setAttribute("min", todayISO());
@@ -1693,7 +1791,27 @@
 
     // ---- budget handlers ----
     if (BUD) {
-      const cur = $("#bud-cur"); if (cur) cur.onchange = () => { BUD.setCurrency(t, cur.value); save(); renderTrips(); };
+      const cur = $("#bud-cur"); if (cur) cur.onchange = () => {
+        const oldCur = (t.budget && t.budget.currency) || "INR";
+        const newCur = cur.value;
+        if (oldCur === newCur || !LD) { BUD.setCurrency(t, newCur); save(); renderTrips(); return; }
+        // REAL conversion: restate every typed number into the new currency via live ECB rate
+        toast("Converting your budget to " + newCur + " at live rates…");
+        LD.getRates(oldCur, newCur).then((fx) => {
+          const conv = (n) => LD.convert(n, oldCur, newCur, fx.base, fx.rates);
+          if (t.budget) {
+            if (t.budget.total != null) { const v = conv(t.budget.total); if (v != null) t.budget.total = v; }
+            Object.keys(t.budget.byCat || {}).forEach((k) => { const v = conv(t.budget.byCat[k]); if (v != null) t.budget.byCat[k] = v; });
+            (t.budget.spends || []).forEach((sp) => { const v = conv(sp.amount); if (v != null) sp.amount = v; });
+          }
+          BUD.setCurrency(t, newCur); save(); renderTrips();
+          toast("Budget converted to " + newCur + " (live ECB rate).");
+        }).catch(() => {
+          // offline: switch the label only, don't fake a conversion
+          BUD.setCurrency(t, newCur); save(); renderTrips();
+          toast("Switched to " + newCur + " (offline — amounts not converted).");
+        });
+      };
       const tot = $("#bud-total"); if (tot) tot.onchange = () => { BUD.setTotal(t, tot.value); save(); renderTrips(); };
       $$("[data-capcat]").forEach((inp) => inp.onchange = () => { BUD.setCatCap(t, inp.dataset.capcat, inp.value); save(); renderTrips(); });
       const addBtn = $("#bud-add-btn");

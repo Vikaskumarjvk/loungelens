@@ -40,6 +40,8 @@ js_files = [
     "trip-engine.js",
     "itinerary-engine.js",
     "budget-engine.js",
+    "geo-engine.js",
+    "live-data.js",
     "selfcheck.js",
     "profile.js",
     "auth.js",
