@@ -43,6 +43,7 @@
     <nav id="main-nav">
       <button data-view="plan" class="active">🧭 Plan a Trip</button>
       <button data-view="multicity">🗺️ Multi-city</button>
+      <button data-view="longweekend">🏖️ Long Weekends</button>
       <button data-view="trips">🗂️ My Trips</button>
       <button data-view="flights">✈️ Flights</button>
       <button data-view="hotels">🏨 Hotels</button>
@@ -215,6 +216,32 @@
       <div id="mc-summary"></div>
       <div id="mc-legs"></div>
       <div class="honesty-note" id="mc-honesty"></div>
+    </section>
+
+    <!-- LONG WEEKENDS (find long weekends, plan a getaway on those dates) -->
+    <section id="view-longweekend" class="view">
+      <div class="hero">
+        <h2>Long weekends — take 1 day off, get 4</h2>
+        <p>For each holiday I work out the break you already get with zero leave, and the smartest 1-2 days off that stretch it into a proper getaway. Then plan a trip straight onto those dates.</p>
+      </div>
+      <div class="flight-builder">
+        <div class="fb-row">
+          <label class="tp-lbl">Year
+            <select class="fb-input" id="lw-year" aria-label="Year"></select>
+          </label>
+        </div>
+        <div class="lw-add">
+          <div class="card-sub" style="margin-bottom:6px;">Movable festivals (Diwali, Holi, Eid...) change every year and by state, so I don't guess them. Add yours from your official holiday list and the same math runs on it.</div>
+          <div class="fb-row">
+            <input class="fb-input" id="lw-cust-name" placeholder="Festival name (e.g. Diwali)" autocomplete="off" aria-label="Festival name" />
+            <input class="fb-input" id="lw-cust-date" type="date" aria-label="Festival date" />
+            <button class="act ghost mini" id="lw-cust-add">＋ Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="lw-list"></div>
+      <div class="honesty-note" id="lw-honesty"></div>
     </section>
 
     <!-- ON-TRIP DEALS (cabs, eSIM/forex, dining, activities) -->
@@ -650,6 +677,7 @@
   <script src="data/hotels.js"></script>
   <script src="data/deals.js"></script>
   <script src="data/transport.js"></script>
+  <script src="data/holidays.js"></script>
   <script src="brand.js"></script>
   <script src="engine.js"></script>
   <script src="flight-engine.js"></script>
@@ -664,6 +692,7 @@
   <script src="multicity-engine.js"></script>
   <script src="route-engine.js"></script>
   <script src="history-engine.js"></script>
+  <script src="holiday-engine.js"></script>
   <script src="selfcheck.js"></script>
   <script src="profile.js"></script>
   <script src="auth.js"></script>

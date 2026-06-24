@@ -859,6 +859,18 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .rs-pin:hover, .rs-del:hover { color: var(--txt); background: var(--bg-2); }
 .rs-row.pinned .rs-pin { color: var(--accent2); }
 
+/* long weekends */
+.lw-add { margin-top: 10px; }
+.lw-grid { display: grid; gap: 10px; }
+.lw-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 13px 15px; box-shadow: var(--shadow-1); }
+.lw-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lw-name { font-size: 15px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lw-plan { font-size: 14px; margin: 8px 0; line-height: 1.5; }
+.lw-plan.good { color: var(--good); }
+.lw-plan-btn { margin-top: 6px; }
+.lw-del { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 13px; padding: 2px 5px; border-radius: var(--r-sm); }
+.lw-del:hover { color: var(--txt); background: var(--bg-2); }
+
 /* free key setup */
 .key-setup { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 4px 16px; margin: 16px 0; }
 .key-setup summary { cursor: pointer; font-weight: 700; padding: 12px 0; font-size: 14px; }

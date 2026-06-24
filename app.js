@@ -12,6 +12,7 @@
   const MC = window.LL_MULTICITY;
   const ROUTE = window.LL_ROUTE;
   const HIST = window.LL_HISTORY;
+  const HOL = window.LL_HOLIDAY, HOLIDAYS = window.LL_HOLIDAYS;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -26,7 +27,7 @@
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -1886,6 +1887,98 @@
     }
   }
 
+  // ===================== LONG WEEKENDS ===================================
+  function lwState() {
+    if (!state.lw) state.lw = { year: 0, custom: [] };
+    if (!state.lw.year) state.lw.year = NOW.getFullYear();
+    if (!Array.isArray(state.lw.custom)) state.lw.custom = [];
+    return state.lw;
+  }
+  function wireLongWeekend() {
+    if (!HOL || !HOLIDAYS) return;
+    const lw = lwState();
+    const sel = $("#lw-year");
+    if (sel) {
+      const base = NOW.getFullYear();
+      const years = [base, base + 1, base + 2];
+      if (lw.year < base) lw.year = base; // never default to a past year
+      sel.innerHTML = years.map((y) => `<option value="${y}">${y}</option>`).join("");
+      sel.value = String(lw.year);
+      sel.onchange = () => { lwState().year = +sel.value; save(); renderLongWeekend(); };
+    }
+    const addBtn = $("#lw-cust-add");
+    if (addBtn) addBtn.onclick = () => {
+      const name = ($("#lw-cust-name") && $("#lw-cust-name").value || "").trim();
+      const date = ($("#lw-cust-date") && $("#lw-cust-date").value) || "";
+      if (!date) { toast("Pick the festival's date from your holiday list."); return; }
+      lwState().custom.push({ date, name: name || "Custom holiday" });
+      save();
+      if ($("#lw-cust-name")) $("#lw-cust-name").value = "";
+      if ($("#lw-cust-date")) $("#lw-cust-date").value = "";
+      // jump the year selector to the added date's year so it shows up
+      lwState().year = +date.slice(0, 4);
+      if (sel) sel.value = String(lwState().year);
+      renderLongWeekend();
+    };
+  }
+  function renderLongWeekend() {
+    const el = $("#lw-list");
+    if (!el || !HOL || !HOLIDAYS) return;
+    const lw = lwState();
+    const honesty = $("#lw-honesty");
+    if (honesty) honesty.innerHTML = `<b>How this works:</b> the weekday of every date is exact math, so the long-weekend maths is solid. I only ship fixed-date national holidays (Republic Day, Independence Day, Gandhi Jayanti, Christmas, New Year) because their date never moves. Movable festivals you add yourself — I won't guess a date that changes by year or state.`;
+
+    const items = HOL.planYear(HOLIDAYS.fixed, lw.custom, lw.year);
+    if (!items.length) { el.innerHTML = `<div class="empty">No holidays for ${lw.year} yet. Add your festival dates above.</div>`; return; }
+
+    const fmtRange = (s, e) => {
+      const f = (d) => d.slice(8) + "/" + d.slice(5, 7);
+      return s === e ? f(s) : f(s) + "–" + f(e);
+    };
+    const dshort = (d) => HOL.DOW_SHORT[HOL.dow(d)];
+    const verdictChip = {
+      free_long_weekend: `<span class="chip good">free long weekend</span>`,
+      one_bridge: `<span class="chip good">1 day off = 4-day break</span>`,
+      bridge: `<span class="chip">bridge it</span>`,
+      on_weekend: `<span class="chip warn">falls on a weekend</span>`,
+      midweek: `<span class="chip">midweek</span>`,
+    };
+    const rows = items.map((it) => {
+      const a = it.assess;
+      const custTag = it.source === "custom" ? ` <span class="chip rail">yours</span> <button class="lw-del" data-lwdel="${esc(it.date)}" aria-label="Remove">✕</button>` : "";
+      let plan = "";
+      if (a.fallsOnWeekend) {
+        plan = `<div class="card-sub">It's on a ${a.dowName} this year, so no extra day off — but still a fine weekend to travel.</div>`;
+      } else if (a.verdict === "free_long_weekend") {
+        plan = `<div class="lw-plan good">🎉 You already get a <b>${a.zeroLeave.days}-day break</b> (${fmtRange(a.zeroLeave.start, a.zeroLeave.end)}) with <b>zero leave</b>.</div>`;
+      } else if (a.best) {
+        const b = a.best;
+        const leaveStr = b.leaveDays.map((d) => dshort(d) + " " + d.slice(8) + "/" + d.slice(5, 7)).join(" + ");
+        plan = `<div class="lw-plan">Take <b>${b.leaveCount} day off</b> (${esc(leaveStr)}) → a <b>${b.days}-day break</b> (${fmtRange(b.start, b.end)}).</div>`;
+      }
+      // plan-a-trip CTA: pre-fills the Plan view depart date with the block start
+      const planStart = (a.best && a.best.start) || (a.zeroLeave && a.zeroLeave.start) || it.date;
+      const planDays = (a.best && a.best.days) || (a.zeroLeave && a.zeroLeave.days) || 2;
+      return `<div class="lw-card">
+        <div class="lw-head">
+          <div class="lw-name"><b>${esc(a.name)}</b> <span class="card-sub">${esc(a.dowName)}, ${fmtRange(it.date, it.date)}</span>${custTag}</div>
+          ${verdictChip[a.verdict] || ""}
+        </div>
+        ${plan}
+        <button class="act ghost mini lw-plan-btn" data-lwplan="${esc(planStart)}" data-lwnights="${Math.max(1, planDays - 1)}">🧭 Plan a trip on these dates</button>
+      </div>`;
+    }).join("");
+    el.innerHTML = `<div class="section-h">🏖️ ${lw.year} holidays &amp; the breaks they unlock</div><div class="lw-grid">${rows}</div>`;
+    $$("[data-lwdel]").forEach((b) => b.onclick = () => { lwState().custom = lwState().custom.filter((c) => c.date !== b.dataset.lwdel); save(); renderLongWeekend(); });
+    $$("[data-lwplan]").forEach((b) => b.onclick = () => {
+      state.plan = Object.assign(planState(), { depart: b.dataset.lwplan, nights: +b.dataset.lwnights || 2 });
+      save(); wirePlan();
+      showView("plan", true);
+      toast("Trip dates set to your long weekend. Add where you're going.");
+      const fromEl = $("#tp-from"); if (fromEl) fromEl.focus();
+    });
+  }
+
   // ===================== MY TRIPS + ITINERARY ============================
   function trips() { if (!state.trips) state.trips = []; return state.trips; }
   function nextSeq() { state.tripSeq = (state.tripSeq || 1) + 1; return state.tripSeq; }
@@ -2718,7 +2811,7 @@
     renderWallet(); renderLounges(); renderRecommend(); renderAddCard(); renderHealth(); renderProfile();
     renderAirports(); renderMap(); renderCompare(); renderValue(); renderSuggestions();
     renderFlights(); renderCoupons();
-    renderPlanStats(); renderHotels(); renderOntrip(); renderGround(); renderWatches(); renderRecentSearches(); renderTrips();
+    renderPlanStats(); renderHotels(); renderOntrip(); renderGround(); renderWatches(); renderRecentSearches(); renderLongWeekend(); renderTrips();
     if ($("#trip-result").innerHTML.trim()) renderTripResult();
     if ($("#plan-result") && $("#plan-result").innerHTML.trim()) renderPlanResult();
   }
@@ -2765,6 +2858,7 @@
   wireOntrip();
   wireGround();
   wireMulticity();
+  wireLongWeekend();
   wireTripsForm();
   wireDatePickers();
   render();
