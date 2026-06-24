@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Bundle LoungeLens into ONE self-contained HTML file.
+Bundle TripLens into ONE self-contained HTML file.
 
 Inlines styles.css + all JS (data, engine, selfcheck, app) into index.html so the
 result opens by double-click with no server, no internet, no install. The PWA bits
@@ -8,14 +8,14 @@ result opens by double-click with no server, no internet, no install. The PWA bi
 app works fully offline anyway since everything is inline. This file is the thing
 you can AirDrop / email / WhatsApp to anyone and it just runs.
 
-Run: python3 build-singlefile.py  ->  dist/loungelens.html
+Run: python3 build-singlefile.py  ->  dist/triplens.html
 """
 import os
 import re
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(ROOT, "dist")
-OUT = os.path.join(OUT_DIR, "loungelens.html")
+OUT = os.path.join(OUT_DIR, "triplens.html")
 
 def read(p):
     with open(os.path.join(ROOT, p), encoding="utf-8") as f:

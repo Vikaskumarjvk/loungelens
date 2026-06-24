@@ -10,7 +10,7 @@ tracker. India-first. **No fake prices, ever.**
 It started as LoungeLens (which lounges your cards open) and grew into the whole trip.
 The lounge wallet is still here — it's now one part of the journey.
 
-**Offline single file:** [`dist/loungelens.html`](dist/loungelens.html) is the whole app in
+**Offline single file:** [`dist/triplens.html`](dist/triplens.html) is the whole app in
 one file. Download it, double-click, runs with no server and no internet. AirDrop / WhatsApp it.
 
 ## What it does
@@ -53,7 +53,7 @@ python3 -m http.server 8777   # then visit http://localhost:8777/index.html
 Rebuild the single-file bundle after edits:
 
 ```
-python3 build-singlefile.py   # -> dist/loungelens.html
+python3 build-singlefile.py   # -> dist/triplens.html
 ```
 
 Run the tests (pure engines, Node):
