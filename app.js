@@ -1165,6 +1165,24 @@
   // wallet. No fabricated prices — real fares live on the real sites.
   const kindIcon = (k) => ({ card: "💳", app: "📱", coupon: "🎟️", price: "🏷️" }[k] || "🏷️");
 
+  // common alternate / old city names people actually type -> the IATA code we
+  // store. Keeps the data on official names but lets users type what they know.
+  const CITY_ALIASES = {
+    "bangalore": "BLR", "bengaluru": "BLR",
+    "bombay": "BOM", "mumbai": "BOM",
+    "calcutta": "CCU", "kolkata": "CCU",
+    "madras": "MAA", "chennai": "MAA",
+    "trivandrum": "TRV", "thiruvananthapuram": "TRV",
+    "calicut": "CCJ", "kozhikode": "CCJ",
+    "vizag": "VTZ", "visakhapatnam": "VTZ", "vishakhapatnam": "VTZ",
+    "cochin": "COK", "kochi": "COK",
+    "pondicherry": "MAA", "puducherry": "MAA",
+    "new delhi": "DEL", "delhi": "DEL", "ncr": "DEL", "gurgaon": "DEL", "gurugram": "DEL", "noida": "DEL",
+    "baroda": "BDQ", "vadodara": "BDQ",
+    "benares": "VNS", "banaras": "VNS", "varanasi": "VNS", "kashi": "VNS",
+    "goa": "GOI", "panaji": "GOI", "panjim": "GOI",
+    "blr": "BLR", "bom": "BOM",
+  };
   function flAirportLabel(codeOrCity) {
     const v = (codeOrCity || "").trim();
     if (!v) return null;
@@ -1173,6 +1191,9 @@
     if (byCode) return byCode;
     const byCity = (FLIGHTS.airports || []).find((a) => a.city.toLowerCase() === v.toLowerCase());
     if (byCity) return byCity;
+    // alias map: common/old names ("Bangalore" -> BLR, "Bombay" -> BOM, etc.)
+    const aliasCode = CITY_ALIASES[v.toLowerCase()];
+    if (aliasCode) { const byAlias = (FLIGHTS.airports || []).find((a) => a.code === aliasCode); if (byAlias) return byAlias; }
     // partial city match (e.g. "Goa" -> "Goa (Dabolim)" GOI, "Bengal" -> BLR).
     // Prefer the first match so a real IATA code is always used in deep links.
     const byPartial = (FLIGHTS.airports || []).find((a) => a.city.toLowerCase().includes(v.toLowerCase()));
@@ -1610,13 +1631,22 @@
     if (honesty) honesty.innerHTML = `<b>How this works:</b> distance is the real straight-line distance between the two cities; train and bus durations are honest estimates from that distance (trains average about 55 km/h with stops, buses about 45 km/h), not live timetables. Each link opens the real live search where the actual times, seats and fares live. I never invent a price.`;
 
     const fromIn = (g.from || "").trim(), toIn = (g.to || "").trim();
-    if (!fromIn || !toIn) {
+    const clearGround = (msg) => {
       $("#gr-compare").innerHTML = "";
-      $("#gr-trains").innerHTML = `<div class="empty">Enter both cities — I'll work out whether to train, bus or fly, and open the live search on every booking site.</div>`;
+      $("#gr-trains").innerHTML = `<div class="empty">${msg}</div>`;
       $("#gr-buses").innerHTML = "";
+      if ($("#gr-pick")) $("#gr-pick").innerHTML = "";
+      if ($("#gr-stops")) $("#gr-stops").innerHTML = "";
+      if ($("#gr-via")) $("#gr-via").innerHTML = "";
+    };
+    if (!fromIn || !toIn) { clearGround("Enter both cities — I'll work out whether to train, bus or fly, and open the live search on every booking site."); return; }
+    const fL = flAirportLabel(fromIn), tL = flAirportLabel(toIn);
+    // same place: a train/bus from a city to itself makes no sense (was building
+    // a "delhi-to-delhi" link). Block it like the flight search does.
+    if ((fL && tL && fL.code === tL.code) || (!fL && !tL && fromIn.toLowerCase() === toIn.toLowerCase())) {
+      clearGround("That's the same place — pick two different cities.");
       return;
     }
-    const fL = flAirportLabel(fromIn), tL = flAirportLabel(toIn);
     const fromName = slugCityName(fromIn, fL), toName = slugCityName(toIn, tL);
 
     // remember this trains+buses search (only when both ends resolve to airports)
@@ -1767,7 +1797,9 @@
       const lbl = flAirportLabel(v);
       return lbl ? { city: lbl.city, code: lbl.code, raw: v } : (v && v.trim() ? { city: v.trim(), code: null, raw: v } : null);
     });
-    const valid = resolved.filter((s) => s && s.code);
+    // collapse consecutive duplicate stops (Delhi -> Delhi -> Mumbai is really
+    // Delhi -> Mumbai); a zero-km leg to the same city is meaningless.
+    const valid = resolved.filter((s) => s && s.code).filter((s, i, arr) => i === 0 || s.code !== arr[i - 1].code);
     if (valid.length < 2) {
       $("#mc-summary").innerHTML = "";
       $("#mc-legs").innerHTML = `<div class="empty">Add at least two cities I can place on the map (use the airport suggestions). I'll work out each leg.</div>`;
