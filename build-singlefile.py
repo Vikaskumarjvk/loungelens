@@ -46,6 +46,7 @@ js_files = [
     "transport-engine.js",
     "watch-engine.js",
     "multicity-engine.js",
+    "route-engine.js",
     "selfcheck.js",
     "profile.js",
     "auth.js",

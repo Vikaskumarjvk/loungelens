@@ -10,6 +10,7 @@
   const TR = window.LL_TRANSPORT, TRE = window.LL_TRANSPORT_ENGINE;
   const WATCH = window.LL_WATCH;
   const MC = window.LL_MULTICITY;
+  const ROUTE = window.LL_ROUTE;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -1689,6 +1690,41 @@
     }
     $("#gr-trains").innerHTML = trainsHtml;
     $("#gr-buses").innerHTML = busesHtml;
+
+    // smarter routes via a hub (Rome2Rio-style mixed route) — only when both ends
+    // are on the map AND a sensible on-the-way hub exists. Honest: we hand the
+    // live search for each leg, we never claim a specific connection exists.
+    const viaEl = $("#gr-via");
+    if (viaEl) {
+      const r = (fL && tL && ROUTE) ? ROUTE.getAnywhere(fL.code, tL.code, { priority: g.priority, maxHubs: 3 }) : null;
+      if (r && r.ok && r.via.length && r.suggestVia) {
+        const modeName = (m) => m === "flight" ? "✈️ fly" : m === "train" ? "🚆 train" : m === "bus" ? "🚌 bus" : "compare";
+        const legLink = (leg, mode) => {
+          const fromCity = (flAirportLabel(leg.from) || {}).city || leg.from;
+          const toCity = (flAirportLabel(leg.to) || {}).city || leg.to;
+          if (mode === "train") { const p = (TR.trains || []).find((x) => x.id === "ixigo-trains"); return p ? TRE.buildLink(p, fromCity, toCity, g.date) : "#"; }
+          if (mode === "bus") { const p = (TR.buses || []).find((x) => x.id === "redbus"); return p ? TRE.buildLink(p, fromCity, toCity, g.date) : "#"; }
+          const fp = (FLIGHTS.providers || []).find((x) => x.id === "google-flights"); return fp ? FE.buildLink(fp, leg.from, leg.to, g.date) : "#";
+        };
+        const cards = r.via.map((v) => {
+          const hubCity = (flAirportLabel(v.hub) || {}).city || v.hub;
+          const leg1mode = v.leg1.suggest === "compare" ? "flight" : v.leg1.suggest;
+          const leg2mode = v.leg2.suggest === "compare" ? "flight" : v.leg2.suggest;
+          return `<div class="via-card">
+            <div class="via-head">via <b>${esc(hubCity)}</b> <span class="card-sub">${v.totalKm.toLocaleString("en-IN")} km${v.extraPct > 0 ? " · +" + v.extraPct + "% vs direct" : ""}</span></div>
+            <div class="via-legs">
+              <a class="via-leg" href="${legLink(v.leg1, leg1mode)}" target="_blank" rel="noopener">${esc((flAirportLabel(v.leg1.from)||{}).city || v.leg1.from)} <span class="fl-arrow">→</span> ${esc(hubCity)} <span class="card-sub">${modeName(v.leg1.suggest)} · ${v.leg1.km.toLocaleString("en-IN")} km</span></a>
+              <a class="via-leg" href="${legLink(v.leg2, leg2mode)}" target="_blank" rel="noopener">${esc(hubCity)} <span class="fl-arrow">→</span> ${esc((flAirportLabel(v.leg2.to)||{}).city || v.leg2.to)} <span class="card-sub">${modeName(v.leg2.suggest)} · ${v.leg2.km.toLocaleString("en-IN")} km</span></a>
+            </div>
+          </div>`;
+        }).join("");
+        viaEl.innerHTML = `<div class="section-h">🧭 Smarter routes via a hub</div>
+          <div class="card-sub" style="margin-bottom:8px;">Sometimes a short train or bus to a big hub, then a cheap flight onward, beats a pricey direct. These hubs are roughly on the way. Each leg opens its own live search — I don't claim a specific connection exists, so check the times line up before you book.</div>
+          <div class="via-list">${cards}</div>`;
+      } else {
+        viaEl.innerHTML = "";
+      }
+    }
   }
 
   // ========================= MULTI-CITY ===================================

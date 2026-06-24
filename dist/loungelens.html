@@ -951,6 +951,14 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .gr-stops-row { padding: 6px 0; font-size: 13px; line-height: 1.5; }
 .gr-stops-row + .gr-stops-row { border-top: 1px solid var(--line); }
 
+/* via-hub mixed routes */
+.via-list { display: grid; gap: 10px; }
+.via-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; box-shadow: var(--shadow-1); }
+.via-head { font-size: 15px; margin-bottom: 8px; }
+.via-legs { display: grid; gap: 6px; }
+.via-leg { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 9px 12px; border-radius: var(--r-sm); background: var(--panel2); border: 1px solid var(--line); color: var(--txt); text-decoration: none; font-size: 13px; transition: border-color .15s, transform .1s; }
+.via-leg:hover { border-color: var(--accent2); transform: translateY(-1px); }
+
 /* multi-city */
 .mc-stop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .mc-pin { flex-shrink: 0; font-size: 13px; }
@@ -1283,6 +1291,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
       <div id="gr-compare"></div>
       <div id="gr-pick"></div>
       <div id="gr-stops"></div>
+      <div id="gr-via"></div>
       <div id="gr-trains"></div>
       <div id="gr-buses"></div>
       <div class="section-h">🎟️ Train &amp; bus money-saving plays</div>
@@ -6301,6 +6310,116 @@ window.LL_TRANSPORT = {
 </script>
   <script>
 /*
+ * TripLens — "get me anywhere" route engine (Rome2Rio-style). Pure, no DOM, no clock.
+ *
+ * For two places it returns:
+ *   1) DIRECT options — fly / train / bus, ranked by honest door-to-door time
+ *      (reuses transport-engine.compareModes + rankModes).
+ *   2) VIA-HUB options — sensible 1-stop combos through a major hub (e.g. take a
+ *      short train to a hub, then fly onward), with REAL per-segment distances.
+ *
+ * HONESTY RULES (this is the part that keeps it useful, not made-up):
+ *   - All distances are real haversine (geo-engine). We never invent a schedule.
+ *   - A via-hub route is only surfaced if it actually MAKES SENSE: the hub must be
+ *     roughly "on the way" (total detour under a cap), not a random pinball route.
+ *   - We never claim a specific connecting flight/train exists. We say "consider
+ *     going via X" and hand you the live search for each leg to confirm reality.
+ *   - If we can't place a city on the map, we say so — we don't guess a route.
+ */
+(function (root) {
+  "use strict";
+
+  function geo() { return root.LL_GEO || req("./geo-engine.js"); }
+  function transport() { return root.LL_TRANSPORT_ENGINE || req("./transport-engine.js"); }
+  function req(p) { try { return require(p); } catch (e) { return null; } }
+
+  // major Indian connecting hubs (big airports lots of routes pass through)
+  var HUBS = ["DEL", "BOM", "BLR", "HYD", "MAA", "CCU"];
+
+  // how much extra distance a hub detour may add before it stops "making sense".
+  // 1.35 = the two-leg path may be up to 35% longer than the direct great-circle.
+  var DETOUR_CAP = 1.35;
+
+  // direct options, ranked by the traveller's priority (default fastest d2d)
+  function directOptions(fromCode, toCode, priority) {
+    var T = transport();
+    if (!T) return null;
+    var cmp = T.compareModes(fromCode, toCode);
+    if (!cmp) return null;
+    var rank = T.rankModes(fromCode, toCode, priority || "fast");
+    return { compare: cmp, ranked: rank ? rank.ranked : null };
+  }
+
+  // candidate via-hub routes that genuinely make sense for this pair.
+  // For each hub != from/to: leg1 = from->hub, leg2 = hub->to. We keep it only if
+  // both legs are measurable AND the detour is within the cap. Each leg gets an
+  // honest suggested mode from the transport bands (short legs lean rail).
+  function viaHubOptions(fromCode, toCode, opts) {
+    opts = opts || {};
+    var G = geo(), T = transport();
+    if (!G || !T) return [];
+    var direct = G.distanceKm(fromCode, toCode);
+    if (direct == null || direct <= 0) return [];
+    var out = [];
+    HUBS.forEach(function (hub) {
+      if (hub === fromCode || hub === toCode) return;
+      var d1 = G.distanceKm(fromCode, hub), d2 = G.distanceKm(hub, toCode);
+      if (d1 == null || d2 == null) return;
+      var total = d1 + d2;
+      if (total > direct * DETOUR_CAP) return;           // not on the way -> skip
+      var leg1 = T.compareModes(fromCode, hub), leg2 = T.compareModes(hub, toCode);
+      out.push({
+        hub: hub,
+        leg1: { from: fromCode, to: hub, km: d1, compare: leg1, suggest: leg1 ? bestOf(leg1) : null },
+        leg2: { from: hub, to: toCode, km: d2, compare: leg2, suggest: leg2 ? bestOf(leg2) : null },
+        totalKm: total,
+        extraPct: Math.round(((total - direct) / direct) * 100),
+      });
+    });
+    // closest-to-direct first (least detour = most sensible)
+    out.sort(function (a, b) { return a.totalKm - b.totalKm; });
+    return out;
+  }
+
+  // collapse a compareModes band into one suggested mode name for a leg
+  function bestOf(cmp) {
+    if (!cmp) return null;
+    if (cmp.recommend === "fly") return "flight";
+    if (cmp.recommend === "train_bus") return "train";
+    if (cmp.recommend === "fly_or_overnight_train") return "flight";
+    return "compare";
+  }
+
+  // top-level: everything for a pair. maxHubs caps how many via routes we surface.
+  function getAnywhere(fromCode, toCode, opts) {
+    opts = opts || {};
+    var G = geo();
+    if (!G || !G.hasCoords(fromCode) || !G.hasCoords(toCode)) {
+      return { ok: false, reason: "unknown_coords", fromCode: fromCode, toCode: toCode };
+    }
+    if (fromCode === toCode) return { ok: false, reason: "same_place" };
+    var direct = directOptions(fromCode, toCode, opts.priority);
+    var via = viaHubOptions(fromCode, toCode, opts).slice(0, opts.maxHubs || 3);
+    // only suggest via-routes when they could matter: surface them always, but the
+    // UI leads with direct. (A direct flight is usually best; via shines when the
+    // direct distance is long or you want a cheaper rail+fly mix.)
+    return {
+      ok: true,
+      directKm: G.distanceKm(fromCode, toCode),
+      direct: direct,
+      via: via,
+      suggestVia: !!(via.length && direct && direct.compare && direct.compare.km > 700),
+    };
+  }
+
+  var Engine = { HUBS: HUBS, DETOUR_CAP: DETOUR_CAP, directOptions: directOptions, viaHubOptions: viaHubOptions, bestOf: bestOf, getAnywhere: getAnywhere };
+  if (typeof module !== "undefined" && module.exports) module.exports = Engine;
+  root.LL_ROUTE = Engine;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
  * LoungeLens — self-improvement module (rung 1: free, client-side, honest).
  *
  * WHAT THIS IS (and is NOT):
@@ -6806,6 +6925,7 @@ window.LL_TRANSPORT = {
   const TR = window.LL_TRANSPORT, TRE = window.LL_TRANSPORT_ENGINE;
   const WATCH = window.LL_WATCH;
   const MC = window.LL_MULTICITY;
+  const ROUTE = window.LL_ROUTE;
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -8485,6 +8605,41 @@ window.LL_TRANSPORT = {
     }
     $("#gr-trains").innerHTML = trainsHtml;
     $("#gr-buses").innerHTML = busesHtml;
+
+    // smarter routes via a hub (Rome2Rio-style mixed route) — only when both ends
+    // are on the map AND a sensible on-the-way hub exists. Honest: we hand the
+    // live search for each leg, we never claim a specific connection exists.
+    const viaEl = $("#gr-via");
+    if (viaEl) {
+      const r = (fL && tL && ROUTE) ? ROUTE.getAnywhere(fL.code, tL.code, { priority: g.priority, maxHubs: 3 }) : null;
+      if (r && r.ok && r.via.length && r.suggestVia) {
+        const modeName = (m) => m === "flight" ? "✈️ fly" : m === "train" ? "🚆 train" : m === "bus" ? "🚌 bus" : "compare";
+        const legLink = (leg, mode) => {
+          const fromCity = (flAirportLabel(leg.from) || {}).city || leg.from;
+          const toCity = (flAirportLabel(leg.to) || {}).city || leg.to;
+          if (mode === "train") { const p = (TR.trains || []).find((x) => x.id === "ixigo-trains"); return p ? TRE.buildLink(p, fromCity, toCity, g.date) : "#"; }
+          if (mode === "bus") { const p = (TR.buses || []).find((x) => x.id === "redbus"); return p ? TRE.buildLink(p, fromCity, toCity, g.date) : "#"; }
+          const fp = (FLIGHTS.providers || []).find((x) => x.id === "google-flights"); return fp ? FE.buildLink(fp, leg.from, leg.to, g.date) : "#";
+        };
+        const cards = r.via.map((v) => {
+          const hubCity = (flAirportLabel(v.hub) || {}).city || v.hub;
+          const leg1mode = v.leg1.suggest === "compare" ? "flight" : v.leg1.suggest;
+          const leg2mode = v.leg2.suggest === "compare" ? "flight" : v.leg2.suggest;
+          return `<div class="via-card">
+            <div class="via-head">via <b>${esc(hubCity)}</b> <span class="card-sub">${v.totalKm.toLocaleString("en-IN")} km${v.extraPct > 0 ? " · +" + v.extraPct + "% vs direct" : ""}</span></div>
+            <div class="via-legs">
+              <a class="via-leg" href="${legLink(v.leg1, leg1mode)}" target="_blank" rel="noopener">${esc((flAirportLabel(v.leg1.from)||{}).city || v.leg1.from)} <span class="fl-arrow">→</span> ${esc(hubCity)} <span class="card-sub">${modeName(v.leg1.suggest)} · ${v.leg1.km.toLocaleString("en-IN")} km</span></a>
+              <a class="via-leg" href="${legLink(v.leg2, leg2mode)}" target="_blank" rel="noopener">${esc(hubCity)} <span class="fl-arrow">→</span> ${esc((flAirportLabel(v.leg2.to)||{}).city || v.leg2.to)} <span class="card-sub">${modeName(v.leg2.suggest)} · ${v.leg2.km.toLocaleString("en-IN")} km</span></a>
+            </div>
+          </div>`;
+        }).join("");
+        viaEl.innerHTML = `<div class="section-h">🧭 Smarter routes via a hub</div>
+          <div class="card-sub" style="margin-bottom:8px;">Sometimes a short train or bus to a big hub, then a cheap flight onward, beats a pricey direct. These hubs are roughly on the way. Each leg opens its own live search — I don't claim a specific connection exists, so check the times line up before you book.</div>
+          <div class="via-list">${cards}</div>`;
+      } else {
+        viaEl.innerHTML = "";
+      }
+    }
   }
 
   // ========================= MULTI-CITY ===================================

@@ -927,6 +927,14 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .gr-stops-row { padding: 6px 0; font-size: 13px; line-height: 1.5; }
 .gr-stops-row + .gr-stops-row { border-top: 1px solid var(--line); }
 
+/* via-hub mixed routes */
+.via-list { display: grid; gap: 10px; }
+.via-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; box-shadow: var(--shadow-1); }
+.via-head { font-size: 15px; margin-bottom: 8px; }
+.via-legs { display: grid; gap: 6px; }
+.via-leg { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 9px 12px; border-radius: var(--r-sm); background: var(--panel2); border: 1px solid var(--line); color: var(--txt); text-decoration: none; font-size: 13px; transition: border-color .15s, transform .1s; }
+.via-leg:hover { border-color: var(--accent2); transform: translateY(-1px); }
+
 /* multi-city */
 .mc-stop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .mc-pin { flex-shrink: 0; font-size: 13px; }
