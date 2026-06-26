@@ -1156,13 +1156,25 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 /* Visual polish pass (2026-06-24) — depth, motion, life. Best of all.    */
 /* ===================================================================== */
 
+/* VISUAL POLISH LAYER (intentional cascade overrides — do NOT "dedupe").
+   The selectors below (.view.active, nav button, .empty, .honesty-note, .lh-stat)
+   deliberately re-declare base rules from earlier in the file to ADD animation +
+   friendlier framing on top, relying on cascade order. A CSS linter (css:S4666)
+   flags these as "duplicate selector" — that's a false positive: it can't tell an
+   intentional override layer from a copy-paste bug. Likewise the responsive
+   re-declarations inside @media blocks (.brand h1, .install-btn, .foot, .mt-code,
+   .detail-hero .cardart) and the html{} reduced-motion override are correct.
+   Merging any of these would break the polish layer, the responsive layout, or the
+   prefers-reduced-motion accessibility feature. Audited + verified 2026-06-26 — the
+   one genuinely-dead rule (a redundant `nav button:hover { transform }` already set
+   on the base rule) was removed; everything else here earns its place. */
+
 /* smooth view entrance: the active section fades + lifts in */
 .view.active { animation: viewIn .32s cubic-bezier(.2,.8,.2,1); }
 @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* nav buttons: animated active underline + lift */
 nav button { position: relative; transition: color .15s, background .15s, transform .1s; }
-nav button:hover { transform: translateY(-1px); }
 nav button.active::after {
   content: ""; position: absolute; left: 12px; right: 12px; bottom: 4px; height: 2px;
   background: var(--accent-grad); border-radius: 2px; animation: navUnder .3s ease;
