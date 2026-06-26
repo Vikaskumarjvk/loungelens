@@ -16,6 +16,7 @@
   const BRIEF = window.LL_BRIEF;
   const READY = window.LL_READINESS;
   const XP = window.LL_EXPLORE;
+  const SPLIT = window.LL_SPLIT;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -2385,7 +2386,7 @@
       }</div>`).join("")}
       <p class="card-sub" style="margin-top:8px;">Tick the trip flags above to tailor the list. Checks save to this trip.</p>`;
 
-    return head + readinessBlock(t) + `<div class="itin-days">${days}</div>` + budgetBlock(t) + packing +
+    return head + readinessBlock(t) + `<div class="itin-days">${days}</div>` + budgetBlock(t) + groupSplitBlock(t) + packing +
       `<div class="honesty-note" style="margin-top:14px;">Your itinerary, budget + links are saved on this device only. The links open the real booking sites. Every rupee in the budget is a number you typed — TripLens never guesses a price. Export to share the whole plan.</div>`;
   }
 
@@ -2469,12 +2470,21 @@
       </div>`;
     }).join("");
 
+    // is group mode on? (a group with 2+ members)
+    const groupOn = SPLIT && t.group && Array.isArray(t.group.members) && t.group.members.length > 1;
+    const gms = groupOn ? t.group.members : [];
+    const payerOpts = (sel) => `<option value="">paid by…</option>` + gms.map((m) => `<option value="${esc(m.id)}" ${sel === m.id ? "selected" : ""}>${esc(m.name)}</option>`).join("");
+
     // recent spends
     const spendsList = (b.spends || []).slice().reverse().map((sp) => {
       const cat = BUD.CATEGORIES.find((x) => x.id === sp.cat) || { icon: "•", label: sp.cat };
       const dayTxt = sp.day == null ? "unscheduled" : ("day " + (sp.day + 1));
+      // group mode adds a "paid by" selector per spend so attribution is one tap
+      const payerSel = groupOn
+        ? `<select class="cmp-select bs-payer" data-payerfor="${esc(sp.id)}" aria-label="Who paid">${payerOpts(sp.paidBy)}</select>`
+        : "";
       return `<div class="bud-spend"><span>${cat.icon} ${esc(sp.label || cat.label)} <span class="card-sub">· ${dayTxt}</span></span>
-        <span class="bs-amt">${BUD.fmt(sp.amount, b.currency)} <button class="ii-btn del" data-delspend="${esc(sp.id)}" title="Remove">✕</button></span></div>`;
+        <span class="bs-amt">${payerSel}${BUD.fmt(sp.amount, b.currency)} <button class="ii-btn del" data-delspend="${esc(sp.id)}" title="Remove">✕</button></span></div>`;
     }).join("") || `<div class="card-sub" style="padding:6px 0;">No spends logged yet. Add what you actually pay as you go — those are your real numbers.</div>`;
 
     const dayOpts = `<option value="">unscheduled</option>` + t.days.map((d, i) => `<option value="${i}">Day ${i + 1}${d.date ? " · " + IT.dayLabel(d.date) : ""}</option>`).join("");
@@ -2496,6 +2506,61 @@
         <button class="act mini" id="bud-add-btn">Log</button>
       </div>
       <div class="bud-spends">${spendsList}</div>`;
+  }
+
+  // group split block: travellers + who-owes-whom. Pure arithmetic on the spends
+  // you logged — never fabricates an amount. Settlement nets to exactly zero.
+  function groupSplitBlock(t) {
+    if (!SPLIT || !BUD) return "";
+    const b = BUD.ensure(t);
+    const on = !!t.groupMode;
+    const cur = b.currency;
+    // header + toggle is always shown so people can turn the feature on/off
+    const head = `<div class="section-h" id="itin-split">👥 Split with your group
+      <label class="chip toggle" style="font-weight:400;"><input type="checkbox" id="split-toggle" ${on ? "checked" : ""}/> group trip</label></div>`;
+    if (!on) {
+      return head + `<p class="card-sub">Travelling with others? Turn this on to track who paid for what and see who owes whom at the end — split evenly to the paisa, no rounding lost. Every number is still one you typed.</p>`;
+    }
+    const ms = SPLIT.seedMembers(t, countAllItemsSeed());
+    const o = SPLIT.overview(t);
+
+    const memberRows = ms.map((m) => {
+      const bal = o.balances.find((x) => x.id === m.id) || { net: 0 };
+      const tag = SPLIT.paise(bal.net) > 0
+        ? `<span class="chip ok">owed ${BUD.fmt(bal.net, cur)}</span>`
+        : SPLIT.paise(bal.net) < 0
+          ? `<span class="chip bad">owes ${BUD.fmt(Math.abs(bal.net), cur)}</span>`
+          : `<span class="chip">settled</span>`;
+      return `<div class="sp-member">
+        <input class="leg-input sp-name" data-renamem="${esc(m.id)}" value="${esc(m.name)}" aria-label="Member name" />
+        ${tag}
+        ${ms.length > 1 ? `<button class="ii-btn del" data-delm="${esc(m.id)}" title="Remove traveller">✕</button>` : ""}
+      </div>`;
+    }).join("");
+
+    const addMember = `<div class="sp-add">
+      <input class="leg-input sp-newname" id="sp-newname" placeholder="add a traveller" aria-label="New traveller name" />
+      <button class="act ghost mini" id="sp-addm">＋ Add</button>
+    </div>`;
+
+    let settleHtml;
+    if (o.transfers.length === 0) {
+      settleHtml = o.attributedCount === 0
+        ? `<div class="card-sub">Once you tag who paid for each spend (the "paid by" dropdown on each one), I'll work out who owes whom.</div>`
+        : `<div class="sp-settled">✅ All square — nobody owes anyone.</div>`;
+    } else {
+      settleHtml = `<div class="sp-settle-h">Simplest way to settle up</div>` + o.transfers.map((x) =>
+        `<div class="sp-transfer"><b>${esc(x.fromName)}</b> pays <b>${esc(x.toName)}</b> <span class="sp-amt">${BUD.fmt(x.amount, cur)}</span></div>`
+      ).join("");
+    }
+    const unattr = o.unattributedCount > 0
+      ? `<div class="card-sub" style="margin-top:8px;">${o.unattributedCount} spend${o.unattributedCount > 1 ? "s" : ""} (${BUD.fmt(o.unattributedTotal, cur)}) ${o.unattributedCount > 1 ? "have" : "has"} no "paid by" set yet, so ${o.unattributedCount > 1 ? "they're" : "it's"} not in the settlement. Tag the payer above to include ${o.unattributedCount > 1 ? "them" : "it"}.</div>`
+      : "";
+
+    return head +
+      `<div class="sp-members">${memberRows}${addMember}</div>` +
+      `<div class="sp-settle">${settleHtml}${unattr}</div>` +
+      `<p class="card-sub" style="margin-top:8px;">Each spend splits evenly across everyone by default; set a "paid by" on each spend above in the budget list. Shares are computed to the paisa so they add back to the exact total — I never invent or lose a rupee.</p>`;
   }
 
   function wireItinerary(t) {
@@ -2579,6 +2644,28 @@
         const bud = $("#itin-budget"); if (bud) bud.scrollIntoView({ behavior: "smooth" });
       };
       $$("[data-delspend]").forEach((b2) => b2.onclick = () => { BUD.removeSpend(t, b2.dataset.delspend); save(); renderTrips(); });
+      // group-mode: assign who paid for each spend
+      $$("[data-payerfor]").forEach((sel) => sel.onchange = () => {
+        const sp = (t.budget.spends || []).find((x) => x.id === sel.dataset.payerfor);
+        if (sp) { sp.paidBy = sel.value || null; save(); renderTrips(); }
+      });
+    }
+
+    // ---- group split handlers ----
+    if (SPLIT) {
+      const tog = $("#split-toggle");
+      if (tog) tog.onchange = () => {
+        t.groupMode = tog.checked;
+        if (t.groupMode) SPLIT.seedMembers(t, countAllItemsSeed());
+        save(); renderTrips();
+      };
+      if ($("#sp-addm")) $("#sp-addm").onclick = () => {
+        const nm = (($("#sp-newname") || {}).value || "").trim();
+        SPLIT.addMember(t, nm, countAllItemsSeed());
+        save(); renderTrips();
+      };
+      $$("[data-delm]").forEach((b3) => b3.onclick = () => { SPLIT.removeMember(t, b3.dataset.delm); save(); renderTrips(); });
+      $$("[data-renamem]").forEach((inp) => inp.onchange = () => { SPLIT.renameMember(t, inp.dataset.renamem, inp.value); save(); renderTrips(); });
     }
   }
 

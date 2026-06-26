@@ -79,6 +79,10 @@
       cat, label: (spend && spend.label) || "",
       amount, day: (spend && spend.day != null) ? spend.day : null,
       ts: (spend && spend.ts) || 0,
+      // group-mode attribution (optional): who fronted it + who splits it.
+      // null/empty are valid — the split engine treats absent sharers as "everyone".
+      paidBy: (spend && spend.paidBy) || null,
+      sharedBy: (spend && Array.isArray(spend.sharedBy)) ? spend.sharedBy.slice() : null,
     };
     b.spends.push(s);
     return s;

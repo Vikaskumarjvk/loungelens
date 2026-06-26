@@ -1084,6 +1084,20 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .xp-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
 .xp-actions .plan-link { flex: 1; min-width: 120px; }
 
+/* --- Group split / who-owes-whom (added 2026-06-26) --- */
+.sp-members { margin: 8px 0; }
+.sp-member { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.sp-member .sp-name { flex: 1; min-width: 120px; max-width: 220px; }
+.sp-add { display: flex; gap: 8px; margin-top: 6px; }
+.sp-add .sp-newname { flex: 1; min-width: 120px; max-width: 220px; }
+.sp-settle { margin: 10px 0; }
+.sp-settle-h { font-weight: 700; font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.sp-transfer { display: flex; align-items: center; gap: 6px; padding: 7px 11px; margin: 5px 0; background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }
+.sp-transfer .sp-amt { margin-left: auto; color: var(--accent2); font-weight: 700; white-space: nowrap; }
+.sp-settled { padding: 9px 12px; background: var(--good-dim); border: 1px solid rgba(54, 211, 153, 0.32); border-radius: var(--r-sm); color: var(--good); font-size: 14px; }
+.chip.bad { color: #fb7185; border-color: rgba(251, 113, 133, 0.35); background: rgba(251, 113, 133, 0.12); }
+.bs-payer { font-size: 12px; padding: 3px 6px; }
+
 /* --- Budget tracker (added 2026-06-24) --- */
 .bud-set { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 12px; }
 .bud-line { font-size: 14.5px; margin: 8px 0; }

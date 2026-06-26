@@ -18,7 +18,7 @@ one file. Download it, double-click, runs with no server and no internet. AirDro
 | Part | What you get |
 |---|---|
 | 🧭 **Plan a Trip** | Route + dates → flights, hotel, lounges and on-trip deals in one plan, plus the single best card to pay across the whole trip, plus a transparent savings checklist. |
-| 🗂️ **My Trips** | Save a plan → a real **day-by-day itinerary** auto-fills (flight + lounge + check-in on day 1, checkout + return on the last day). Add/move/remove items on a timeline. **Packing checklist** tailored to nights + intl/cold/beach/business/monsoon. **Budget tracker** (your numbers). Export to share the whole trip. |
+| 🗂️ **My Trips** | Save a plan → a real **day-by-day itinerary** auto-fills (flight + lounge + check-in on day 1, checkout + return on the last day). Add/move/remove items on a timeline. **Trip-readiness checklist** (docs/visa-check/money/weather-packing) with a countdown. **Packing checklist** tailored to nights + intl/cold/beach/business/monsoon. **Budget tracker** (your numbers) + **group split** — tag who paid each spend and see who-owes-whom, split to the paisa. Export to share the whole trip. |
 | ✈️ **Flights** | Every booking site lined up compare-first; your card's offer flagged on each; live fares (free, in-browser via Amadeus); 14-day cheapest-day scan. |
 | 🏨 **Hotels** | 14 booking sites (Google Hotels, Booking, Agoda, MMT, Taj/ITC/Marriott direct, Airbnb…), grouped, with the best card to pay. |
 | 🧳 **On-Trip Deals** | Cabs, intercity travel, eSIM/forex, dining and activities — each with the live app/site and the card/coupon that cuts the bill. |
@@ -64,7 +64,7 @@ node tests-trip.js     # trip optimizer
 node tests-itinerary.js
 node tests-geo.js      # distance foundation (haversine accuracy + picker coverage)
 node tests-explore.js  # "where to?" destination ranker
-# full suite: 526 assertions across 22 files, all green
+# full suite: 545 assertions across 23 files, all green
 ```
 
 ## Architecture
@@ -121,7 +121,7 @@ verify queue, so stale data is flagged rather than trusted blindly.
 > lounge overhaul, tagged low-confidence; a research+verify pass bumps records to verified as
 > it confirms them against issuer pages. Booking-site offers describe recurring mechanisms, not
 > guaranteed live codes. **Desk-check spend gates, visit counts and today's offer terms before
-> a trip.** The engines and UX are fully verified (526 tests + browser runs).
+> a trip.** The engines and UX are fully verified (545 tests + browser runs).
 
 ## Known limitations (tracked, not hidden)
 

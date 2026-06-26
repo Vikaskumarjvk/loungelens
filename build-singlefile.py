@@ -53,6 +53,7 @@ js_files = [
     "brief-engine.js",
     "readiness-engine.js",
     "explore-engine.js",
+    "split-engine.js",
     "selfcheck.js",
     "profile.js",
     "auth.js",
