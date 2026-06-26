@@ -96,6 +96,10 @@ body::after {
   border-radius: 6px;
 }
 :focus:not(:focus-visible) { outline: none; }
+/* Headings are focused programmatically on view-switch only as a screen-reader
+   announce target — never a keyboard tab stop. Suppress any outline on them so
+   sighted users see no flash; screen readers still read the new heading. */
+.view h2[tabindex="-1"]:focus { outline: none; }
 
 /* ============================ HEADER + NAV ============================ */
 header {

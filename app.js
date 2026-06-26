@@ -244,12 +244,24 @@
   function showView(view, push) {
     if (!VIEWS.includes(view)) view = "flights";
     $$("nav button").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
-    $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
+    const activeView = $("#view-" + view);
+    $$(".view").forEach((v) => v.classList.toggle("active", v === activeView));
     updateNavToggleLabel(view);
     // on mobile, fold the menu away after a pick so it stops covering the page
     if (isMobileNav()) setNavCollapsed(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (push && location.hash !== "#" + view) history.replaceState(null, "", "#" + view);
+    // a11y: on a real navigation (not the initial route restore), move focus to the
+    // new view's heading so a screen reader announces the content changed instead of
+    // leaving focus on the nav button. tabindex=-1 = programmatically focusable only.
+    if (push && activeView) {
+      const h = activeView.querySelector("h2");
+      if (h) {
+        if (!h.hasAttribute("tabindex")) h.setAttribute("tabindex", "-1");
+        // focus without the scroll jump (we already smooth-scrolled to top)
+        try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); }
+      }
+    }
   }
   $$("nav button").forEach((b) =>
     b.addEventListener("click", () => b.dataset.view && showView(b.dataset.view, true))
