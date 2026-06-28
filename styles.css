@@ -280,27 +280,32 @@ main { max-width: 940px; margin: 0 auto; padding: 22px 18px 0; }
 .quota-fill.empty { background: linear-gradient(90deg, #fb7185, #e11d48); }
 
 /* ============================ BUTTONS ============================ */
-button.act {
+/* .act applies to BOTH <button class="act"> and <a class="act"> (link-buttons).
+   Scoping these to button.act left anchor-buttons falling back to the browser's
+   default link blue (#0000ee, ~1.7:1 contrast — a real WCAG fail axe caught).
+   text-decoration:none + inline-flex make an <a class="act"> render identically. */
+.act {
   background: var(--accent-grad); color: #fff; border: none;
   padding: 8px 14px; border-radius: var(--r-sm); cursor: pointer;
   font-size: 13px; font-weight: 600; letter-spacing: .1px;
   box-shadow: 0 2px 10px rgba(123, 110, 255, 0.28);
   transition: transform .12s, box-shadow .18s, opacity .18s;
+  text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
 }
-button.act:hover { transform: translateY(-1px); box-shadow: var(--shadow-glow); }
-button.act:active { transform: translateY(0); }
-button.act.ghost {
+.act:hover { transform: translateY(-1px); box-shadow: var(--shadow-glow); color: #fff; }
+.act:active { transform: translateY(0); }
+.act.ghost {
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); color: var(--txt);
   box-shadow: none;
 }
-button.act.ghost:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.07); }
-button.act.mini { padding: 5px 11px; font-size: 12px; }
-button.act.big {
+.act.ghost:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.07); color: var(--txt); }
+.act.mini { padding: 5px 11px; font-size: 12px; }
+.act.big {
   width: 100%; padding: 15px; font-size: 16px; margin-top: 10px; border-radius: var(--r-md);
   box-shadow: var(--shadow-glow);
 }
-button.act.big:hover { box-shadow: 0 12px 38px var(--accent-glow); }
-button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
+.act.big:hover { box-shadow: 0 12px 38px var(--accent-glow); }
+.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
 
 /* ============================ ADD-CARD GRID ============================ */
 .add-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -316,7 +321,10 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 /* ============================ LOUNGE STATES ============================ */
 .lounge.open { border-left: 3px solid var(--good); }
 .lounge.blocked { border-left: 3px solid var(--warn); }
-.lounge.closed { opacity: .5; }
+/* closed lounges read as de-emphasized via a muted background, NOT opacity:.5,
+   which dragged their text under WCAG AA (axe measured 2.6-2.77:1). */
+.lounge.closed { background: var(--bg-2); }
+.lounge.closed .card-title, .lounge.closed .card-sub { color: var(--dim-2); }
 .opener { background: var(--panel2); border-radius: var(--r-sm); padding: 9px 11px; margin-top: 9px; font-size: 13px; border: 1px solid var(--line); }
 .opener .who { font-weight: 700; }
 .opener.usable { border-left: 2px solid var(--good); }
@@ -464,7 +472,11 @@ button.act:disabled { opacity: .38; cursor: not-allowed; transform: none; box-sh
 .value-inputs input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(123, 110, 255, 0.18); }
 .val-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 13px 15px; margin-bottom: 9px; box-shadow: var(--shadow-1); }
 .val-row.good { border-left: 3px solid var(--good); }
-.val-row.bad { border-left: 3px solid var(--bad); opacity: .78; }
+/* "not worth it" rows read as muted via a dimmer background, NOT a row-wide
+   opacity. opacity:.78 dragged the red verdict text under the WCAG AA 4.5:1
+   threshold (axe measured 4.48:1); keeping text at full strength fixes that
+   while preserving the de-emphasized look. */
+.val-row.bad { border-left: 3px solid var(--bad); background: var(--bg-2); }
 .val-verdict { text-align: right; min-width: 92px; }
 .val-net { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .val-verdict.good .val-net { color: var(--good); }
