@@ -56,6 +56,7 @@ js_files = [
     "explore-engine.js",
     "split-engine.js",
     "itinerary-planner.js",
+    "quickstart-engine.js",
     "selfcheck.js",
     "profile.js",
     "auth.js",

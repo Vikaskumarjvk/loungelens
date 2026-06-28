@@ -77,6 +77,15 @@
         <p class="lh-sub">One plan for the entire trip — flights, hotel, airport lounges, cabs and local deals — with the single best card to swipe on every booking. Real fares live on the real sites. I never make a price up.</p>
         <div class="lh-stats" id="plan-stats"></div>
       </div>
+      <!-- ONE-TAP START: a newbie taps a place, gets a fully planned trip, no typing -->
+      <div class="quickstart" id="quickstart">
+        <div class="qs-head">
+          <h3 class="qs-title">New here? Tap a place to start</h3>
+          <p class="qs-sub">One tap builds a ready-made trip with day-by-day ideas and real map searches. Change anything after. No sign-up, nothing made up.</p>
+        </div>
+        <div class="qs-chips" id="qs-chips"></div>
+        <button class="qs-more link" id="qs-or-type">or type your own trip below ↓</button>
+      </div>
       <div class="trip-builder plan-builder">
         <div class="fb-row">
           <input class="fb-input" id="tp-from" placeholder="From (city or code)" list="fl-airport-list" autocomplete="off" aria-label="Origin" />
@@ -718,6 +727,7 @@
   <script src="explore-engine.js"></script>
   <script src="split-engine.js"></script>
   <script src="itinerary-planner.js"></script>
+  <script src="quickstart-engine.js"></script>
   <script src="selfcheck.js"></script>
   <script src="profile.js"></script>
   <script src="auth.js"></script>

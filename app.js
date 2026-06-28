@@ -18,6 +18,7 @@
   const XP = window.LL_EXPLORE;
   const SPLIT = window.LL_SPLIT;
   const PLANNER = window.LL_PLANNER, DESTS = window.LL_DESTINATIONS;
+  const QS = window.LL_QUICKSTART;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -1281,6 +1282,57 @@
     if (!state.plan) state.plan = { from: "", to: "", depart: "", nights: 3, adults: 2 };
     return state.plan;
   }
+  // ONE-TAP START: render the "tap a place" chips and wire each to build a
+  // complete, auto-planned trip with zero typing. This is the newbie front door.
+  function renderQuickstart() {
+    const wrap = $("#qs-chips"); if (!wrap || !QS || !DESTS) { const q = $("#quickstart"); if (q) q.hidden = true; return; }
+    const chips = QS.featured(DESTS);
+    if (!chips.length) { const q = $("#quickstart"); if (q) q.hidden = true; return; }
+    wrap.innerHTML = chips.map((c) =>
+      `<button class="qs-chip" data-qs="${esc(c.code)}" aria-label="Plan a trip to ${esc(c.city)}">
+        <span class="qs-emoji" aria-hidden="true">${c.emoji}</span>
+        <span class="qs-city">${esc(c.city)}</span>
+        <span class="qs-known">${esc(c.knownFor)}</span>
+      </button>`).join("");
+    $$("[data-qs]").forEach((b) => b.onclick = () => quickStartTrip(b.dataset.qs));
+    // "or type your own" just drops focus into the form below
+    if ($("#qs-or-type")) $("#qs-or-type").onclick = () => {
+      const f = $("#tp-from") || $("#tp-to"); if (f) { f.scrollIntoView({ behavior: "smooth", block: "center" }); f.focus(); }
+    };
+  }
+
+  // one tap -> a real, ready-to-use trip. Creates the trip, seeds the optimizer
+  // starter items, auto-plans the days with real Maps searches, opens it.
+  // Honesty: dates are a clearly-flagged sensible default; nothing is fabricated.
+  function quickStartTrip(code) {
+    if (!QS || !IT || !DESTS) return;
+    const spec = QS.quickTrip(code, DESTS, todayISO());
+    const t = IT.newTrip({ title: spec.city, from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults, seed: nextSeq() });
+    // 1. seed the real optimizer starter (flight/lounge/hotel scaffold) if available
+    if (TE) {
+      const plan = TE.planTrip({ from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults },
+        { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW });
+      IT.seedFromPlan(t, plan, { seedStart: countAllItemsSeed() });
+    }
+    // 2. auto-fill the themed day-by-day ideas with real Maps links
+    if (PLANNER) {
+      const dplan = PLANNER.buildPlan({ code: spec.code, city: spec.city }, t.days.length, DESTS);
+      dplan.days.forEach((pd) => {
+        const day = t.days[pd.dayIndex]; if (!day) return;
+        pd.slots.forEach((sl) => {
+          if (!sl.theme) return;
+          if ((day.items || []).some((it) => it.title === sl.title)) return;
+          IT.addItem(t, pd.dayIndex, { time: sl.time, kind: sl.kind, title: sl.title, note: "Tap to open the live map search", link: sl.link }, countAllItemsSeed());
+        });
+      });
+    }
+    trips().push(t); state.openTripId = t.id; save();
+    autoWeatherFlags(t);
+    showView("trips", true);
+    renderTrips();
+    toast("Trip to " + spec.city + " ready. The dates are a guess — tap any day to change them.");
+  }
+
   function renderPlanStats() {
     const el = $("#plan-stats"); if (!el) return;
     const sites = (FLIGHTS.providers || []).length + (HOTELS.providers || []).length + (DEALS.services || []).length;
@@ -1307,6 +1359,7 @@
     ["#tp-from", "#tp-to", "#tp-depart", "#tp-nights", "#tp-adults"].forEach((s) => { const el = $(s); if (el) el.oninput = persist; });
     if ($("#tp-swap")) $("#tp-swap").onclick = () => { const a = $("#tp-from"), b = $("#tp-to"); if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); } };
     if ($("#tp-plan")) $("#tp-plan").onclick = () => { persist(); renderPlanResult(); const r = $("#plan-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    renderQuickstart();
   }
   function todayISO() { const n = new Date(); return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2); }
 

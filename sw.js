@@ -9,7 +9,7 @@
  * This fixes the earlier cache-first bug where users were stuck on a stale version.
  * Bump CACHE_VERSION on each release so old caches are purged on activate.
  */
-const CACHE_VERSION = "triplens-v50-2026-06-29-dayplanner";
+const CACHE_VERSION = "triplens-v51-2026-06-29-oneclick";
 const SHELL = [
   "./",
   "./index.html",
@@ -34,6 +34,7 @@ const SHELL = [
   "./explore-engine.js",
   "./split-engine.js",
   "./itinerary-planner.js",
+  "./quickstart-engine.js",
   "./data/flights.js",
   "./data/hotels.js",
   "./data/deals.js",

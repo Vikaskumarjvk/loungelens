@@ -1242,6 +1242,26 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .fx-out { font-size: 16px; }
 .fx-big { color: var(--good); font-size: 19px; }
 
+/* --- One-tap quick start: the newbie front door (2026-06-29) --- */
+.quickstart { margin: 4px 0 20px; }
+.qs-head { margin-bottom: 12px; }
+.qs-title { font-size: 17px; font-weight: 800; letter-spacing: -.3px; margin: 0 0 4px; }
+.qs-sub { font-size: 13.5px; color: var(--dim); margin: 0; line-height: 1.45; }
+.qs-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.qs-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  text-align: left; min-height: 76px; padding: 12px 14px;
+  background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--r-md);
+  color: var(--txt); cursor: pointer; transition: border-color .15s, transform .12s, box-shadow .15s;
+}
+.qs-chip:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+.qs-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qs-emoji { font-size: 22px; line-height: 1; }
+.qs-city { font-size: 15.5px; font-weight: 700; }
+.qs-known { font-size: 12px; color: var(--dim); line-height: 1.35; }
+.qs-more { display: inline-block; margin-top: 12px; font-size: 13.5px; background: none; border: none; padding: 4px 0; cursor: pointer; }
+@media (max-width: 600px) { .qs-chips { grid-template-columns: 1fr 1fr; } }
+
 </style>
 </head>
 <body>
@@ -1296,6 +1316,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         <h2 class="lh-title">Plan it once.<br><span class="lh-grad">Pay the smart way.</span></h2>
         <p class="lh-sub">One plan for the entire trip — flights, hotel, airport lounges, cabs and local deals — with the single best card to swipe on every booking. Real fares live on the real sites. I never make a price up.</p>
         <div class="lh-stats" id="plan-stats"></div>
+      </div>
+      <!-- ONE-TAP START: a newbie taps a place, gets a fully planned trip, no typing -->
+      <div class="quickstart" id="quickstart">
+        <div class="qs-head">
+          <h3 class="qs-title">New here? Tap a place to start</h3>
+          <p class="qs-sub">One tap builds a ready-made trip with day-by-day ideas and real map searches. Change anything after. No sign-up, nothing made up.</p>
+        </div>
+        <div class="qs-chips" id="qs-chips"></div>
+        <button class="qs-more link" id="qs-or-type">or type your own trip below ↓</button>
       </div>
       <div class="trip-builder plan-builder">
         <div class="fb-row">
@@ -7637,6 +7666,115 @@ window.LL_HOLIDAYS = {
 </script>
   <script>
 /*
+ * TripLens — quick-start engine. The one-tap front door for a total newbie.
+ *
+ * The rest of the app asks you to type a "from" city, a "to" city, a date,
+ * nights and travellers before anything happens. That is a wall for a layman.
+ * This engine removes the wall: it offers a short list of well-known places as
+ * big tappable chips, and turns a single tap into a COMPLETE, ready-to-plan
+ * trip spec — no typing required. The caller then creates the trip and
+ * auto-plans the days with the existing planner (real Google Maps links).
+ *
+ * Pure, no DOM, no clock: "today" is passed in so the same inputs always give
+ * the same dates. Date math uses Date.UTC so it never drifts by timezone.
+ *
+ * HONESTY MODEL: a quick-start trip invents NOTHING the user has to trust as a
+ * fact. The dates are a sensible default (clearly editable in the UI), the
+ * destination character is the same common-knowledge "known for" line already
+ * in data/destinations.js, and every downstream idea is a real live search.
+ * No price, no fare, no invented venue is ever produced here.
+ */
+(function (root) {
+  "use strict";
+
+  // the curated short list shown as one-tap chips. Kept small on purpose — a
+  // newbie wants a few obvious choices, not 24. Each entry is a real IATA code
+  // that data/destinations.js has a curated profile for, plus a friendly emoji.
+  // Order = what most first-time users in India are likely to want first.
+  var FEATURED = [
+    { code: "GOI", emoji: "🏖️" },
+    { code: "DXB", emoji: "🌆" },
+    { code: "JAI", emoji: "🏰" },
+    { code: "SIN", emoji: "🌃" },
+    { code: "BKK", emoji: "🛕" },
+    { code: "SXR", emoji: "🏔️" },
+    { code: "COK", emoji: "🌴" },
+    { code: "DEL", emoji: "🏛️" },
+  ];
+
+  // pad to a 2-digit string (local date formatting, no timezone shift).
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  // ISO yyyy-mm-dd that is `addDays` after `todayISO`, computed in UTC so the
+  // result never jumps a day across timezones. todayISO is injected (no clock).
+  function isoPlusDays(todayISO, addDays) {
+    var parts = String(todayISO || "").split("-");
+    if (parts.length !== 3) return "";
+    var y = +parts[0], m = +parts[1], d = +parts[2];
+    if (!y || !m || !d) return "";
+    var t = Date.UTC(y, m - 1, d) + addDays * 86400000;
+    var dt = new Date(t);
+    return dt.getUTCFullYear() + "-" + pad(dt.getUTCMonth() + 1) + "-" + pad(dt.getUTCDate());
+  }
+
+  // build the featured chip list the UI renders. destData = LL_DESTINATIONS
+  // (injected so the engine stays decoupled + testable). Each chip carries the
+  // real city + the honest "known for" line + the IATA code to start from.
+  function featured(destData) {
+    var out = [];
+    for (var i = 0; i < FEATURED.length; i++) {
+      var f = FEATURED[i];
+      var d = destData && destData.get ? destData.get(f.code) : null;
+      if (!d || !d.city) continue; // only show places we actually have a profile for
+      out.push({
+        code: f.code, emoji: f.emoji, city: d.city,
+        knownFor: d.knownFor || "", vibe: d.vibe || "",
+      });
+    }
+    return out;
+  }
+
+  // turn a single tap on a chip into a full trip spec — zero typing.
+  //   code     = IATA the user tapped (e.g. "GOI")
+  //   todayISO = today's date (injected)
+  //   opts     = { leadDays, nights, adults } sensible defaults if omitted
+  // returns { from, to, code, city, depart, nights, adults, defaulted:true }
+  // `from` is left blank on purpose — the trip is still fully plan-able from the
+  // destination alone, and the user can add their origin later. `defaulted`
+  // tells the UI to show the "dates are a guess, edit freely" hint.
+  function quickTrip(code, destData, todayISO, opts) {
+    opts = opts || {};
+    var d = destData && destData.get ? destData.get(code) : null;
+    var city = (d && d.city) || code;
+    var leadDays = opts.leadDays != null ? opts.leadDays : 14; // two weeks out
+    var nights = Math.max(1, opts.nights != null ? opts.nights : 3);
+    var adults = Math.max(1, opts.adults != null ? opts.adults : 2);
+    return {
+      from: "",
+      to: city,
+      code: code,
+      city: city,
+      knownFor: (d && d.knownFor) || "",
+      depart: isoPlusDays(todayISO, leadDays),
+      nights: nights,
+      adults: adults,
+      defaulted: true,
+    };
+  }
+
+  var Engine = {
+    FEATURED: FEATURED,
+    featured: featured,
+    quickTrip: quickTrip,
+    isoPlusDays: isoPlusDays,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = Engine;
+  root.LL_QUICKSTART = Engine;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
  * LoungeLens — self-improvement module (rung 1: free, client-side, honest).
  *
  * WHAT THIS IS (and is NOT):
@@ -8150,6 +8288,7 @@ window.LL_HOLIDAYS = {
   const XP = window.LL_EXPLORE;
   const SPLIT = window.LL_SPLIT;
   const PLANNER = window.LL_PLANNER, DESTS = window.LL_DESTINATIONS;
+  const QS = window.LL_QUICKSTART;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -9413,6 +9552,57 @@ window.LL_HOLIDAYS = {
     if (!state.plan) state.plan = { from: "", to: "", depart: "", nights: 3, adults: 2 };
     return state.plan;
   }
+  // ONE-TAP START: render the "tap a place" chips and wire each to build a
+  // complete, auto-planned trip with zero typing. This is the newbie front door.
+  function renderQuickstart() {
+    const wrap = $("#qs-chips"); if (!wrap || !QS || !DESTS) { const q = $("#quickstart"); if (q) q.hidden = true; return; }
+    const chips = QS.featured(DESTS);
+    if (!chips.length) { const q = $("#quickstart"); if (q) q.hidden = true; return; }
+    wrap.innerHTML = chips.map((c) =>
+      `<button class="qs-chip" data-qs="${esc(c.code)}" aria-label="Plan a trip to ${esc(c.city)}">
+        <span class="qs-emoji" aria-hidden="true">${c.emoji}</span>
+        <span class="qs-city">${esc(c.city)}</span>
+        <span class="qs-known">${esc(c.knownFor)}</span>
+      </button>`).join("");
+    $$("[data-qs]").forEach((b) => b.onclick = () => quickStartTrip(b.dataset.qs));
+    // "or type your own" just drops focus into the form below
+    if ($("#qs-or-type")) $("#qs-or-type").onclick = () => {
+      const f = $("#tp-from") || $("#tp-to"); if (f) { f.scrollIntoView({ behavior: "smooth", block: "center" }); f.focus(); }
+    };
+  }
+
+  // one tap -> a real, ready-to-use trip. Creates the trip, seeds the optimizer
+  // starter items, auto-plans the days with real Maps searches, opens it.
+  // Honesty: dates are a clearly-flagged sensible default; nothing is fabricated.
+  function quickStartTrip(code) {
+    if (!QS || !IT || !DESTS) return;
+    const spec = QS.quickTrip(code, DESTS, todayISO());
+    const t = IT.newTrip({ title: spec.city, from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults, seed: nextSeq() });
+    // 1. seed the real optimizer starter (flight/lounge/hotel scaffold) if available
+    if (TE) {
+      const plan = TE.planTrip({ from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults },
+        { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW });
+      IT.seedFromPlan(t, plan, { seedStart: countAllItemsSeed() });
+    }
+    // 2. auto-fill the themed day-by-day ideas with real Maps links
+    if (PLANNER) {
+      const dplan = PLANNER.buildPlan({ code: spec.code, city: spec.city }, t.days.length, DESTS);
+      dplan.days.forEach((pd) => {
+        const day = t.days[pd.dayIndex]; if (!day) return;
+        pd.slots.forEach((sl) => {
+          if (!sl.theme) return;
+          if ((day.items || []).some((it) => it.title === sl.title)) return;
+          IT.addItem(t, pd.dayIndex, { time: sl.time, kind: sl.kind, title: sl.title, note: "Tap to open the live map search", link: sl.link }, countAllItemsSeed());
+        });
+      });
+    }
+    trips().push(t); state.openTripId = t.id; save();
+    autoWeatherFlags(t);
+    showView("trips", true);
+    renderTrips();
+    toast("Trip to " + spec.city + " ready. The dates are a guess — tap any day to change them.");
+  }
+
   function renderPlanStats() {
     const el = $("#plan-stats"); if (!el) return;
     const sites = (FLIGHTS.providers || []).length + (HOTELS.providers || []).length + (DEALS.services || []).length;
@@ -9439,6 +9629,7 @@ window.LL_HOLIDAYS = {
     ["#tp-from", "#tp-to", "#tp-depart", "#tp-nights", "#tp-adults"].forEach((s) => { const el = $(s); if (el) el.oninput = persist; });
     if ($("#tp-swap")) $("#tp-swap").onclick = () => { const a = $("#tp-from"), b = $("#tp-to"); if (a && b) { const t = a.value; a.value = b.value; b.value = t; persist(); } };
     if ($("#tp-plan")) $("#tp-plan").onclick = () => { persist(); renderPlanResult(); const r = $("#plan-result"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    renderQuickstart();
   }
   function todayISO() { const n = new Date(); return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2); }
 
