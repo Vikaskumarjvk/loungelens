@@ -2370,6 +2370,7 @@
       <button class="act ghost mini" id="itin-back">← All trips</button>
       <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
       <div class="itin-tools">
+        <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
         <button class="act ghost mini" id="itin-export">⬇️ Share</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
@@ -2621,6 +2622,21 @@
       a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
       a.click(); URL.revokeObjectURL(a.href);
       toast("Trip exported — share the file.");
+    };
+    // add the whole itinerary to your phone/desktop calendar as a standard .ics
+    if ($("#itin-calendar")) $("#itin-calendar").onclick = () => {
+      // DTSTAMP is generated here (DOM layer may use the clock); engine stays pure
+      const d = new Date();
+      const p2 = (n) => (n < 10 ? "0" + n : "" + n);
+      const stamp = d.getUTCFullYear() + p2(d.getUTCMonth() + 1) + p2(d.getUTCDate()) + "T" +
+        p2(d.getUTCHours()) + p2(d.getUTCMinutes()) + p2(d.getUTCSeconds()) + "Z";
+      const ics = IT.toICS(t, stamp);
+      if (!ics) { toast("Add a few plans with dates first, then I can build the calendar."); return; }
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics";
+      a.click(); URL.revokeObjectURL(a.href);
+      toast("Calendar file saved — open it to add your trip to your calendar.");
     };
     // add item
     $$(".ia-add").forEach((b) => b.onclick = () => {

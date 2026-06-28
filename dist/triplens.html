@@ -5724,6 +5724,75 @@ window.LL_HOLIDAYS = {
     };
   }
 
+  // ---- calendar export (.ics) ---------------------------------------------
+  // Turn the trip's day-by-day items into a standard iCalendar file the user can
+  // import into Google/Apple/Outlook calendar. This is purely THEIR plan in a
+  // standard format — no fabricated data. Items with a time become timed events;
+  // items without become all-day events on that day. `stamp` is a fixed
+  // "YYYYMMDDTHHMMSSZ" UTC string passed in (engine purity — no Date.now()).
+  function icsEscape(s) {
+    return String(s == null ? "" : s)
+      .replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,")
+      .replace(/\r?\n/g, "\\n");
+  }
+  // fold lines to the 75-octet iCalendar limit (continuation lines start with a space)
+  function icsFold(line) {
+    if (line.length <= 75) return line;
+    var out = line.slice(0, 75), rest = line.slice(75);
+    while (rest.length > 74) { out += "\r\n " + rest.slice(0, 74); rest = rest.slice(74); }
+    return out + "\r\n " + rest;
+  }
+  function ymdCompact(iso) { var p = parseISO(iso); return p ? (p.y + pad2(p.mo) + pad2(p.d)) : null; }
+
+  // returns the full .ics text, or null if the trip has no dated days to place events on.
+  function toICS(trip, stamp) {
+    if (!trip || !trip.days) return null;
+    stamp = stamp || "19700101T000000Z";
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//TripLens//Trip//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+    var evCount = 0;
+    var safeTitle = trip.title || ((trip.from || "?") + " to " + (trip.to || "?"));
+    trip.days.forEach(function (day, di) {
+      if (!day.date) return;                 // can't place an event with no date
+      var dayYmd = ymdCompact(day.date);
+      if (!dayYmd) return;
+      (day.items || []).forEach(function (it, ii) {
+        var uid = (trip.id || "trip") + "-" + di + "-" + (it.id || ii) + "@triplens";
+        var summary = (KIND_PREFIX[it.kind] || "") + (it.title || KIND_WORD[it.kind] || "Plan");
+        lines.push("BEGIN:VEVENT");
+        lines.push("UID:" + uid);
+        lines.push("DTSTAMP:" + stamp);
+        var t = parseTime(it.time);
+        if (t) {
+          // timed, 1-hour default block, written as floating local time (no TZ = local)
+          var start = dayYmd + "T" + pad2(t.h) + pad2(t.m) + "00";
+          var endMin = t.h * 60 + t.m + 60, eh = Math.floor(endMin / 60) % 24, em = endMin % 60;
+          var endDay = endMin >= 1440 ? ymdCompact(addDays(day.date, 1)) : dayYmd;
+          lines.push("DTSTART:" + start);
+          lines.push("DTEND:" + endDay + "T" + pad2(eh) + pad2(em) + "00");
+        } else {
+          // all-day event (DATE value type, end = next day per spec)
+          lines.push("DTSTART;VALUE=DATE:" + dayYmd);
+          lines.push("DTEND;VALUE=DATE:" + ymdCompact(addDays(day.date, 1)));
+        }
+        lines.push("SUMMARY:" + icsEscape(summary));
+        var descBits = [];
+        if (it.note) descBits.push(it.note);
+        if (it.link) descBits.push(it.link);
+        descBits.push("Trip: " + safeTitle);
+        lines.push("DESCRIPTION:" + icsEscape(descBits.join("\n")));
+        if (it.link) lines.push("URL:" + icsEscape(it.link));
+        lines.push("END:VEVENT");
+        evCount++;
+      });
+    });
+    lines.push("END:VCALENDAR");
+    if (evCount === 0) return null;          // nothing dated to export — honest null
+    return lines.map(icsFold).join("\r\n") + "\r\n";
+  }
+  function parseTime(s) { var m = /^(\d{1,2}):(\d{2})$/.exec(s || ""); if (!m) return null; var h = +m[1], mi = +m[2]; return (h <= 23 && mi <= 59) ? { h: h, m: mi } : null; }
+  var KIND_PREFIX = { flight: "Flight: ", hotel: "Hotel: ", lounge: "Lounge: ", cab: "Cab: ", food: "Food: ", activity: "Activity: ", note: "" };
+  var KIND_WORD = { flight: "Flight", hotel: "Hotel", lounge: "Lounge visit", cab: "Cab / transfer", food: "Meal", activity: "Activity", note: "Note" };
+
   // ---- export / import (share a trip as a portable code) ------------------
   function exportTrip(trip) { return JSON.stringify({ kind: "triplens-itinerary", v: 1, trip }); }
   function importTrip(str) {
@@ -5737,7 +5806,7 @@ window.LL_HOLIDAYS = {
   const Engine = {
     parseISO, addDays, dayLabel, mkId,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
-    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip,
+    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;
@@ -10234,6 +10303,7 @@ window.LL_HOLIDAYS = {
       <button class="act ghost mini" id="itin-back">← All trips</button>
       <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
       <div class="itin-tools">
+        <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
         <button class="act ghost mini" id="itin-export">⬇️ Share</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
@@ -10485,6 +10555,21 @@ window.LL_HOLIDAYS = {
       a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
       a.click(); URL.revokeObjectURL(a.href);
       toast("Trip exported — share the file.");
+    };
+    // add the whole itinerary to your phone/desktop calendar as a standard .ics
+    if ($("#itin-calendar")) $("#itin-calendar").onclick = () => {
+      // DTSTAMP is generated here (DOM layer may use the clock); engine stays pure
+      const d = new Date();
+      const p2 = (n) => (n < 10 ? "0" + n : "" + n);
+      const stamp = d.getUTCFullYear() + p2(d.getUTCMonth() + 1) + p2(d.getUTCDate()) + "T" +
+        p2(d.getUTCHours()) + p2(d.getUTCMinutes()) + p2(d.getUTCSeconds()) + "Z";
+      const ics = IT.toICS(t, stamp);
+      if (!ics) { toast("Add a few plans with dates first, then I can build the calendar."); return; }
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics";
+      a.click(); URL.revokeObjectURL(a.href);
+      toast("Calendar file saved — open it to add your trip to your calendar.");
     };
     // add item
     $$(".ia-add").forEach((b) => b.onclick = () => {
