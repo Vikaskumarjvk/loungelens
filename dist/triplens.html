@@ -4317,6 +4317,95 @@ window.LL_HOLIDAYS = {
 
 </script>
   <script>
+/*
+ * TripLens — destination knowledge. What each place is genuinely known for, as a
+ * structure for building a day-by-day plan. Browser global + Node export.
+ *
+ * HONESTY MODEL (read this before adding data):
+ *  - "knownFor" + "vibe" are COMMON-KNOWLEDGE character notes (Goa = beaches +
+ *    Portuguese heritage + nightlife). That's a description of a place, not a
+ *    fabricated fact about a price or a booking.
+ *  - "themes" are CATEGORIES of things to do (beach day, old-town walk, food
+ *    crawl). The planner turns each into a day slot that links to a REAL live
+ *    search (Google Maps / things-to-do) for that category in that city. We never
+ *    name a specific venue with a made-up price or a fake "best restaurant".
+ *  - We do NOT invent opening hours, ticket prices, or "must-book" claims.
+ *  - A destination we don't have curated knowledge for still gets a generic but
+ *    honest plan (arrival / explore / food / day-trip / departure) — never a
+ *    fabricated specific.
+ *
+ * Keyed by IATA code (matches data/flights.js airports + geo-engine coords).
+ * `tags` drive the generic fallback when a code isn't listed here.
+ */
+(function (root) {
+  "use strict";
+
+  // theme ids -> a human label + the kind of map/search query to build a real link.
+  // `query` uses {CITY} which the planner fills; the planner builds a Google Maps
+  // search URL so the link always lands on something real.
+  var THEMES = {
+    beach:      { label: "Beach time",        icon: "🏖️", kind: "activity", q: "beaches in {CITY}" },
+    oldtown:    { label: "Old town / heritage walk", icon: "🏛️", kind: "activity", q: "historic sites in {CITY}" },
+    food:       { label: "Local food crawl",  icon: "🍽️", kind: "food",     q: "best local food in {CITY}" },
+    market:     { label: "Markets & shopping", icon: "🛍️", kind: "activity", q: "famous markets in {CITY}" },
+    nightlife:  { label: "Nightlife",          icon: "🍸", kind: "activity", q: "nightlife in {CITY}" },
+    nature:     { label: "Nature / outdoors",  icon: "🌿", kind: "activity", q: "nature spots near {CITY}" },
+    temple:     { label: "Temples & spiritual sites", icon: "🛕", kind: "activity", q: "famous temples in {CITY}" },
+    museum:     { label: "Museums & galleries", icon: "🖼️", kind: "activity", q: "museums in {CITY}" },
+    daytrip:    { label: "Day trip out of town", icon: "🚗", kind: "activity", q: "day trips from {CITY}" },
+    waterfront: { label: "Waterfront / lake / river", icon: "⛵", kind: "activity", q: "waterfront things to do in {CITY}" },
+    hills:      { label: "Hills & viewpoints", icon: "⛰️", kind: "activity", q: "viewpoints near {CITY}" },
+    cafe:       { label: "Cafés & slow morning", icon: "☕", kind: "food",   q: "best cafes in {CITY}" },
+    landmark:   { label: "Icon landmarks",     icon: "📸", kind: "activity", q: "top landmarks in {CITY}" },
+    souk:       { label: "Souks & malls",      icon: "🛍️", kind: "activity", q: "souks and malls in {CITY}" },
+    adventure:  { label: "Adventure / theme park", icon: "🎢", kind: "activity", q: "theme parks and adventure in {CITY}" },
+  };
+
+  // per-destination character + an ordered list of theme ids that suit it.
+  // The planner picks across these to fill the "explore" days, paced sensibly.
+  var DEST = {
+    GOI: { city: "Goa", knownFor: "beaches, Portuguese-era churches, shacks + nightlife", vibe: "relaxed beach break", themes: ["beach", "oldtown", "food", "nightlife", "market", "waterfront"] },
+    GOX: { city: "Goa", knownFor: "beaches, Portuguese-era churches, shacks + nightlife", vibe: "relaxed beach break", themes: ["beach", "oldtown", "food", "nightlife", "market", "waterfront"] },
+    JAI: { city: "Jaipur", knownFor: "forts, palaces, pink old city, bazaars", vibe: "heritage + shopping", themes: ["oldtown", "landmark", "market", "food", "museum", "daytrip"] },
+    DEL: { city: "Delhi", knownFor: "Mughal monuments, street food, sprawling bazaars", vibe: "history + food", themes: ["landmark", "oldtown", "food", "market", "temple", "museum"] },
+    BOM: { city: "Mumbai", knownFor: "seafront promenades, colonial architecture, food + film city", vibe: "big-city buzz", themes: ["waterfront", "landmark", "food", "market", "nightlife", "museum"] },
+    BLR: { city: "Bengaluru", knownFor: "parks, breweries, cafés, pleasant weather", vibe: "easy city + cafés", themes: ["cafe", "nature", "nightlife", "food", "market", "daytrip"] },
+    HYD: { city: "Hyderabad", knownFor: "Charminar, biryani, Golconda fort, lakes", vibe: "food + history", themes: ["landmark", "food", "oldtown", "waterfront", "market", "daytrip"] },
+    MAA: { city: "Chennai", knownFor: "Marina beach, temples, Tamil food, Mahabalipuram nearby", vibe: "temples + coast", themes: ["beach", "temple", "food", "daytrip", "museum", "market"] },
+    CCU: { city: "Kolkata", knownFor: "colonial landmarks, sweets + street food, art + culture", vibe: "culture + food", themes: ["landmark", "food", "museum", "market", "oldtown", "waterfront"] },
+    COK: { city: "Kochi", knownFor: "Fort Kochi, backwaters, Chinese fishing nets, spice trade history", vibe: "backwaters + heritage", themes: ["oldtown", "waterfront", "food", "nature", "market", "daytrip"] },
+    TRV: { city: "Thiruvananthapuram", knownFor: "beaches, temples, nearby Kovalam + backwaters", vibe: "coast + calm", themes: ["beach", "temple", "nature", "food", "daytrip", "waterfront"] },
+    SXR: { city: "Srinagar", knownFor: "Dal Lake, shikaras, Mughal gardens, mountains", vibe: "lakes + mountains", themes: ["waterfront", "nature", "hills", "food", "market", "daytrip"] },
+    PNQ: { city: "Pune", knownFor: "forts, cafés, nearby hill stations, student-city energy", vibe: "forts + cafés", themes: ["oldtown", "cafe", "hills", "food", "daytrip", "nightlife"] },
+    AMD: { city: "Ahmedabad", knownFor: "old-city heritage walk, textiles, street food, Sabarmati", vibe: "heritage + food", themes: ["oldtown", "food", "market", "museum", "waterfront", "daytrip"] },
+    VNS: { city: "Varanasi", knownFor: "Ganga ghats, temples, evening aarti, old lanes", vibe: "spiritual + old city", themes: ["temple", "waterfront", "oldtown", "food", "market", "museum"] },
+    ATQ: { city: "Amritsar", knownFor: "Golden Temple, Wagah border, Punjabi food", vibe: "spiritual + food", themes: ["temple", "food", "daytrip", "market", "oldtown", "museum"] },
+    DED: { city: "Dehradun", knownFor: "gateway to hills, Mussoorie nearby, forests + valleys", vibe: "hills + nature", themes: ["hills", "nature", "daytrip", "cafe", "food", "market"] },
+    IXB: { city: "Bagdogra", knownFor: "gateway to Darjeeling + the hills, tea gardens", vibe: "hills + tea", themes: ["hills", "nature", "daytrip", "cafe", "food", "market"] },
+    IXZ: { city: "Port Blair", knownFor: "islands, beaches, diving, colonial history", vibe: "islands + sea", themes: ["beach", "nature", "oldtown", "waterfront", "food", "daytrip"] },
+    DXB: { city: "Dubai", knownFor: "skyline icons, souks + malls, desert, beaches", vibe: "icons + shopping", themes: ["landmark", "souk", "beach", "adventure", "food", "nightlife"] },
+    SIN: { city: "Singapore", knownFor: "gardens, hawker food, waterfront, family attractions", vibe: "clean city + food", themes: ["landmark", "food", "nature", "waterfront", "adventure", "market"] },
+    BKK: { city: "Bangkok", knownFor: "temples, street food, markets, river + nightlife", vibe: "temples + street food", themes: ["temple", "food", "market", "waterfront", "nightlife", "daytrip"] },
+    LHR: { city: "London", knownFor: "icon landmarks, museums, markets, parks", vibe: "landmarks + museums", themes: ["landmark", "museum", "market", "food", "nature", "oldtown"] },
+    JFK: { city: "New York", knownFor: "skyline, museums, neighbourhoods, food", vibe: "big-city icons", themes: ["landmark", "museum", "food", "market", "nightlife", "waterfront"] },
+  };
+
+  // generic theme order for any city we don't have curated knowledge for.
+  // honest + always-applicable categories — no place-specific claims.
+  var GENERIC_THEMES = ["landmark", "food", "market", "oldtown", "daytrip", "cafe"];
+
+  function get(code) {
+    return DEST[(code || "").toUpperCase()] || null;
+  }
+  function theme(id) { return THEMES[id] || null; }
+
+  var Data = { THEMES: THEMES, DEST: DEST, GENERIC_THEMES: GENERIC_THEMES, get: get, theme: theme };
+  if (typeof module !== "undefined" && module.exports) module.exports = Data;
+  root.LL_DESTINATIONS = Data;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
 /* brand.js — visual brand system for LoungeLens.
  * Maps issuers to brand colors + logo initials, and networks to gradients,
  * so every card renders as real card-art (gradient + issuer badge + network
@@ -7438,6 +7527,116 @@ window.LL_HOLIDAYS = {
 </script>
   <script>
 /*
+ * TripLens — itinerary planner. Builds a paced, themed day-by-day plan for a
+ * destination. Pure, no DOM, no clock, Node-testable.
+ *
+ * Given a destination + number of days, it produces day slots like:
+ *   day 1 (arrival):  settle in, evening: local food
+ *   day 2 (full):     morning beach, afternoon old-town walk, evening nightlife
+ *   ...
+ *   last (departure): morning checkout, leave time free for the airport
+ * Each "explore" slot is a CATEGORY (beach / old-town / food) linked to a REAL
+ * live Google Maps search for that category in that city.
+ *
+ * HONESTY MODEL: this never invents a specific venue, a price, an opening time,
+ * or a "must-do". It structures your days around what the place is genuinely
+ * known for (common knowledge) and points each slot at a real live search. The
+ * caller turns these slots into itinerary items; the dates + booking links still
+ * come from the user's real trip + the real booking sites.
+ *
+ * Pure + deterministic: the theme rotation is index-driven, no randomness, so the
+ * same (destination, days) always yields the same plan.
+ */
+(function (root) {
+  "use strict";
+
+  function mapsSearch(query, city) {
+    var q = String(query || "").replace(/\{CITY\}/g, city || "");
+    return "https://www.google.com/maps/search/" + encodeURIComponent(q);
+  }
+
+  // pick the destination's theme list (curated) or the honest generic fallback.
+  function themesFor(destData, code) {
+    if (destData && destData.get) {
+      var d = destData.get(code);
+      if (d && d.themes && d.themes.length) return { themes: d.themes, city: d.city, knownFor: d.knownFor, vibe: d.vibe, curated: true };
+    }
+    return { themes: (destData && destData.GENERIC_THEMES) || ["landmark", "food", "market"], city: null, knownFor: null, vibe: null, curated: false };
+  }
+
+  // build the plan. args:
+  //   dest = { code, city }  (city falls back to curated city or code)
+  //   days = total day count (>=1). arrival = day 0, departure = last day.
+  //   destData = LL_DESTINATIONS (injected so the engine stays decoupled/testable)
+  // returns { city, knownFor, vibe, curated, days: [ { dayIndex, role, slots:[ {time,kind,icon,title,query,link,theme} ] } ] }
+  function buildPlan(dest, days, destData) {
+    dest = dest || {};
+    days = Math.max(1, days | 0);
+    var info = themesFor(destData, dest.code);
+    var city = dest.city || info.city || dest.code || "your destination";
+    var THEME_TIMES = ["10:00", "14:30", "19:30"]; // morning / afternoon / evening
+    var themeList = info.themes.slice();
+    var ti = 0; // rotating index so themes don't repeat until exhausted
+    function nextTheme() {
+      if (!themeList.length) return null;
+      var id = themeList[ti % themeList.length]; ti++;
+      var t = destData && destData.theme ? destData.theme(id) : null;
+      return t ? { id: id, t: t } : null;
+    }
+    function slot(time, theme) {
+      if (!theme) return null;
+      var q = String(theme.t.q || "").replace(/\{CITY\}/g, city);
+      return {
+        time: time, kind: theme.t.kind || "activity", icon: theme.t.icon || "•",
+        title: theme.t.label + " · " + city, query: q, link: mapsSearch(theme.t.q, city), theme: theme.id,
+      };
+    }
+
+    var out = [];
+    for (var i = 0; i < days; i++) {
+      var role = i === 0 ? "arrival" : (i === days - 1 && days > 1 ? "departure" : "full");
+      var slots = [];
+      if (role === "arrival") {
+        // light first day: settle, then one easy evening idea. Prefer a food theme
+        // if the destination has one near the front, but ALWAYS advance the shared
+        // rotation pointer so that theme isn't served again on day 2.
+        slots.push({ time: "15:00", kind: "note", icon: "🧳", title: "Settle in at " + city, query: null, link: null, theme: null });
+        var ev = nextTheme();
+        var s = slot("19:30", ev); if (s) slots.push(s);
+      } else if (role === "departure") {
+        slots.push({ time: "10:00", kind: "note", icon: "🧳", title: "Pack up + check out", query: null, link: null, theme: null });
+        // a light final-morning option before the airport
+        var m = nextTheme(); var sm = slot("11:30", m); if (sm) { sm.time = "11:30"; sm.title = "Optional: " + sm.title; slots.push(sm); }
+      } else {
+        // a full day: up to 3 paced slots
+        for (var k = 0; k < THEME_TIMES.length; k++) {
+          var s2 = slot(THEME_TIMES[k], nextTheme());
+          if (s2) slots.push(s2);
+        }
+      }
+      out.push({ dayIndex: i, role: role, slots: slots });
+    }
+
+    return { city: city, knownFor: info.knownFor, vibe: info.vibe, curated: info.curated, days: out };
+  }
+
+  // a one-line summary the UI can show before the user commits.
+  function summarize(plan) {
+    if (!plan) return "";
+    var slotCount = plan.days.reduce(function (n, d) { return n + d.slots.filter(function (s) { return s.theme; }).length; }, 0);
+    var base = plan.days.length + (plan.days.length === 1 ? " day" : " days") + " in " + plan.city;
+    if (plan.knownFor) return base + ", shaped around " + plan.knownFor + " (" + slotCount + " ideas)";
+    return base + " (" + slotCount + " ideas to fill in)";
+  }
+
+  var Engine = { mapsSearch: mapsSearch, themesFor: themesFor, buildPlan: buildPlan, summarize: summarize };
+  if (typeof module !== "undefined" && module.exports) module.exports = Engine;
+  root.LL_PLANNER = Engine;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
  * LoungeLens — self-improvement module (rung 1: free, client-side, honest).
  *
  * WHAT THIS IS (and is NOT):
@@ -7950,6 +8149,7 @@ window.LL_HOLIDAYS = {
   const READY = window.LL_READINESS;
   const XP = window.LL_EXPLORE;
   const SPLIT = window.LL_SPLIT;
+  const PLANNER = window.LL_PLANNER, DESTS = window.LL_DESTINATIONS;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -10303,6 +10503,7 @@ window.LL_HOLIDAYS = {
       <button class="act ghost mini" id="itin-back">← All trips</button>
       <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
       <div class="itin-tools">
+        <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
         <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
         <button class="act ghost mini" id="itin-export">⬇️ Share</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
@@ -10570,6 +10771,33 @@ window.LL_HOLIDAYS = {
       a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics";
       a.click(); URL.revokeObjectURL(a.href);
       toast("Calendar file saved — open it to add your trip to your calendar.");
+    };
+    // ✨ Plan my days: fill the trip's days with a paced, themed set of ideas built
+    // from what the destination is genuinely known for. Each idea links to a real
+    // maps search — never an invented venue or price. Augments, doesn't clobber.
+    if ($("#itin-autoplan")) $("#itin-autoplan").onclick = () => {
+      if (!PLANNER || !DESTS) return;
+      const dest = TE ? TE.resolvePlace(t.to, FLIGHTS) : null;
+      const plan = PLANNER.buildPlan({ code: dest && dest.code, city: (dest && dest.city) || t.to }, t.days.length, DESTS);
+      let added = 0;
+      plan.days.forEach((pd) => {
+        const day = t.days[pd.dayIndex]; if (!day) return;
+        pd.slots.forEach((sl) => {
+          if (!sl.theme) return; // skip the settle/checkout notes — the seed covers those
+          // don't double up: skip if this day already has an item with the same title
+          const dupe = (day.items || []).some((it) => it.title === sl.title);
+          if (dupe) return;
+          IT.addItem(t, pd.dayIndex, { time: sl.time, kind: sl.kind, title: sl.title, note: "Tap to open the live map search", link: sl.link }, countAllItemsSeed());
+          added++;
+        });
+      });
+      save(); renderTrips();
+      if (added > 0) {
+        const where = plan.knownFor ? (" around " + plan.knownFor) : "";
+        toast("Filled " + added + " idea" + (added > 1 ? "s" : "") + " across your days" + where + ". Edit freely.");
+      } else {
+        toast("Your days already look full — cleared nothing, added nothing.");
+      }
     };
     // add item
     $$(".ia-add").forEach((b) => b.onclick = () => {

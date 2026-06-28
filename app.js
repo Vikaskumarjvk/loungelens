@@ -17,6 +17,7 @@
   const READY = window.LL_READINESS;
   const XP = window.LL_EXPLORE;
   const SPLIT = window.LL_SPLIT;
+  const PLANNER = window.LL_PLANNER, DESTS = window.LL_DESTINATIONS;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -2370,6 +2371,7 @@
       <button class="act ghost mini" id="itin-back">← All trips</button>
       <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
       <div class="itin-tools">
+        <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
         <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
         <button class="act ghost mini" id="itin-export">⬇️ Share</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
@@ -2637,6 +2639,33 @@
       a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".ics";
       a.click(); URL.revokeObjectURL(a.href);
       toast("Calendar file saved — open it to add your trip to your calendar.");
+    };
+    // ✨ Plan my days: fill the trip's days with a paced, themed set of ideas built
+    // from what the destination is genuinely known for. Each idea links to a real
+    // maps search — never an invented venue or price. Augments, doesn't clobber.
+    if ($("#itin-autoplan")) $("#itin-autoplan").onclick = () => {
+      if (!PLANNER || !DESTS) return;
+      const dest = TE ? TE.resolvePlace(t.to, FLIGHTS) : null;
+      const plan = PLANNER.buildPlan({ code: dest && dest.code, city: (dest && dest.city) || t.to }, t.days.length, DESTS);
+      let added = 0;
+      plan.days.forEach((pd) => {
+        const day = t.days[pd.dayIndex]; if (!day) return;
+        pd.slots.forEach((sl) => {
+          if (!sl.theme) return; // skip the settle/checkout notes — the seed covers those
+          // don't double up: skip if this day already has an item with the same title
+          const dupe = (day.items || []).some((it) => it.title === sl.title);
+          if (dupe) return;
+          IT.addItem(t, pd.dayIndex, { time: sl.time, kind: sl.kind, title: sl.title, note: "Tap to open the live map search", link: sl.link }, countAllItemsSeed());
+          added++;
+        });
+      });
+      save(); renderTrips();
+      if (added > 0) {
+        const where = plan.knownFor ? (" around " + plan.knownFor) : "";
+        toast("Filled " + added + " idea" + (added > 1 ? "s" : "") + " across your days" + where + ". Edit freely.");
+      } else {
+        toast("Your days already look full — cleared nothing, added nothing.");
+      }
     };
     // add item
     $$(".ia-add").forEach((b) => b.onclick = () => {
