@@ -2425,10 +2425,11 @@
       <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
       <div class="itin-tools">
         <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
+        <button class="act mini" id="itin-share">📤 Share plan</button>
         <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
-        <button class="act ghost mini" id="itin-export">⬇️ Share</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
+        <button class="act ghost mini" id="itin-export">💾 Backup file</button>
       </div>
     </div>`;
 
@@ -2671,12 +2672,25 @@
     if ($("#itin-back")) $("#itin-back").onclick = () => { state.openTripId = null; save(); renderTrips(); };
     if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => { const p = $("#itin-pack"); if (p) p.scrollIntoView({ behavior: "smooth" }); };
     if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => { const p = $("#itin-budget"); if (p) p.scrollIntoView({ behavior: "smooth" }); };
+    // 📤 Share plan: open the phone's normal share sheet with a clean readable
+    // plan (real links included), or copy it on desktop. Pure text, the user's
+    // own data — nothing fabricated.
+    if ($("#itin-share")) $("#itin-share").onclick = async () => {
+      const text = IT.shareText(t);
+      try {
+        if (navigator.share) { await navigator.share({ title: (t.title || "My trip") + " plan", text }); return; }
+      } catch (e) { /* user cancelled the share sheet — fall through to copy */ }
+      try { await navigator.clipboard.writeText(text); toast("Plan copied — paste it anywhere to share."); }
+      catch (e2) { toast("Couldn't copy automatically. Use Backup file instead, or long-press to select."); }
+    };
+    // 💾 Backup file: download the trip as a JSON file you can re-import later
+    // or send to someone who also uses TripLens.
     if ($("#itin-export")) $("#itin-export").onclick = () => {
       const blob = new Blob([IT.exportTrip(t)], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
       a.download = "triplens-" + (t.title || "trip").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
       a.click(); URL.revokeObjectURL(a.href);
-      toast("Trip exported — share the file.");
+      toast("Backup file saved. Import it on another device, or keep it as a copy.");
     };
     // add the whole itinerary to your phone/desktop calendar as a standard .ics
     if ($("#itin-calendar")) $("#itin-calendar").onclick = () => {

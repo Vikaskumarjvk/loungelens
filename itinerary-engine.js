@@ -251,6 +251,41 @@
   var KIND_PREFIX = { flight: "Flight: ", hotel: "Hotel: ", lounge: "Lounge: ", cab: "Cab: ", food: "Food: ", activity: "Activity: ", note: "" };
   var KIND_WORD = { flight: "Flight", hotel: "Hotel", lounge: "Lounge visit", cab: "Cab / transfer", food: "Meal", activity: "Activity", note: "Note" };
 
+  // ---- human-readable share text -----------------------------------------
+  // Turn the trip into a clean plain-text plan a normal person can read in
+  // WhatsApp / Messages / email. Pure: no clock, no DOM. It is ENTIRELY the
+  // user's own plan — every line comes from items they kept, every link is the
+  // real search link already stored on the item. Nothing is fabricated: no
+  // price, no fare, no invented venue. The footer makes the honesty explicit.
+  function shareText(trip) {
+    if (!trip || !trip.days) return "";
+    var title = trip.title || ((trip.from || "?") + " to " + (trip.to || "?"));
+    var lines = [];
+    lines.push(title + " — my trip plan");
+    var meta = [];
+    if (trip.depart) meta.push(dayLabel(trip.depart) + (trip.nights ? " for " + trip.nights + " night" + (trip.nights > 1 ? "s" : "") : ""));
+    if (trip.adults) meta.push(trip.adults + " traveller" + (trip.adults > 1 ? "s" : ""));
+    if (meta.length) lines.push(meta.join(" · "));
+    lines.push("");
+    trip.days.forEach(function (day, di) {
+      var head = "Day " + (di + 1) + (day.date ? " — " + dayLabel(day.date) : "");
+      lines.push(head);
+      var items = (day.items || []);
+      if (!items.length) { lines.push("  (nothing planned yet)"); lines.push(""); return; }
+      items.forEach(function (it) {
+        var bits = [];
+        if (it.time) bits.push(it.time);
+        bits.push((KIND_ICON[it.kind] || "•") + " " + (it.title || KIND_WORD[it.kind] || "Plan"));
+        lines.push("  " + bits.join("  "));
+        if (it.link) lines.push("    " + it.link);
+      });
+      lines.push("");
+    });
+    lines.push("Planned with TripLens. Prices and bookings open on the real sites — nothing here is made up.");
+    return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  }
+  var KIND_ICON = { flight: "✈️", hotel: "🏨", lounge: "🛋️", cab: "🚕", food: "🍽️", activity: "🎟️", note: "📝" };
+
   // ---- export / import (share a trip as a portable code) ------------------
   function exportTrip(trip) { return JSON.stringify({ kind: "triplens-itinerary", v: 1, trip }); }
   function importTrip(str) {
@@ -264,7 +299,7 @@
   const Engine = {
     parseISO, addDays, dayLabel, mkId,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
-    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS,
+    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS, shareText,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;
