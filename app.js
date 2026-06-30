@@ -2490,8 +2490,9 @@
     const pk = IT.packingList(t, flags);
     const byCat = {};
     pk.forEach((p) => { (byCat[p.cat] = byCat[p.cat] || []).push(p); });
-    const packing = `<div class="section-h" id="itin-pack">🎒 Packing checklist</div>
-      <div class="pack-flags">
+    const packDone = pk.filter((p) => t.packing && t.packing.checked && t.packing.checked[IT.packKey(p)]).length;
+    const packSummary = `🎒 Packing checklist <span class="tool-tag">${packDone}/${pk.length} packed</span>`;
+    const packBody = `<div class="pack-flags">
         ${[["intl", "✈️ International"], ["cold", "🧥 Cold"], ["beach", "🏖️ Beach"], ["business", "💼 Business"], ["monsoon", "🌧️ Monsoon"]].map(([k, l]) =>
           `<label class="chip toggle"><input type="checkbox" class="pack-flag" data-flag="${k}" ${flags[k] ? "checked" : ""} /> ${l}</label>`).join("")}
       </div>
@@ -2500,9 +2501,24 @@
           return `<label class="pack-item ${on ? "done" : ""}"><input type="checkbox" class="pack-chk" data-key="${esc(key)}" ${on ? "checked" : ""} /> ${esc(p.item)}</label>`; }).join("")
       }</div>`).join("")}
       <p class="card-sub" style="margin-top:8px;">Tick the trip flags above to tailor the list. Checks save to this trip.</p>`;
+    const packing = toolSection("itin-pack", packSummary, packBody, false);
 
-    return head + destSnapshot(t) + readinessBlock(t) + `<div class="itin-days">${days}</div>` + budgetBlock(t) + groupSplitBlock(t) + packing +
+    // The day-by-day plan is what a newbie wants to see first. The power tools
+    // (readiness, budget, group split, packing) are wrapped in collapsible
+    // <details> so they're present + one tap away, but not 5 screens of walls
+    // you scroll past before your itinerary. A short summary stays visible when
+    // each is folded, so nothing important is hidden.
+    return head + destSnapshot(t) + `<div class="itin-days">${days}</div>` +
+      readinessBlock(t) + budgetBlock(t) + groupSplitBlock(t) + packing +
       `<div class="honesty-note" style="margin-top:14px;">Your itinerary, budget + links are saved on this device only. The links open the real booking sites. Every rupee in the budget is a number you typed — TripLens never guesses a price. Export to share the whole plan.</div>`;
+  }
+  // wrap a tool block in a collapsible section. `id` anchors the jump buttons;
+  // `summaryHtml` is the always-visible header; `open` defaults the panel open.
+  function toolSection(id, summaryHtml, bodyHtml, open) {
+    return `<details class="tool-sec" id="${id}"${open ? " open" : ""}>
+      <summary class="tool-sum">${summaryHtml}</summary>
+      <div class="tool-body">${bodyHtml}</div>
+    </details>`;
   }
 
   // a short, honest orientation at the top of an open trip: what the place is
@@ -2603,11 +2619,12 @@
       ? `<span class="chip ok">✅ ready to go</span>`
       : `<span class="card-sub">${p.done}/${p.total} done</span>`;
 
-    return `<div class="section-h" id="itin-ready">🧳 Trip readiness ${countdown}</div>
-      <div class="rd-bar"><div class="rd-bar-fill" style="width:${p.pct}%;"></div></div>
+    const summary = `🧳 Trip readiness ${countdown} <span class="tool-tag">${readyTag}</span>`;
+    const body = `<div class="rd-bar"><div class="rd-bar-fill" style="width:${p.pct}%;"></div></div>
       <div class="rd-meta">${readyTag}${c.international ? ` <span class="chip">🌍 international</span>` : ""}</div>
       ${groups}
       <p class="card-sub" style="margin-top:8px;">This is a checklist, not a rule. On visas I only point you to the official source — your passport + destination decide it, not me. Checks save to this trip.</p>`;
+    return toolSection("itin-ready", summary, body, false);
   }
 
   // budget tracker block for a trip (your numbers only, never fabricated)
@@ -2667,8 +2684,9 @@
     const dayOpts = `<option value="">unscheduled</option>` + t.days.map((d, i) => `<option value="${i}">Day ${i + 1}${d.date ? " · " + IT.dayLabel(d.date) : ""}</option>`).join("");
     const catSelOpts = BUD.CATEGORIES.map((c) => `<option value="${c.id}">${c.icon} ${c.label}</option>`).join("");
 
-    return `<div class="section-h" id="itin-budget">💰 Budget</div>
-      <div class="bud-set">
+    const spentGlance = s.spent > 0 ? ` <span class="tool-tag">${BUD.fmt(s.spent, b.currency)} logged</span>` : "";
+    const summary = `💰 Budget${spentGlance}`;
+    const body = `<div class="bud-set">
         <label class="tp-lbl">Currency <select class="cmp-select" id="bud-cur" aria-label="Currency">${curOpts}</select></label>
         <label class="tp-lbl">Total budget <input class="fb-input" id="bud-total" type="number" min="0" placeholder="optional cap (${sym})" value="${b.total != null ? b.total : ""}" aria-label="Total budget" /></label>
       </div>
@@ -2683,6 +2701,7 @@
         <button class="act mini" id="bud-add-btn">Log</button>
       </div>
       <div class="bud-spends">${spendsList}</div>`;
+    return toolSection("itin-budget", summary, body, false);
   }
 
   // group split block: travellers + who-owes-whom. Pure arithmetic on the spends
@@ -2692,11 +2711,12 @@
     const b = BUD.ensure(t);
     const on = !!t.groupMode;
     const cur = b.currency;
-    // header + toggle is always shown so people can turn the feature on/off
-    const head = `<div class="section-h" id="itin-split">👥 Split with your group
-      <label class="chip toggle" style="font-weight:400;"><input type="checkbox" id="split-toggle" ${on ? "checked" : ""}/> group trip</label></div>`;
+    // the on/off toggle lives in the body now (a <summary> shouldn't hold an
+    // interactive control — clicking it would also toggle the panel).
+    const toggle = `<label class="chip toggle" style="font-weight:400;"><input type="checkbox" id="split-toggle" ${on ? "checked" : ""}/> group trip</label>`;
     if (!on) {
-      return head + `<p class="card-sub">Travelling with others? Turn this on to track who paid for what and see who owes whom at the end — split evenly to the paisa, no rounding lost. Every number is still one you typed.</p>`;
+      const summary = `👥 Split with your group <span class="tool-tag">off</span>`;
+      return toolSection("itin-split", summary, toggle + `<p class="card-sub" style="margin-top:8px;">Travelling with others? Turn this on to track who paid for what and see who owes whom at the end — split evenly to the paisa, no rounding lost. Every number is still one you typed.</p>`, false);
     }
     const ms = SPLIT.seedMembers(t, countAllItemsSeed());
     const o = SPLIT.overview(t);
@@ -2734,10 +2754,12 @@
       ? `<div class="card-sub" style="margin-top:8px;">${o.unattributedCount} spend${o.unattributedCount > 1 ? "s" : ""} (${BUD.fmt(o.unattributedTotal, cur)}) ${o.unattributedCount > 1 ? "have" : "has"} no "paid by" set yet, so ${o.unattributedCount > 1 ? "they're" : "it's"} not in the settlement. Tag the payer above to include ${o.unattributedCount > 1 ? "them" : "it"}.</div>`
       : "";
 
-    return head +
-      `<div class="sp-members">${memberRows}${addMember}</div>` +
+    const summary = `👥 Split with your group <span class="tool-tag">${ms.length} traveller${ms.length > 1 ? "s" : ""}</span>`;
+    const body = toggle +
+      `<div class="sp-members" style="margin-top:8px;">${memberRows}${addMember}</div>` +
       `<div class="sp-settle">${settleHtml}${unattr}</div>` +
       `<p class="card-sub" style="margin-top:8px;">Each spend splits evenly across everyone by default; set a "paid by" on each spend above in the budget list. Shares are computed to the paisa so they add back to the exact total — I never invent or lose a rupee.</p>`;
+    return toolSection("itin-split", summary, body, on);
   }
 
   function wireItinerary(t) {
@@ -2759,8 +2781,11 @@
       toast(shrank ? "Dates updated. Nothing lost — plans from the dropped days moved onto your last day." : "Dates updated across all your days.");
     };
     if ($("#itin-back")) $("#itin-back").onclick = () => { state.openTripId = null; save(); renderTrips(); };
-    if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => { const p = $("#itin-pack"); if (p) p.scrollIntoView({ behavior: "smooth" }); };
-    if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => { const p = $("#itin-budget"); if (p) p.scrollIntoView({ behavior: "smooth" }); };
+    // the jump buttons now open the (collapsed) tool section before scrolling
+    // so you land on it expanded, not on a folded header.
+    const jumpTo = (sel) => { const p = $(sel); if (!p) return; if (p.tagName === "DETAILS") p.open = true; p.scrollIntoView({ behavior: "smooth" }); };
+    if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => jumpTo("#itin-pack");
+    if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => jumpTo("#itin-budget");
     // 📤 Share plan: open the phone's normal share sheet with a clean readable
     // plan (real links included), or copy it on desktop. Pure text, the user's
     // own data — nothing fabricated.
