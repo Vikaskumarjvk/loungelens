@@ -1277,6 +1277,21 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .ds-map { flex-shrink: 0; white-space: nowrap; align-self: flex-start; }
 @media (max-width: 560px) { .dest-snap { flex-direction: column; } .ds-vibe { display: inline-block; margin-top: 4px; margin-left: 0; } }
 
+/* --- Edit dates: make the trip date line a real control --- */
+.itin-dates-btn {
+  display: inline-block; background: none; border: none; padding: 2px 0; margin: 0;
+  font: inherit; color: var(--dim); cursor: pointer; text-align: left;
+}
+.itin-dates-btn:hover .idb-edit { color: var(--accent); }
+.itin-dates-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.idb-edit { font-size: 12px; color: var(--accent); margin-left: 6px; white-space: nowrap; }
+.itin-dates-edit {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%;
+  margin-top: 10px; padding: 12px 14px;
+  background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.itin-dates-edit .ed-note { flex-basis: 100%; line-height: 1.4; }
+
 </style>
 </head>
 <body>
@@ -5770,6 +5785,36 @@ window.LL_HOLIDAYS = {
       return at < bt ? -1 : at > bt ? 1 : 0;
     });
   }
+
+  // reschedule a trip: change the start date and/or number of nights, re-dating
+  // every day from the new start. Day count = nights + 1 (arrival .. departure).
+  // NON-DESTRUCTIVE: if the trip shrinks, items on the dropped days are MOVED to
+  // the new last day rather than deleted — a date change never silently loses a
+  // plan the user made. Mutates + returns the trip. Pure (no clock).
+  function reschedule(trip, newDepart, newNights) {
+    if (!trip || !trip.days) return trip;
+    const nights = Math.max(1, +newNights || trip.nights || 1);
+    const wantDays = nights + 1;
+    const depart = parseISO(newDepart) ? newDepart : (trip.depart || "");
+    // shrink: fold dropped days' items into what will become the last kept day
+    if (trip.days.length > wantDays) {
+      const lastKept = trip.days[wantDays - 1];
+      for (let i = wantDays; i < trip.days.length; i++) {
+        (trip.days[i].items || []).forEach((it) => lastKept.items.push(it));
+      }
+      trip.days = trip.days.slice(0, wantDays);
+      sortDay(lastKept);
+    }
+    // grow: append empty days
+    while (trip.days.length < wantDays) {
+      trip.days.push({ date: null, items: [] });
+    }
+    // re-date every day from the new start (or clear dates if no valid start)
+    trip.days.forEach((day, i) => { day.date = depart ? addDays(depart, i) : null; });
+    trip.depart = depart;
+    trip.nights = nights;
+    return trip;
+  }
   function countItems(trip) { return (trip.days || []).reduce((n, d) => n + d.items.length, 0); }
 
   // ---- seed an itinerary from a Trip-Optimizer plan ----------------------
@@ -5974,7 +6019,7 @@ window.LL_HOLIDAYS = {
   const Engine = {
     parseISO, addDays, dayLabel, mkId,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
-    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS, shareText,
+    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS, shareText, reschedule,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;
@@ -9650,7 +9695,7 @@ window.LL_HOLIDAYS = {
     autoWeatherFlags(t);
     showView("trips", true);
     renderTrips();
-    toast("Trip to " + spec.city + " ready. The dates are a guess — tap any day to change them.");
+    toast("Trip to " + spec.city + " ready. The dates are a guess — tap “edit dates” up top to change them.");
   }
 
   function renderPlanStats() {
@@ -10742,7 +10787,9 @@ window.LL_HOLIDAYS = {
     const s = IT.tripSummary(t);
     const head = `<div class="itin-head">
       <button class="act ghost mini" id="itin-back">← All trips</button>
-      <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
+      <div class="itin-title"><b>${esc(t.title)}</b>
+        <button class="itin-dates-btn" id="itin-dates-btn" aria-expanded="false" aria-controls="itin-dates-edit">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""} <span class="idb-edit">✏️ edit dates</span></button>
+      </div>
       <div class="itin-tools">
         <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
         <button class="act mini" id="itin-share">📤 Share plan</button>
@@ -10750,6 +10797,12 @@ window.LL_HOLIDAYS = {
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
         <button class="act ghost mini" id="itin-export">💾 Backup file</button>
+      </div>
+      <div class="itin-dates-edit" id="itin-dates-edit" hidden>
+        <label class="tp-lbl">Start <input class="fb-input" id="ed-depart" type="date" value="${esc(t.depart || "")}" aria-label="Trip start date" /></label>
+        <label class="tp-lbl">Nights <input class="fb-input tp-num" id="ed-nights" type="number" min="1" max="60" value="${t.nights || 1}" aria-label="Nights" /></label>
+        <button class="act mini" id="ed-apply">Update dates</button>
+        <span class="card-sub ed-note">Changing this re-dates every day. Nothing you planned is lost — if you shorten the trip, those plans move to the last day.</span>
       </div>
     </div>`;
 
@@ -11025,6 +11078,22 @@ window.LL_HOLIDAYS = {
 
   function wireItinerary(t) {
     fillDestWeather(t); // load the live forecast into the destination snapshot
+    // ✏️ Edit dates: toggle the inline editor, then reschedule (non-destructive)
+    if ($("#itin-dates-btn")) $("#itin-dates-btn").onclick = () => {
+      const box = $("#itin-dates-edit"); if (!box) return;
+      const open = box.hidden; box.hidden = !open;
+      $("#itin-dates-btn").setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) { const di = $("#ed-depart"); if (di) di.focus(); }
+    };
+    if ($("#ed-apply")) $("#ed-apply").onclick = () => {
+      const depart = ($("#ed-depart") && $("#ed-depart").value) || t.depart || "";
+      const nights = ($("#ed-nights") && +$("#ed-nights").value) || t.nights || 1;
+      const daysBefore = t.days.length;
+      IT.reschedule(t, depart, nights);
+      const shrank = t.days.length < daysBefore; // fewer days -> plans were folded onto the last day
+      save(); autoWeatherFlags(t); renderTrips();
+      toast(shrank ? "Dates updated. Nothing lost — plans from the dropped days moved onto your last day." : "Dates updated across all your days.");
+    };
     if ($("#itin-back")) $("#itin-back").onclick = () => { state.openTripId = null; save(); renderTrips(); };
     if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => { const p = $("#itin-pack"); if (p) p.scrollIntoView({ behavior: "smooth" }); };
     if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => { const p = $("#itin-budget"); if (p) p.scrollIntoView({ behavior: "smooth" }); };

@@ -1330,7 +1330,7 @@
     autoWeatherFlags(t);
     showView("trips", true);
     renderTrips();
-    toast("Trip to " + spec.city + " ready. The dates are a guess — tap any day to change them.");
+    toast("Trip to " + spec.city + " ready. The dates are a guess — tap “edit dates” up top to change them.");
   }
 
   function renderPlanStats() {
@@ -2422,7 +2422,9 @@
     const s = IT.tripSummary(t);
     const head = `<div class="itin-head">
       <button class="act ghost mini" id="itin-back">← All trips</button>
-      <div class="itin-title"><b>${esc(t.title)}</b><span class="card-sub">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</span></div>
+      <div class="itin-title"><b>${esc(t.title)}</b>
+        <button class="itin-dates-btn" id="itin-dates-btn" aria-expanded="false" aria-controls="itin-dates-edit">${esc(s.dateRange)} · ${s.adults} traveller${s.adults > 1 ? "s" : ""} <span class="idb-edit">✏️ edit dates</span></button>
+      </div>
       <div class="itin-tools">
         <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
         <button class="act mini" id="itin-share">📤 Share plan</button>
@@ -2430,6 +2432,12 @@
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
         <button class="act ghost mini" id="itin-export">💾 Backup file</button>
+      </div>
+      <div class="itin-dates-edit" id="itin-dates-edit" hidden>
+        <label class="tp-lbl">Start <input class="fb-input" id="ed-depart" type="date" value="${esc(t.depart || "")}" aria-label="Trip start date" /></label>
+        <label class="tp-lbl">Nights <input class="fb-input tp-num" id="ed-nights" type="number" min="1" max="60" value="${t.nights || 1}" aria-label="Nights" /></label>
+        <button class="act mini" id="ed-apply">Update dates</button>
+        <span class="card-sub ed-note">Changing this re-dates every day. Nothing you planned is lost — if you shorten the trip, those plans move to the last day.</span>
       </div>
     </div>`;
 
@@ -2705,6 +2713,22 @@
 
   function wireItinerary(t) {
     fillDestWeather(t); // load the live forecast into the destination snapshot
+    // ✏️ Edit dates: toggle the inline editor, then reschedule (non-destructive)
+    if ($("#itin-dates-btn")) $("#itin-dates-btn").onclick = () => {
+      const box = $("#itin-dates-edit"); if (!box) return;
+      const open = box.hidden; box.hidden = !open;
+      $("#itin-dates-btn").setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) { const di = $("#ed-depart"); if (di) di.focus(); }
+    };
+    if ($("#ed-apply")) $("#ed-apply").onclick = () => {
+      const depart = ($("#ed-depart") && $("#ed-depart").value) || t.depart || "";
+      const nights = ($("#ed-nights") && +$("#ed-nights").value) || t.nights || 1;
+      const daysBefore = t.days.length;
+      IT.reschedule(t, depart, nights);
+      const shrank = t.days.length < daysBefore; // fewer days -> plans were folded onto the last day
+      save(); autoWeatherFlags(t); renderTrips();
+      toast(shrank ? "Dates updated. Nothing lost — plans from the dropped days moved onto your last day." : "Dates updated across all your days.");
+    };
     if ($("#itin-back")) $("#itin-back").onclick = () => { state.openTripId = null; save(); renderTrips(); };
     if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => { const p = $("#itin-pack"); if (p) p.scrollIntoView({ behavior: "smooth" }); };
     if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => { const p = $("#itin-budget"); if (p) p.scrollIntoView({ behavior: "smooth" }); };

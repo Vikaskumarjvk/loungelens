@@ -95,6 +95,36 @@
       return at < bt ? -1 : at > bt ? 1 : 0;
     });
   }
+
+  // reschedule a trip: change the start date and/or number of nights, re-dating
+  // every day from the new start. Day count = nights + 1 (arrival .. departure).
+  // NON-DESTRUCTIVE: if the trip shrinks, items on the dropped days are MOVED to
+  // the new last day rather than deleted — a date change never silently loses a
+  // plan the user made. Mutates + returns the trip. Pure (no clock).
+  function reschedule(trip, newDepart, newNights) {
+    if (!trip || !trip.days) return trip;
+    const nights = Math.max(1, +newNights || trip.nights || 1);
+    const wantDays = nights + 1;
+    const depart = parseISO(newDepart) ? newDepart : (trip.depart || "");
+    // shrink: fold dropped days' items into what will become the last kept day
+    if (trip.days.length > wantDays) {
+      const lastKept = trip.days[wantDays - 1];
+      for (let i = wantDays; i < trip.days.length; i++) {
+        (trip.days[i].items || []).forEach((it) => lastKept.items.push(it));
+      }
+      trip.days = trip.days.slice(0, wantDays);
+      sortDay(lastKept);
+    }
+    // grow: append empty days
+    while (trip.days.length < wantDays) {
+      trip.days.push({ date: null, items: [] });
+    }
+    // re-date every day from the new start (or clear dates if no valid start)
+    trip.days.forEach((day, i) => { day.date = depart ? addDays(depart, i) : null; });
+    trip.depart = depart;
+    trip.nights = nights;
+    return trip;
+  }
   function countItems(trip) { return (trip.days || []).reduce((n, d) => n + d.items.length, 0); }
 
   // ---- seed an itinerary from a Trip-Optimizer plan ----------------------
@@ -299,7 +329,7 @@
   const Engine = {
     parseISO, addDays, dayLabel, mkId,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
-    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS, shareText,
+    seedFromPlan, packingList, packKey, tripSummary, exportTrip, importTrip, toICS, shareText, reschedule,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;

@@ -1252,3 +1252,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .ds-wx { font-size: 13.5px; }
 .ds-map { flex-shrink: 0; white-space: nowrap; align-self: flex-start; }
 @media (max-width: 560px) { .dest-snap { flex-direction: column; } .ds-vibe { display: inline-block; margin-top: 4px; margin-left: 0; } }
+
+/* --- Edit dates: make the trip date line a real control --- */
+.itin-dates-btn {
+  display: inline-block; background: none; border: none; padding: 2px 0; margin: 0;
+  font: inherit; color: var(--dim); cursor: pointer; text-align: left;
+}
+.itin-dates-btn:hover .idb-edit { color: var(--accent); }
+.itin-dates-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.idb-edit { font-size: 12px; color: var(--accent); margin-left: 6px; white-space: nowrap; }
+.itin-dates-edit {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%;
+  margin-top: 10px; padding: 12px 14px;
+  background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.itin-dates-edit .ed-note { flex-basis: 100%; line-height: 1.4; }
