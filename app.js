@@ -19,6 +19,7 @@
   const SPLIT = window.LL_SPLIT;
   const PLANNER = window.LL_PLANNER, DESTS = window.LL_DESTINATIONS;
   const QS = window.LL_QUICKSTART;
+  const SEASON = window.LL_SEASON;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -2502,10 +2503,25 @@
     const city = (d && d.city) || t.to || "your destination";
     if (!d || (!d.knownFor && !d.vibe)) return ""; // only show when we have honest character to show
     const mapsUrl = "https://www.google.com/maps/search/" + encodeURIComponent("top things to do in " + city);
+    // honest seasonal context: a month nudge if the chosen start hits a known
+    // climate window, else a gentle "easier weather around X" line. Always paired
+    // with a real "check the season" link. Asserts nothing for unknown places.
+    let seasonHtml = "";
+    if (SEASON && code) {
+      const month = (t.depart && /^\d{4}-(\d{2})-\d{2}$/.test(t.depart)) ? +t.depart.slice(5, 7) : null;
+      const a = month ? SEASON.assess(code, month, city) : null;
+      const sum = SEASON.summary(code, city);
+      if (a && a.caution) {
+        seasonHtml = `<div class="ds-season caution">🗓️ Heads up: ${esc(a.caution.message)} <a class="fl-verify" href="${esc(a.verifyLink)}" target="_blank" rel="noopener">check the season ↗</a></div>`;
+      } else if (sum && sum.line) {
+        seasonHtml = `<div class="ds-season">🗓️ ${esc(city)} is ${esc(sum.line)}. <a class="fl-verify" href="${esc(sum.verifyLink)}" target="_blank" rel="noopener">check the season ↗</a></div>`;
+      }
+    }
     return `<div class="dest-snap">
       <div class="ds-main">
         <div class="ds-city">📍 ${esc(city)}${d.vibe ? ` <span class="ds-vibe">${esc(d.vibe)}</span>` : ""}</div>
         ${d.knownFor ? `<div class="ds-known">Known for ${esc(d.knownFor)}.</div>` : ""}
+        ${seasonHtml}
         <div class="ds-weather" id="ds-weather"><span class="card-sub">⛅ checking the forecast for your dates…</span></div>
       </div>
       <a class="act ghost mini ds-map" href="${esc(mapsUrl)}" target="_blank" rel="noopener">🗺️ Explore on map ↗</a>

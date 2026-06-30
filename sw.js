@@ -9,7 +9,7 @@
  * This fixes the earlier cache-first bug where users were stuck on a stale version.
  * Bump CACHE_VERSION on each release so old caches are purged on activate.
  */
-const CACHE_VERSION = "triplens-v54-2026-06-30-editdates";
+const CACHE_VERSION = "triplens-v55-2026-06-30-season";
 const SHELL = [
   "./",
   "./index.html",
@@ -35,6 +35,7 @@ const SHELL = [
   "./split-engine.js",
   "./itinerary-planner.js",
   "./quickstart-engine.js",
+  "./season-engine.js",
   "./data/flights.js",
   "./data/hotels.js",
   "./data/deals.js",

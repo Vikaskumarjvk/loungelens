@@ -1246,10 +1246,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .ds-main { min-width: 0; }
 .ds-city { font-size: 15.5px; font-weight: 700; }
-.ds-vibe { font-size: 12px; font-weight: 600; color: var(--accent); background: rgba(139,123,255,.12); border-radius: 999px; padding: 2px 9px; margin-left: 4px; white-space: nowrap; }
+.ds-vibe { font-size: 12px; font-weight: 600; color: #b3a8ff; background: rgba(139,123,255,.12); border-radius: 999px; padding: 2px 9px; margin-left: 4px; white-space: nowrap; }
 .ds-known { font-size: 13.5px; color: var(--dim); margin-top: 4px; line-height: 1.45; }
 .ds-weather { margin-top: 7px; min-height: 18px; }
 .ds-wx { font-size: 13.5px; }
+.ds-season { font-size: 13px; color: var(--dim); margin-top: 6px; line-height: 1.45; }
+.ds-season.caution { color: var(--txt); background: rgba(251,191,36,.10); border: 1px solid rgba(251,191,36,.30); border-radius: 8px; padding: 6px 10px; }
+.ds-season.caution .fl-verify { color: #8fb0ff; }
 .ds-map { flex-shrink: 0; white-space: nowrap; align-self: flex-start; }
 @media (max-width: 560px) { .dest-snap { flex-direction: column; } .ds-vibe { display: inline-block; margin-top: 4px; margin-left: 0; } }
 
