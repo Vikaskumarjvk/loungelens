@@ -179,6 +179,17 @@ nav button.active {
   background: var(--accent-grad); color: #fff; border-color: transparent;
   box-shadow: var(--shadow-glow);
 }
+/* "More" toggle + the collapsible secondary-nav group */
+.nav-more-toggle {
+  background: var(--chip); color: var(--dim); border: 1px solid var(--line);
+  padding: 7px 14px; border-radius: var(--r-pill); cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 700;
+  transition: color .18s, border-color .18s, transform .12s;
+}
+.nav-more-toggle:hover { color: var(--txt); border-color: var(--line-strong); transform: translateY(-1px); }
+.nav-more-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-more { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+.nav-more[hidden] { display: none; }
 .install-btn {
   background: var(--good-dim) !important;
   color: var(--good) !important;
@@ -1245,7 +1256,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* --- One-tap quick start: the newbie front door (2026-06-29) --- */
 .quickstart { margin: 4px 0 20px; }
 .qs-head { margin-bottom: 12px; }
-.qs-title { font-size: 17px; font-weight: 800; letter-spacing: -.3px; margin: 0 0 4px; }
+.qs-title { font-size: 23px; font-weight: 800; letter-spacing: -.4px; margin: 0 0 5px; }
 .qs-sub { font-size: 13.5px; color: var(--dim); margin: 0; line-height: 1.45; }
 .qs-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .qs-chip {
@@ -1314,28 +1325,33 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
       </button>
     </div>
     <nav id="main-nav">
+      <!-- core: the handful a beginner needs, always visible -->
       <button data-view="plan" class="active">🧭 Plan a Trip</button>
-      <button data-view="explore">🧭 Where to?</button>
-      <button data-view="multicity">🗺️ Multi-city</button>
-      <button data-view="longweekend">🏖️ Long Weekends</button>
       <button data-view="trips">🗂️ My Trips</button>
-      <button data-view="flights">✈️ Flights</button>
-      <button data-view="hotels">🏨 Hotels</button>
-      <button data-view="ground">🚆 Trains &amp; Buses</button>
-      <button data-view="ontrip">🧳 On-Trip Deals</button>
-      <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>
-      <button data-view="trip">🛋️ Lounge Trip</button>
-      <button data-view="airports">🛫 Airports</button>
-      <button data-view="map">🗺️ Coverage Map</button>
-      <button data-view="lounges">🛋️ All Lounges</button>
+      <button data-view="explore">🧭 Where to?</button>
       <button data-view="recommend">⭐ Get a Card</button>
-      <button data-view="compare">⚖️ Compare</button>
-      <button data-view="value">🧮 Worth It?</button>
-      <button data-view="addcard">➕ Add Cards</button>
-      <button data-view="health">🩺 Data Health</button>
-      <button data-view="profile">👤 Profile / Sync</button>
-      <button data-view="about">ℹ️ About</button>
+      <!-- everything else tucked behind More so the menu isn't a wall -->
+      <button class="nav-more-toggle" id="nav-more-toggle" aria-expanded="false" aria-controls="nav-more">⋯ More</button>
+      <div class="nav-more" id="nav-more" hidden>
+        <button data-view="flights">✈️ Flights</button>
+        <button data-view="hotels">🏨 Hotels</button>
+        <button data-view="ground">🚆 Trains &amp; Buses</button>
+        <button data-view="multicity">🗺️ Multi-city</button>
+        <button data-view="longweekend">🏖️ Long Weekends</button>
+        <button data-view="ontrip">🧳 On-Trip Deals</button>
+        <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
+        <button data-view="trip">🛋️ Lounge Trip</button>
+        <button data-view="airports">🛫 Airports</button>
+        <button data-view="map">🗺️ Coverage Map</button>
+        <button data-view="lounges">🛋️ All Lounges</button>
+        <button data-view="compare">⚖️ Compare</button>
+        <button data-view="value">🧮 Worth It?</button>
+        <button data-view="addcard">➕ Add Cards</button>
+        <button data-view="health">🩺 Data Health</button>
+        <button data-view="profile">👤 Profile / Sync</button>
+        <button data-view="about">ℹ️ About</button>
+      </div>
       <button id="install-btn" class="install-btn" hidden>⬇️ Install app</button>
     </nav>
   </header>
@@ -1343,21 +1359,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   <main>
     <!-- PLAN A TRIP (the front door: the Trip Cost Optimizer) -->
     <section id="view-plan" class="view active">
-      <div class="landing-hero">
-        <div class="lh-glow"></div>
-        <div class="lh-badge">🧭 the whole trip, optimized</div>
-        <h2 class="lh-title">Plan it once.<br><span class="lh-grad">Pay the smart way.</span></h2>
-        <p class="lh-sub">One plan for the entire trip — flights, hotel, airport lounges, cabs and local deals — with the single best card to swipe on every booking. Real fares live on the real sites. I never make a price up.</p>
-        <div class="lh-stats" id="plan-stats"></div>
-      </div>
-      <!-- ONE-TAP START: a newbie taps a place, gets a fully planned trip, no typing -->
+      <!-- ONE-TAP START: the first thing a newbie sees. Tap a place, get a trip. -->
       <div class="quickstart" id="quickstart">
         <div class="qs-head">
-          <h3 class="qs-title">New here? Tap a place to start</h3>
-          <p class="qs-sub">One tap builds a ready-made trip with day-by-day ideas and real map searches. Change anything after. No sign-up, nothing made up.</p>
+          <h2 class="qs-title">Where to?</h2>
+          <p class="qs-sub">Tap a place and I'll build you a trip — day-by-day ideas, real map searches, the best card to pay with. Change anything after. No sign-up, no fake prices.</p>
         </div>
         <div class="qs-chips" id="qs-chips"></div>
-        <button class="qs-more link" id="qs-or-type">or type your own trip below ↓</button>
+        <button class="qs-more link" id="qs-or-type">or type your own trip ↓</button>
       </div>
       <div class="trip-builder plan-builder">
         <div class="fb-row">
@@ -8769,6 +8778,10 @@ window.LL_HOLIDAYS = {
   function showView(view, push) {
     if (!VIEWS.includes(view)) view = "flights";
     $$("nav button").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
+    // if the active view lives in the collapsed "More" group, open it so the
+    // highlighted button is actually visible (deep links + programmatic nav).
+    const moreBox = $("#nav-more");
+    if (moreBox && moreBox.querySelector('button[data-view="' + view + '"]')) setNavMore(true);
     const activeView = $("#view-" + view);
     $$(".view").forEach((v) => v.classList.toggle("active", v === activeView));
     updateNavToggleLabel(view);
@@ -8791,6 +8804,15 @@ window.LL_HOLIDAYS = {
   $$("nav button").forEach((b) =>
     b.addEventListener("click", () => b.dataset.view && showView(b.dataset.view, true))
   );
+  // "More" group: show/hide the secondary nav buttons so the menu isn't a wall
+  function setNavMore(open) {
+    const box = $("#nav-more"), tog = $("#nav-more-toggle");
+    if (!box || !tog) return;
+    box.hidden = !open;
+    tog.setAttribute("aria-expanded", open ? "true" : "false");
+    tog.textContent = open ? "⋯ Less" : "⋯ More";
+  }
+  if ($("#nav-more-toggle")) $("#nav-more-toggle").onclick = () => setNavMore($("#nav-more").hidden);
   // initial collapsed state: respect saved pref; default collapsed on mobile
   (function initNav() {
     let saved = null;
@@ -11916,17 +11938,13 @@ window.LL_HOLIDAYS = {
     if (goAddCards) showView("addcard", true);
   }
   function maybeOnboard() {
-    if (state.onboarded) return;
+    // No blocking welcome popup anymore. The first screen ("Where to?" + the
+    // tap-a-place chips) is self-explanatory, so a newbie acts immediately
+    // instead of reading a chore list. Keep the modal in the DOM but never show
+    // it; just mark the user onboarded so nothing else trips on the flag.
     const m = $("#onboard");
-    if (!m) return;
-    m.hidden = false;
-    // primary CTA: start at Add Cards
-    $("#onboard-start").onclick = () => dismissOnboard(true);
-    // never trap the user: clicking the dim backdrop OR pressing Esc closes it
-    m.addEventListener("click", (e) => { if (e.target === m) dismissOnboard(false); });
-    document.addEventListener("keydown", function onEsc(e) {
-      if (e.key === "Escape" && !m.hidden) { dismissOnboard(false); document.removeEventListener("keydown", onEsc); }
-    });
+    if (m) m.hidden = true;
+    if (!state.onboarded) { state.onboarded = true; save(); }
   }
 
   // ---- toast (small non-blocking notice) --------------------------------

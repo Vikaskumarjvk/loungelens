@@ -247,6 +247,10 @@
   function showView(view, push) {
     if (!VIEWS.includes(view)) view = "flights";
     $$("nav button").forEach((x) => x.classList.toggle("active", x.dataset.view === view));
+    // if the active view lives in the collapsed "More" group, open it so the
+    // highlighted button is actually visible (deep links + programmatic nav).
+    const moreBox = $("#nav-more");
+    if (moreBox && moreBox.querySelector('button[data-view="' + view + '"]')) setNavMore(true);
     const activeView = $("#view-" + view);
     $$(".view").forEach((v) => v.classList.toggle("active", v === activeView));
     updateNavToggleLabel(view);
@@ -269,6 +273,15 @@
   $$("nav button").forEach((b) =>
     b.addEventListener("click", () => b.dataset.view && showView(b.dataset.view, true))
   );
+  // "More" group: show/hide the secondary nav buttons so the menu isn't a wall
+  function setNavMore(open) {
+    const box = $("#nav-more"), tog = $("#nav-more-toggle");
+    if (!box || !tog) return;
+    box.hidden = !open;
+    tog.setAttribute("aria-expanded", open ? "true" : "false");
+    tog.textContent = open ? "⋯ Less" : "⋯ More";
+  }
+  if ($("#nav-more-toggle")) $("#nav-more-toggle").onclick = () => setNavMore($("#nav-more").hidden);
   // initial collapsed state: respect saved pref; default collapsed on mobile
   (function initNav() {
     let saved = null;
@@ -3394,17 +3407,13 @@
     if (goAddCards) showView("addcard", true);
   }
   function maybeOnboard() {
-    if (state.onboarded) return;
+    // No blocking welcome popup anymore. The first screen ("Where to?" + the
+    // tap-a-place chips) is self-explanatory, so a newbie acts immediately
+    // instead of reading a chore list. Keep the modal in the DOM but never show
+    // it; just mark the user onboarded so nothing else trips on the flag.
     const m = $("#onboard");
-    if (!m) return;
-    m.hidden = false;
-    // primary CTA: start at Add Cards
-    $("#onboard-start").onclick = () => dismissOnboard(true);
-    // never trap the user: clicking the dim backdrop OR pressing Esc closes it
-    m.addEventListener("click", (e) => { if (e.target === m) dismissOnboard(false); });
-    document.addEventListener("keydown", function onEsc(e) {
-      if (e.key === "Escape" && !m.hidden) { dismissOnboard(false); document.removeEventListener("keydown", onEsc); }
-    });
+    if (m) m.hidden = true;
+    if (!state.onboarded) { state.onboarded = true; save(); }
   }
 
   // ---- toast (small non-blocking notice) --------------------------------

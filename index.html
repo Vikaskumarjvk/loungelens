@@ -41,28 +41,33 @@
       </button>
     </div>
     <nav id="main-nav">
+      <!-- core: the handful a beginner needs, always visible -->
       <button data-view="plan" class="active">🧭 Plan a Trip</button>
-      <button data-view="explore">🧭 Where to?</button>
-      <button data-view="multicity">🗺️ Multi-city</button>
-      <button data-view="longweekend">🏖️ Long Weekends</button>
       <button data-view="trips">🗂️ My Trips</button>
-      <button data-view="flights">✈️ Flights</button>
-      <button data-view="hotels">🏨 Hotels</button>
-      <button data-view="ground">🚆 Trains &amp; Buses</button>
-      <button data-view="ontrip">🧳 On-Trip Deals</button>
-      <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
       <button data-view="wallet">💳 My Cards</button>
-      <button data-view="trip">🛋️ Lounge Trip</button>
-      <button data-view="airports">🛫 Airports</button>
-      <button data-view="map">🗺️ Coverage Map</button>
-      <button data-view="lounges">🛋️ All Lounges</button>
+      <button data-view="explore">🧭 Where to?</button>
       <button data-view="recommend">⭐ Get a Card</button>
-      <button data-view="compare">⚖️ Compare</button>
-      <button data-view="value">🧮 Worth It?</button>
-      <button data-view="addcard">➕ Add Cards</button>
-      <button data-view="health">🩺 Data Health</button>
-      <button data-view="profile">👤 Profile / Sync</button>
-      <button data-view="about">ℹ️ About</button>
+      <!-- everything else tucked behind More so the menu isn't a wall -->
+      <button class="nav-more-toggle" id="nav-more-toggle" aria-expanded="false" aria-controls="nav-more">⋯ More</button>
+      <div class="nav-more" id="nav-more" hidden>
+        <button data-view="flights">✈️ Flights</button>
+        <button data-view="hotels">🏨 Hotels</button>
+        <button data-view="ground">🚆 Trains &amp; Buses</button>
+        <button data-view="multicity">🗺️ Multi-city</button>
+        <button data-view="longweekend">🏖️ Long Weekends</button>
+        <button data-view="ontrip">🧳 On-Trip Deals</button>
+        <button data-view="coupons">🎟️ Coupons &amp; Offers</button>
+        <button data-view="trip">🛋️ Lounge Trip</button>
+        <button data-view="airports">🛫 Airports</button>
+        <button data-view="map">🗺️ Coverage Map</button>
+        <button data-view="lounges">🛋️ All Lounges</button>
+        <button data-view="compare">⚖️ Compare</button>
+        <button data-view="value">🧮 Worth It?</button>
+        <button data-view="addcard">➕ Add Cards</button>
+        <button data-view="health">🩺 Data Health</button>
+        <button data-view="profile">👤 Profile / Sync</button>
+        <button data-view="about">ℹ️ About</button>
+      </div>
       <button id="install-btn" class="install-btn" hidden>⬇️ Install app</button>
     </nav>
   </header>
@@ -70,21 +75,14 @@
   <main>
     <!-- PLAN A TRIP (the front door: the Trip Cost Optimizer) -->
     <section id="view-plan" class="view active">
-      <div class="landing-hero">
-        <div class="lh-glow"></div>
-        <div class="lh-badge">🧭 the whole trip, optimized</div>
-        <h2 class="lh-title">Plan it once.<br><span class="lh-grad">Pay the smart way.</span></h2>
-        <p class="lh-sub">One plan for the entire trip — flights, hotel, airport lounges, cabs and local deals — with the single best card to swipe on every booking. Real fares live on the real sites. I never make a price up.</p>
-        <div class="lh-stats" id="plan-stats"></div>
-      </div>
-      <!-- ONE-TAP START: a newbie taps a place, gets a fully planned trip, no typing -->
+      <!-- ONE-TAP START: the first thing a newbie sees. Tap a place, get a trip. -->
       <div class="quickstart" id="quickstart">
         <div class="qs-head">
-          <h3 class="qs-title">New here? Tap a place to start</h3>
-          <p class="qs-sub">One tap builds a ready-made trip with day-by-day ideas and real map searches. Change anything after. No sign-up, nothing made up.</p>
+          <h2 class="qs-title">Where to?</h2>
+          <p class="qs-sub">Tap a place and I'll build you a trip — day-by-day ideas, real map searches, the best card to pay with. Change anything after. No sign-up, no fake prices.</p>
         </div>
         <div class="qs-chips" id="qs-chips"></div>
-        <button class="qs-more link" id="qs-or-type">or type your own trip below ↓</button>
+        <button class="qs-more link" id="qs-or-type">or type your own trip ↓</button>
       </div>
       <div class="trip-builder plan-builder">
         <div class="fb-row">
