@@ -1054,7 +1054,14 @@ main { max-width: 940px; margin: 0 auto; padding: 22px 18px 0; }
 
 /* --- My Trips + Itinerary (added 2026-06-24) --- */
 .plan-save { margin: 4px 0 14px; }
-.trip-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 13px 15px; margin: 8px 0; box-shadow: var(--shadow-1); }
+.trip-card { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 13px 15px; margin: 8px 0; box-shadow: var(--shadow-1); }
+/* same soft per-destination corner glow as the home place-chips, for cohesion */
+.trip-card::before {
+  content: ""; position: absolute; top: -45%; right: -20%; width: 130px; height: 130px;
+  background: radial-gradient(circle, hsla(var(--chip-hue,250), 85%, 62%, .18), transparent 70%);
+  pointer-events: none;
+}
+.trip-card > * { position: relative; z-index: 1; }
 .tc-title { font-size: 15.5px; font-weight: 700; }
 .tc-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 

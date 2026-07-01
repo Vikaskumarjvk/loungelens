@@ -23,6 +23,11 @@
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
+  // a tasteful accent hue per destination so cards feel alive (decorative only —
+  // it tints a soft corner glow, never affects text contrast). Shared by the
+  // home place-chips and the saved-trip cards so the app looks cohesive.
+  const DEST_HUES = { GOI: 28, GOX: 28, DXB: 41, JAI: 14, SIN: 168, BKK: 280, SXR: 205, COK: 150, DEL: 8, BOM: 200, BLR: 130, HYD: 320, MAA: 190, CCU: 50, LHR: 220, JFK: 230 };
+  const destHue = (t) => { const d = (TE && t) ? TE.resolvePlace(t.to, FLIGHTS) : null; const c = d && d.code; return (c && DEST_HUES[c] != null) ? DEST_HUES[c] : 250; };
   const PROFILE = window.LL_PROFILE, SOURCES = window.LL_SOURCES, SLINKS = window.LL_SOURCE_LINKS, AUTH = window.LL_AUTH, SUGGEST = window.LL_SUGGEST;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -1302,11 +1307,8 @@
     const wrap = $("#qs-chips"); if (!wrap || !QS || !DESTS) { const q = $("#quickstart"); if (q) q.hidden = true; return; }
     const chips = QS.featured(DESTS);
     if (!chips.length) { const q = $("#quickstart"); if (q) q.hidden = true; return; }
-    // a tasteful accent hue per destination so the cards feel alive (decorative
-    // only — it tints a soft corner glow, never affects text contrast).
-    const HUES = { GOI: 28, GOX: 28, DXB: 41, JAI: 14, SIN: 168, BKK: 280, SXR: 205, COK: 150, DEL: 8, BOM: 200, BLR: 130, HYD: 320, MAA: 190, CCU: 50, LHR: 220, JFK: 230 };
     wrap.innerHTML = chips.map((c) => {
-      const hue = HUES[c.code] != null ? HUES[c.code] : 250;
+      const hue = DEST_HUES[c.code] != null ? DEST_HUES[c.code] : 250;
       return `<button class="qs-chip" data-qs="${esc(c.code)}" style="--chip-hue:${hue}" aria-label="Plan a trip to ${esc(c.city)}">
         <span class="qs-emoji" aria-hidden="true">${c.emoji}</span>
         <span class="qs-city">${esc(c.city)}</span>
@@ -2431,7 +2433,7 @@
       }
       wrap.innerHTML = `<div class="section-h">Your trips (${list.length})</div>` + list.map((t) => {
         const s = IT.tripSummary(t);
-        return `<div class="trip-card" data-opentrip="${esc(t.id)}">
+        return `<div class="trip-card" data-opentrip="${esc(t.id)}" style="--chip-hue:${destHue(t)}">
           <div class="tc-main">
             <div class="tc-title">🧭 ${esc(s.title)}</div>
             <div class="card-sub">${esc(s.dateRange)} · ${s.dayCount} days · ${s.itemCount} items · ${s.adults} traveller${s.adults > 1 ? "s" : ""}</div>
