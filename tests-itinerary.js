@@ -125,5 +125,36 @@ ok("newTrip with no dates still builds days (null dates)", () => {
   assert.strictEqual(nt.days[0].date, null);
 });
 
+// ---- flight links: real origin + correct return direction/date ----------
+ok("return flight searches dest->origin on the CHECKOUT date, not the outbound one", () => {
+  const plan = TE.planTrip({ from: "Delhi", to: "Goa", depart: "2026-07-13", nights: 3, adults: 2 }, { now: new Date("2026-07-01") });
+  const t = I.newTrip({ title: "Goa", from: "Delhi", to: "Goa", depart: "2026-07-13", nights: 3, adults: 2, seed: 1 });
+  I.seedFromPlan(t, plan, { seedStart: 1 });
+  const last = t.days[t.days.length - 1];
+  const ret = last.items.find((it) => it.kind === "flight");
+  assert.ok(ret, "there is a return flight");
+  // outbound was DEL->GOI on depart; return must be GOI->DEL on checkout (2026-07-16)
+  const dep = t.days[0].items.find((it) => it.kind === "flight");
+  assert.notStrictEqual(ret.link, dep.link, "return link differs from outbound link");
+  // the plan exposes a distinct returnFlights leg
+  assert.ok(Array.isArray(plan.returnFlights) && plan.returnFlights.length > 0, "plan has returnFlights");
+});
+ok("blank origin gives a graceful label (no empty arrow gap)", () => {
+  const plan = TE.planTrip({ from: "", to: "Goa", depart: "2026-07-13", nights: 3, adults: 2 }, { now: new Date("2026-07-01") });
+  const t = I.newTrip({ title: "Goa", from: "", to: "Goa", depart: "2026-07-13", nights: 3, adults: 2, seed: 2 });
+  I.seedFromPlan(t, plan, { seedStart: 1 });
+  const out = t.days[0].items.find((it) => it.kind === "flight");
+  assert.ok(!/ {2}/.test(out.title), "no double space in the flight label");
+  assert.ok(!/→\s*$/.test(out.title.trim()), "no dangling arrow with empty destination");
+  assert.ok(/Goa/.test(out.title), "label still names the destination");
+});
+ok("real origin produces a from->to labelled flight", () => {
+  const plan = TE.planTrip({ from: "Delhi", to: "Goa", depart: "2026-07-13", nights: 3, adults: 2 }, { now: new Date("2026-07-01") });
+  const t = I.newTrip({ title: "Goa", from: "Delhi", to: "Goa", depart: "2026-07-13", nights: 3, adults: 2, seed: 3 });
+  I.seedFromPlan(t, plan, { seedStart: 1 });
+  const out = t.days[0].items.find((it) => it.kind === "flight");
+  assert.ok(/→/.test(out.title) && !/ {2}/.test(out.title), "outbound has a clean from -> to label");
+});
+
 console.log(`\n==== ${pass} passed, ${fail} failed ====`);
 process.exit(fail ? 1 : 0);

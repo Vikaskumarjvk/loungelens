@@ -1288,6 +1288,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .qs-emoji { font-size: 23px; line-height: 1; }
 .qs-city { font-size: 15.5px; font-weight: 700; }
 .qs-known { font-size: 12px; color: var(--dim); line-height: 1.35; }
+.qs-home { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.qs-home-lbl { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+.qs-home-input { flex: 1 1 180px; min-width: 150px; }
+.qs-home-note { font-size: 12px; color: var(--good); flex-basis: 100%; }
 .qs-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
 .qs-surprise { font-size: 13.5px; }
 .qs-more { display: inline-block; font-size: 13.5px; background: none; border: none; padding: 4px 0; cursor: pointer; }
@@ -1409,6 +1413,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
           <p class="qs-sub">Tap a place and I'll build you a trip — day-by-day ideas, real map searches, the best card to pay with. Change anything after. No sign-up, no fake prices.</p>
         </div>
         <div class="qs-chips" id="qs-chips"></div>
+        <div class="qs-home">
+          <label class="qs-home-lbl" for="qs-home">✈️ Flying from?</label>
+          <input class="fb-input qs-home-input" id="qs-home" list="fl-airport-list" autocomplete="off" placeholder="your city (e.g. Delhi) — set once" aria-label="Your home city for flights" />
+          <span class="qs-home-note" id="qs-home-note"></span>
+        </div>
         <div class="qs-foot">
           <button class="act ghost mini qs-surprise" id="qs-surprise">🎲 Surprise me</button>
           <button class="qs-more link" id="qs-or-type">or type your own trip ↓</button>
@@ -5632,8 +5641,13 @@ window.LL_HOLIDAYS = {
     const flightFrom = origin ? origin.code : (trip.from || "");
     const flightTo = dest ? dest.code : (trip.to || "");
     let flightCompare = [];
+    let returnCompare = [];
     if (FE && flights.providers) {
       flightCompare = FE.comparison(flights, flightFrom, flightTo, depart, wCards, {});
+      // the RETURN leg is a real, separate search: dest -> origin, on the
+      // checkout date. Reusing the outbound link (old behaviour) sent people to
+      // the wrong direction and the wrong date.
+      returnCompare = FE.comparison(flights, flightTo, flightFrom, checkout, wCards, {});
     }
 
     // ---- 2. STAY leg ----
@@ -5671,6 +5685,7 @@ window.LL_HOLIDAYS = {
       route: { origin, dest, from: flightFrom, to: flightTo },
       dates: { depart, checkout, nights, adults },
       flights: flightCompare,
+      returnFlights: returnCompare,
       stay: stayCompare,
       lounges: { origin: loungeOrigin, dest: loungeDest },
       deals: dealsByCat,
@@ -5891,7 +5906,11 @@ window.LL_HOLIDAYS = {
 
     // day 0: flight out + origin lounge + check-in
     const topFlight = plan && plan.flights && plan.flights[0];
-    addItem(trip, 0, { time: "08:00", kind: "flight", title: "Flight " + (r.from || "") + " → " + (r.to || ""), note: "Compare + book", link: topFlight ? topFlight.link : "" }, next());
+    // graceful label: if we don't know the origin yet (e.g. a quick-start trip
+    // before the user set a home city), say "Flight to GOI" rather than
+    // "Flight  → GOI" with an empty gap.
+    const outLabel = r.from ? ("Flight " + r.from + " → " + (r.to || "")) : ("Flight to " + (destCity || r.to));
+    addItem(trip, 0, { time: "08:00", kind: "flight", title: outLabel, note: r.from ? "Compare + book" : "Set your home city up top to fill this in", link: topFlight ? topFlight.link : "" }, next());
     if (plan && plan.lounges && plan.lounges.origin && plan.lounges.origin.openCount > 0) {
       addItem(trip, 0, { time: "06:30", kind: "lounge", title: "Lounge at " + fromCity + " airport", note: plan.lounges.origin.openCount + " your cards open — arrive early, eat free" }, next());
     }
@@ -5908,7 +5927,12 @@ window.LL_HOLIDAYS = {
       if (plan && plan.lounges && plan.lounges.dest && plan.lounges.dest.openCount > 0) {
         addItem(trip, last, { time: "16:00", kind: "lounge", title: "Lounge at " + destCity + " airport", note: plan.lounges.dest.openCount + " your cards open" }, next());
       }
-      addItem(trip, last, { time: "18:00", kind: "flight", title: "Return flight " + (r.to || "") + " → " + (r.from || ""), note: "Book the return", link: topFlight ? topFlight.link : "" }, next());
+      // the return flight is its OWN search: dest -> origin on the checkout
+      // date. Use the plan's returnFlights link (not the outbound link, which
+      // pointed the wrong way on the wrong date).
+      const retFlight = plan && plan.returnFlights && plan.returnFlights[0];
+      const retLabel = r.from ? ("Return flight " + (r.to || "") + " → " + r.from) : ("Return flight from " + (destCity || r.to));
+      addItem(trip, last, { time: "18:00", kind: "flight", title: retLabel, note: r.from ? "Book the return" : "Set your home city up top to fill this in", link: retFlight ? retFlight.link : (topFlight ? topFlight.link : "") }, next());
     }
     return trip;
   }
@@ -8631,7 +8655,7 @@ window.LL_HOLIDAYS = {
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, explore: { from: "", priority: "balanced" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", homeCity: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, explore: { from: "", priority: "balanced" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -9905,6 +9929,15 @@ window.LL_HOLIDAYS = {
       </button>`;
     }).join("");
     $$("[data-qs]").forEach((b) => b.onclick = () => quickStartTrip(b.dataset.qs));
+    // ✈️ Flying from? — set your home city ONCE; it fills the origin on every
+    // trip so the flight links actually search from where you are. Remembered.
+    const homeEl = $("#qs-home"), homeNote = $("#qs-home-note");
+    const showHomeNote = () => { if (homeNote) homeNote.textContent = state.homeCity ? ("saved · flights start from " + state.homeCity) : ""; };
+    if (homeEl) {
+      homeEl.value = state.homeCity || "";
+      showHomeNote();
+      homeEl.oninput = () => { state.homeCity = homeEl.value.trim(); save(); showHomeNote(); };
+    }
     // 🎲 Surprise me: pick a random featured place (rotating seed so repeated
     // taps vary; never the same place twice in a row) and build that trip.
     if ($("#qs-surprise")) $("#qs-surprise").onclick = () => {
@@ -9931,10 +9964,13 @@ window.LL_HOLIDAYS = {
   function quickStartTrip(code) {
     if (!QS || !IT || !DESTS) return;
     const spec = QS.quickTrip(code, DESTS, todayISO());
-    const t = IT.newTrip({ title: spec.city, from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults, seed: nextSeq() });
+    // use the remembered home city as the origin so the flight links actually
+    // search from where the traveller is (spec.from is blank by design).
+    const from = spec.from || state.homeCity || "";
+    const t = IT.newTrip({ title: spec.city, from: from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults, seed: nextSeq() });
     // 1. seed the real optimizer starter (flight/lounge/hotel scaffold) if available
     if (TE) {
-      const plan = TE.planTrip({ from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults },
+      const plan = TE.planTrip({ from: from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults },
         { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW });
       IT.seedFromPlan(t, plan, { seedStart: countAllItemsSeed() });
     }
@@ -9965,7 +10001,8 @@ window.LL_HOLIDAYS = {
   }
   function wirePlan() {
     const p = planState();
-    if ($("#tp-from")) $("#tp-from").value = p.from || "";
+    // pre-fill the origin from the remembered home city if the user hasn't typed one
+    if ($("#tp-from")) $("#tp-from").value = p.from || state.homeCity || "";
     if ($("#tp-to")) $("#tp-to").value = p.to || "";
     if ($("#tp-depart")) { $("#tp-depart").value = p.depart || ""; const f = todayISO(); $("#tp-depart").setAttribute("min", f); }
     if ($("#tp-nights")) $("#tp-nights").value = p.nights || 3;

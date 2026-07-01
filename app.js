@@ -42,7 +42,7 @@
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, explore: { from: "", priority: "balanced" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", homeCity: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, explore: { from: "", priority: "balanced" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -1316,6 +1316,15 @@
       </button>`;
     }).join("");
     $$("[data-qs]").forEach((b) => b.onclick = () => quickStartTrip(b.dataset.qs));
+    // ✈️ Flying from? — set your home city ONCE; it fills the origin on every
+    // trip so the flight links actually search from where you are. Remembered.
+    const homeEl = $("#qs-home"), homeNote = $("#qs-home-note");
+    const showHomeNote = () => { if (homeNote) homeNote.textContent = state.homeCity ? ("saved · flights start from " + state.homeCity) : ""; };
+    if (homeEl) {
+      homeEl.value = state.homeCity || "";
+      showHomeNote();
+      homeEl.oninput = () => { state.homeCity = homeEl.value.trim(); save(); showHomeNote(); };
+    }
     // 🎲 Surprise me: pick a random featured place (rotating seed so repeated
     // taps vary; never the same place twice in a row) and build that trip.
     if ($("#qs-surprise")) $("#qs-surprise").onclick = () => {
@@ -1342,10 +1351,13 @@
   function quickStartTrip(code) {
     if (!QS || !IT || !DESTS) return;
     const spec = QS.quickTrip(code, DESTS, todayISO());
-    const t = IT.newTrip({ title: spec.city, from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults, seed: nextSeq() });
+    // use the remembered home city as the origin so the flight links actually
+    // search from where the traveller is (spec.from is blank by design).
+    const from = spec.from || state.homeCity || "";
+    const t = IT.newTrip({ title: spec.city, from: from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults, seed: nextSeq() });
     // 1. seed the real optimizer starter (flight/lounge/hotel scaffold) if available
     if (TE) {
-      const plan = TE.planTrip({ from: spec.from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults },
+      const plan = TE.planTrip({ from: from, to: spec.to, depart: spec.depart, nights: spec.nights, adults: spec.adults },
         { wallet: state.wallet, visitLog: state.visitLog, spend: state.spend, now: NOW });
       IT.seedFromPlan(t, plan, { seedStart: countAllItemsSeed() });
     }
@@ -1376,7 +1388,8 @@
   }
   function wirePlan() {
     const p = planState();
-    if ($("#tp-from")) $("#tp-from").value = p.from || "";
+    // pre-fill the origin from the remembered home city if the user hasn't typed one
+    if ($("#tp-from")) $("#tp-from").value = p.from || state.homeCity || "";
     if ($("#tp-to")) $("#tp-to").value = p.to || "";
     if ($("#tp-depart")) { $("#tp-depart").value = p.depart || ""; const f = todayISO(); $("#tp-depart").setAttribute("min", f); }
     if ($("#tp-nights")) $("#tp-nights").value = p.nights || 3;

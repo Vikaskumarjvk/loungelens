@@ -143,7 +143,11 @@
 
     // day 0: flight out + origin lounge + check-in
     const topFlight = plan && plan.flights && plan.flights[0];
-    addItem(trip, 0, { time: "08:00", kind: "flight", title: "Flight " + (r.from || "") + " → " + (r.to || ""), note: "Compare + book", link: topFlight ? topFlight.link : "" }, next());
+    // graceful label: if we don't know the origin yet (e.g. a quick-start trip
+    // before the user set a home city), say "Flight to GOI" rather than
+    // "Flight  → GOI" with an empty gap.
+    const outLabel = r.from ? ("Flight " + r.from + " → " + (r.to || "")) : ("Flight to " + (destCity || r.to));
+    addItem(trip, 0, { time: "08:00", kind: "flight", title: outLabel, note: r.from ? "Compare + book" : "Set your home city up top to fill this in", link: topFlight ? topFlight.link : "" }, next());
     if (plan && plan.lounges && plan.lounges.origin && plan.lounges.origin.openCount > 0) {
       addItem(trip, 0, { time: "06:30", kind: "lounge", title: "Lounge at " + fromCity + " airport", note: plan.lounges.origin.openCount + " your cards open — arrive early, eat free" }, next());
     }
@@ -160,7 +164,12 @@
       if (plan && plan.lounges && plan.lounges.dest && plan.lounges.dest.openCount > 0) {
         addItem(trip, last, { time: "16:00", kind: "lounge", title: "Lounge at " + destCity + " airport", note: plan.lounges.dest.openCount + " your cards open" }, next());
       }
-      addItem(trip, last, { time: "18:00", kind: "flight", title: "Return flight " + (r.to || "") + " → " + (r.from || ""), note: "Book the return", link: topFlight ? topFlight.link : "" }, next());
+      // the return flight is its OWN search: dest -> origin on the checkout
+      // date. Use the plan's returnFlights link (not the outbound link, which
+      // pointed the wrong way on the wrong date).
+      const retFlight = plan && plan.returnFlights && plan.returnFlights[0];
+      const retLabel = r.from ? ("Return flight " + (r.to || "") + " → " + r.from) : ("Return flight from " + (destCity || r.to));
+      addItem(trip, last, { time: "18:00", kind: "flight", title: retLabel, note: r.from ? "Book the return" : "Set your home city up top to fill this in", link: retFlight ? retFlight.link : (topFlight ? topFlight.link : "") }, next());
     }
     return trip;
   }

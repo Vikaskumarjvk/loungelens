@@ -175,8 +175,13 @@
     const flightFrom = origin ? origin.code : (trip.from || "");
     const flightTo = dest ? dest.code : (trip.to || "");
     let flightCompare = [];
+    let returnCompare = [];
     if (FE && flights.providers) {
       flightCompare = FE.comparison(flights, flightFrom, flightTo, depart, wCards, {});
+      // the RETURN leg is a real, separate search: dest -> origin, on the
+      // checkout date. Reusing the outbound link (old behaviour) sent people to
+      // the wrong direction and the wrong date.
+      returnCompare = FE.comparison(flights, flightTo, flightFrom, checkout, wCards, {});
     }
 
     // ---- 2. STAY leg ----
@@ -214,6 +219,7 @@
       route: { origin, dest, from: flightFrom, to: flightTo },
       dates: { depart, checkout, nights, adults },
       flights: flightCompare,
+      returnFlights: returnCompare,
       stay: stayCompare,
       lounges: { origin: loungeOrigin, dest: loungeDest },
       deals: dealsByCat,
