@@ -299,11 +299,16 @@
     const active = $$("nav button").find((b) => b.classList.contains("active"));
     updateNavToggleLabel(active ? active.dataset.view : "flights");
   })();
-  // respond to back/forward + deep links
-  window.addEventListener("hashchange", () => showView((location.hash || "").replace("#", ""), false));
-  // on load, honor a deep-link hash if present
+  // respond to back/forward + deep links. a shared-trip hash (#t=...) is handled
+  // by importTripFromUrl (called from init + here), never treated as a view.
+  window.addEventListener("hashchange", () => {
+    if (/[#&]t=/.test(location.hash || "")) { importTripFromUrl(); return; }
+    showView((location.hash || "").replace("#", ""), false);
+  });
+  // on load, honor a deep-link hash if present (but not the #t= share hash — that
+  // is imported in the init block below, after the trips machinery is wired).
   const initialHash = (location.hash || "").replace("#", "");
-  if (initialHash && VIEWS.includes(initialHash)) showView(initialHash, false);
+  if (initialHash && !/^t=/.test(initialHash) && VIEWS.includes(initialHash)) showView(initialHash, false);
 
   // ======================== TRIP PLANNER (the heart) ======================
   function cityDatalist() {
@@ -1528,6 +1533,40 @@
   }
   function todayISO() { const n = new Date(); return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2); }
 
+  // build a shareable link that carries the WHOLE trip in its hash (#t=<code>).
+  // Base is the app's own address with any existing hash/query stripped, so the
+  // link opens the app clean and the loader below rebuilds the trip. No backend.
+  function tripShareUrl(t) {
+    if (!IT || !t) return null;
+    const code = IT.encodeTripToCode(t);
+    if (!code) return null;
+    const base = location.origin + location.pathname;
+    return base + "#t=" + code;
+  }
+
+  // on load, if the URL carries a shared trip (#t=<code>), rebuild it on THIS
+  // device and open it. No server was ever involved — the whole trip travelled
+  // inside the link. We mint a fresh id so it can't clobber an existing trip,
+  // and we clean the hash so a refresh doesn't keep re-adding it. Honest by
+  // design: it's the sender's own plan, links intact, packing starts fresh.
+  // Returns true if a trip was imported (so the caller can skip normal routing).
+  function importTripFromUrl() {
+    if (!IT) return false;
+    const hash = location.hash || "";
+    const m = /[#&]t=([A-Za-z0-9_-]+)/.exec(hash);
+    if (!m) return false;
+    const t = IT.decodeTripFromCode(m[1], { id: IT.mkId("trip", nextSeq()), seedStart: countAllItemsSeed() });
+    // clean the hash no matter what, so a bad link doesn't stick around
+    try { history.replaceState(null, "", location.origin + location.pathname); } catch (e) { location.hash = ""; }
+    if (!t) { toast("That shared link couldn't be read. Ask for a fresh one."); return false; }
+    trips().push(t); state.openTripId = t.id; save();
+    autoWeatherFlags(t);
+    showView("trips", false);
+    renderTrips();
+    toast("Opened a shared trip to " + (t.to || t.title || "your destination") + ". It's yours now — edit anything.");
+    return true;
+  }
+
   // honest holiday-timing for a depart date: does it sit on/next to a holiday
   // (with the leave-bridge math), and what's the next long weekend after it.
   function holidayTimingFor(departISO) {
@@ -2592,7 +2631,8 @@
       </div>
       <div class="itin-tools">
         <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
-        <button class="act mini" id="itin-share">📤 Share plan</button>
+        <button class="act mini" id="itin-sharelink">🔗 Share link</button>
+        <button class="act ghost mini" id="itin-share">📤 Share as text</button>
         <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
@@ -2949,6 +2989,18 @@
       } catch (e) { /* user cancelled the share sheet — fall through to copy */ }
       try { await navigator.clipboard.writeText(text); toast("Plan copied — paste it anywhere to share."); }
       catch (e2) { toast("Couldn't copy automatically. Use Backup file instead, or long-press to select."); }
+    };
+    // 🔗 Share link: pack the WHOLE trip into a link. No backend, no upload — the
+    // trip travels inside the URL itself, and whoever opens it rebuilds the exact
+    // same trip on their own device. It's their own plan; nothing is fabricated.
+    if ($("#itin-sharelink")) $("#itin-sharelink").onclick = async () => {
+      const url = tripShareUrl(t);
+      if (!url) { toast("Couldn't build the link. Try Backup file instead."); return; }
+      try {
+        if (navigator.share) { await navigator.share({ title: (t.title || "My trip") + " — TripLens plan", url }); return; }
+      } catch (e) { /* share sheet cancelled — fall through to copy */ }
+      try { await navigator.clipboard.writeText(url); toast("Link copied. Anyone who opens it gets this exact trip — no app, no sign-up."); }
+      catch (e2) { toast("Couldn't copy automatically — long-press the address bar to copy this page's link after sharing."); }
     };
     // 💾 Backup file: download the trip as a JSON file you can re-import later
     // or send to someone who also uses TripLens.
@@ -3694,6 +3746,9 @@
   wireDatePickers();
   render();
   renderAuthBar();
-  maybeOnboard();
+  // if the page was opened from a "share link", rebuild + open that trip now
+  // (after the trips view + machinery are wired). No backend — the trip rode in
+  // the URL. maybeOnboard is skipped when we just landed straight into a trip.
+  if (!importTripFromUrl()) maybeOnboard();
   autoRecheckWatches();
 })();

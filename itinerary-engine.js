@@ -376,10 +376,103 @@
     return null;
   }
 
+  // ---- share a trip AS A LINK (no backend) --------------------------------
+  // The whole trip is packed into a compact string and base64url-encoded so it
+  // can ride inside a URL hash. A friend who opens that link gets the identical
+  // trip rebuilt on their own device — nothing is uploaded, no account, no
+  // server. It is ENTIRELY the user's own plan; the links inside stay the same
+  // real search links. Unicode/emoji-safe. Pure + deterministic + Node-testable.
+  var KIND2CH = { flight: "f", hotel: "h", lounge: "l", cab: "c", food: "d", activity: "a", note: "n" };
+  var CH2KIND = { f: "flight", h: "hotel", l: "lounge", c: "cab", d: "food", a: "activity", n: "note" };
+
+  // compact wire object: short keys, days become arrays of item-tuples so the
+  // repeated field names don't bloat the code. Personal check-state is NOT
+  // shared (the recipient starts their own packing fresh); day dates are
+  // recomputed from depart on rebuild, so they're omitted too.
+  function packTrip(trip) {
+    if (!trip) return null;
+    var days = (trip.days || []).map(function (day) {
+      return (day.items || []).map(function (it) {
+        return [it.time || "", KIND2CH[it.kind] || "n", it.title || "", it.note || "", it.link || ""];
+      });
+    });
+    return {
+      v: 2, t: trip.title || "", f: trip.from || "", o: trip.to || "",
+      dp: trip.depart || "", n: Math.max(1, +trip.nights || 1), a: Math.max(1, +trip.adults || 1),
+      no: trip.notes || "", d: days,
+    };
+  }
+  // rebuild a real, valid trip from a wire object using the engine's own
+  // builders (so the shape is always correct + ids are freshly minted).
+  function unpackTrip(w, opts) {
+    if (!w || w.v !== 2) return null;
+    opts = opts || {};
+    var t = newTrip({
+      id: opts.id, seed: opts.seed || 1, title: w.t, from: w.f, to: w.o,
+      depart: w.dp, nights: w.n, adults: w.a, notes: w.no || "",
+    });
+    var seed = (opts.seedStart || 1);
+    var days = Array.isArray(w.d) ? w.d : [];
+    for (var di = 0; di < days.length && di < t.days.length; di++) {
+      var items = Array.isArray(days[di]) ? days[di] : [];
+      for (var ii = 0; ii < items.length; ii++) {
+        var a = items[ii] || [];
+        addItem(t, di, { time: a[0] || "", kind: CH2KIND[a[1]] || "note", title: a[2] || "", note: a[3] || "", link: a[4] || "" }, seed++);
+      }
+    }
+    return t;
+  }
+
+  // unicode-safe base64url (works in browser + Node; chunked so big trips don't
+  // blow the call stack; strips padding + swaps +/ for URL safety).
+  function bytesToB64url(bytes) {
+    var bin = "";
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    var b64 = (typeof btoa !== "undefined") ? btoa(bin)
+      : (typeof Buffer !== "undefined" ? Buffer.from(bin, "binary").toString("base64") : bin);
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64urlToBytes(s) {
+    var b64 = String(s).replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var bin = (typeof atob !== "undefined") ? atob(b64)
+      : (typeof Buffer !== "undefined" ? Buffer.from(b64, "base64").toString("binary") : b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  // trip -> shareable code (base64url of the compact JSON). null if no trip.
+  function encodeTripToCode(trip) {
+    var w = packTrip(trip);
+    if (!w) return null;
+    var json = JSON.stringify(w);
+    var bytes = (typeof TextEncoder !== "undefined") ? new TextEncoder().encode(json)
+      : (typeof Buffer !== "undefined" ? Buffer.from(json, "utf8") : null);
+    if (!bytes) return null;
+    return bytesToB64url(bytes);
+  }
+  // code -> rebuilt trip (or null if the code is not a valid v2 trip). opts pass
+  // through to unpackTrip (id/seed) so the caller controls id minting.
+  function decodeTripFromCode(code, opts) {
+    if (!code) return null;
+    try {
+      var bytes = b64urlToBytes(code);
+      var json = (typeof TextDecoder !== "undefined") ? new TextDecoder().decode(bytes)
+        : (typeof Buffer !== "undefined" ? Buffer.from(bytes).toString("utf8") : null);
+      if (!json) return null;
+      var w = JSON.parse(json);
+      return unpackTrip(w, opts);
+    } catch (e) { return null; }
+  }
+
   const Engine = {
     parseISO, addDays, dayLabel, mkId,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
     seedFromPlan, packingList, packKey, tripSummary, tripDateSpan, shortDate, nextUpcomingTrip, exportTrip, importTrip, toICS, shareText, reschedule,
+    packTrip, unpackTrip, encodeTripToCode, decodeTripFromCode,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;

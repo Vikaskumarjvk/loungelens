@@ -6227,10 +6227,103 @@ window.LL_HOLIDAYS = {
     return null;
   }
 
+  // ---- share a trip AS A LINK (no backend) --------------------------------
+  // The whole trip is packed into a compact string and base64url-encoded so it
+  // can ride inside a URL hash. A friend who opens that link gets the identical
+  // trip rebuilt on their own device — nothing is uploaded, no account, no
+  // server. It is ENTIRELY the user's own plan; the links inside stay the same
+  // real search links. Unicode/emoji-safe. Pure + deterministic + Node-testable.
+  var KIND2CH = { flight: "f", hotel: "h", lounge: "l", cab: "c", food: "d", activity: "a", note: "n" };
+  var CH2KIND = { f: "flight", h: "hotel", l: "lounge", c: "cab", d: "food", a: "activity", n: "note" };
+
+  // compact wire object: short keys, days become arrays of item-tuples so the
+  // repeated field names don't bloat the code. Personal check-state is NOT
+  // shared (the recipient starts their own packing fresh); day dates are
+  // recomputed from depart on rebuild, so they're omitted too.
+  function packTrip(trip) {
+    if (!trip) return null;
+    var days = (trip.days || []).map(function (day) {
+      return (day.items || []).map(function (it) {
+        return [it.time || "", KIND2CH[it.kind] || "n", it.title || "", it.note || "", it.link || ""];
+      });
+    });
+    return {
+      v: 2, t: trip.title || "", f: trip.from || "", o: trip.to || "",
+      dp: trip.depart || "", n: Math.max(1, +trip.nights || 1), a: Math.max(1, +trip.adults || 1),
+      no: trip.notes || "", d: days,
+    };
+  }
+  // rebuild a real, valid trip from a wire object using the engine's own
+  // builders (so the shape is always correct + ids are freshly minted).
+  function unpackTrip(w, opts) {
+    if (!w || w.v !== 2) return null;
+    opts = opts || {};
+    var t = newTrip({
+      id: opts.id, seed: opts.seed || 1, title: w.t, from: w.f, to: w.o,
+      depart: w.dp, nights: w.n, adults: w.a, notes: w.no || "",
+    });
+    var seed = (opts.seedStart || 1);
+    var days = Array.isArray(w.d) ? w.d : [];
+    for (var di = 0; di < days.length && di < t.days.length; di++) {
+      var items = Array.isArray(days[di]) ? days[di] : [];
+      for (var ii = 0; ii < items.length; ii++) {
+        var a = items[ii] || [];
+        addItem(t, di, { time: a[0] || "", kind: CH2KIND[a[1]] || "note", title: a[2] || "", note: a[3] || "", link: a[4] || "" }, seed++);
+      }
+    }
+    return t;
+  }
+
+  // unicode-safe base64url (works in browser + Node; chunked so big trips don't
+  // blow the call stack; strips padding + swaps +/ for URL safety).
+  function bytesToB64url(bytes) {
+    var bin = "";
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    var b64 = (typeof btoa !== "undefined") ? btoa(bin)
+      : (typeof Buffer !== "undefined" ? Buffer.from(bin, "binary").toString("base64") : bin);
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64urlToBytes(s) {
+    var b64 = String(s).replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var bin = (typeof atob !== "undefined") ? atob(b64)
+      : (typeof Buffer !== "undefined" ? Buffer.from(b64, "base64").toString("binary") : b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  // trip -> shareable code (base64url of the compact JSON). null if no trip.
+  function encodeTripToCode(trip) {
+    var w = packTrip(trip);
+    if (!w) return null;
+    var json = JSON.stringify(w);
+    var bytes = (typeof TextEncoder !== "undefined") ? new TextEncoder().encode(json)
+      : (typeof Buffer !== "undefined" ? Buffer.from(json, "utf8") : null);
+    if (!bytes) return null;
+    return bytesToB64url(bytes);
+  }
+  // code -> rebuilt trip (or null if the code is not a valid v2 trip). opts pass
+  // through to unpackTrip (id/seed) so the caller controls id minting.
+  function decodeTripFromCode(code, opts) {
+    if (!code) return null;
+    try {
+      var bytes = b64urlToBytes(code);
+      var json = (typeof TextDecoder !== "undefined") ? new TextDecoder().decode(bytes)
+        : (typeof Buffer !== "undefined" ? Buffer.from(bytes).toString("utf8") : null);
+      if (!json) return null;
+      var w = JSON.parse(json);
+      return unpackTrip(w, opts);
+    } catch (e) { return null; }
+  }
+
   const Engine = {
     parseISO, addDays, dayLabel, mkId,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
     seedFromPlan, packingList, packKey, tripSummary, tripDateSpan, shortDate, nextUpcomingTrip, exportTrip, importTrip, toICS, shareText, reschedule,
+    packTrip, unpackTrip, encodeTripToCode, decodeTripFromCode,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;
@@ -9477,11 +9570,16 @@ window.LL_HOLIDAYS = {
     const active = $$("nav button").find((b) => b.classList.contains("active"));
     updateNavToggleLabel(active ? active.dataset.view : "flights");
   })();
-  // respond to back/forward + deep links
-  window.addEventListener("hashchange", () => showView((location.hash || "").replace("#", ""), false));
-  // on load, honor a deep-link hash if present
+  // respond to back/forward + deep links. a shared-trip hash (#t=...) is handled
+  // by importTripFromUrl (called from init + here), never treated as a view.
+  window.addEventListener("hashchange", () => {
+    if (/[#&]t=/.test(location.hash || "")) { importTripFromUrl(); return; }
+    showView((location.hash || "").replace("#", ""), false);
+  });
+  // on load, honor a deep-link hash if present (but not the #t= share hash — that
+  // is imported in the init block below, after the trips machinery is wired).
   const initialHash = (location.hash || "").replace("#", "");
-  if (initialHash && VIEWS.includes(initialHash)) showView(initialHash, false);
+  if (initialHash && !/^t=/.test(initialHash) && VIEWS.includes(initialHash)) showView(initialHash, false);
 
   // ======================== TRIP PLANNER (the heart) ======================
   function cityDatalist() {
@@ -10706,6 +10804,40 @@ window.LL_HOLIDAYS = {
   }
   function todayISO() { const n = new Date(); return n.getFullYear() + "-" + ("0" + (n.getMonth() + 1)).slice(-2) + "-" + ("0" + n.getDate()).slice(-2); }
 
+  // build a shareable link that carries the WHOLE trip in its hash (#t=<code>).
+  // Base is the app's own address with any existing hash/query stripped, so the
+  // link opens the app clean and the loader below rebuilds the trip. No backend.
+  function tripShareUrl(t) {
+    if (!IT || !t) return null;
+    const code = IT.encodeTripToCode(t);
+    if (!code) return null;
+    const base = location.origin + location.pathname;
+    return base + "#t=" + code;
+  }
+
+  // on load, if the URL carries a shared trip (#t=<code>), rebuild it on THIS
+  // device and open it. No server was ever involved — the whole trip travelled
+  // inside the link. We mint a fresh id so it can't clobber an existing trip,
+  // and we clean the hash so a refresh doesn't keep re-adding it. Honest by
+  // design: it's the sender's own plan, links intact, packing starts fresh.
+  // Returns true if a trip was imported (so the caller can skip normal routing).
+  function importTripFromUrl() {
+    if (!IT) return false;
+    const hash = location.hash || "";
+    const m = /[#&]t=([A-Za-z0-9_-]+)/.exec(hash);
+    if (!m) return false;
+    const t = IT.decodeTripFromCode(m[1], { id: IT.mkId("trip", nextSeq()), seedStart: countAllItemsSeed() });
+    // clean the hash no matter what, so a bad link doesn't stick around
+    try { history.replaceState(null, "", location.origin + location.pathname); } catch (e) { location.hash = ""; }
+    if (!t) { toast("That shared link couldn't be read. Ask for a fresh one."); return false; }
+    trips().push(t); state.openTripId = t.id; save();
+    autoWeatherFlags(t);
+    showView("trips", false);
+    renderTrips();
+    toast("Opened a shared trip to " + (t.to || t.title || "your destination") + ". It's yours now — edit anything.");
+    return true;
+  }
+
   // honest holiday-timing for a depart date: does it sit on/next to a holiday
   // (with the leave-bridge math), and what's the next long weekend after it.
   function holidayTimingFor(departISO) {
@@ -11770,7 +11902,8 @@ window.LL_HOLIDAYS = {
       </div>
       <div class="itin-tools">
         <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
-        <button class="act mini" id="itin-share">📤 Share plan</button>
+        <button class="act mini" id="itin-sharelink">🔗 Share link</button>
+        <button class="act ghost mini" id="itin-share">📤 Share as text</button>
         <button class="act ghost mini" id="itin-calendar">📅 Add to calendar</button>
         <button class="act ghost mini" id="itin-jump-budget">💰 Budget</button>
         <button class="act ghost mini" id="itin-jump-pack">🎒 Packing</button>
@@ -12127,6 +12260,18 @@ window.LL_HOLIDAYS = {
       } catch (e) { /* user cancelled the share sheet — fall through to copy */ }
       try { await navigator.clipboard.writeText(text); toast("Plan copied — paste it anywhere to share."); }
       catch (e2) { toast("Couldn't copy automatically. Use Backup file instead, or long-press to select."); }
+    };
+    // 🔗 Share link: pack the WHOLE trip into a link. No backend, no upload — the
+    // trip travels inside the URL itself, and whoever opens it rebuilds the exact
+    // same trip on their own device. It's their own plan; nothing is fabricated.
+    if ($("#itin-sharelink")) $("#itin-sharelink").onclick = async () => {
+      const url = tripShareUrl(t);
+      if (!url) { toast("Couldn't build the link. Try Backup file instead."); return; }
+      try {
+        if (navigator.share) { await navigator.share({ title: (t.title || "My trip") + " — TripLens plan", url }); return; }
+      } catch (e) { /* share sheet cancelled — fall through to copy */ }
+      try { await navigator.clipboard.writeText(url); toast("Link copied. Anyone who opens it gets this exact trip — no app, no sign-up."); }
+      catch (e2) { toast("Couldn't copy automatically — long-press the address bar to copy this page's link after sharing."); }
     };
     // 💾 Backup file: download the trip as a JSON file you can re-import later
     // or send to someone who also uses TripLens.
@@ -12872,7 +13017,10 @@ window.LL_HOLIDAYS = {
   wireDatePickers();
   render();
   renderAuthBar();
-  maybeOnboard();
+  // if the page was opened from a "share link", rebuild + open that trip now
+  // (after the trips view + machinery are wired). No backend — the trip rode in
+  // the URL. maybeOnboard is skipped when we just landed straight into a trip.
+  if (!importTripFromUrl()) maybeOnboard();
   autoRecheckWatches();
 })();
 
