@@ -1404,3 +1404,24 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .tool-tag { font-size: 12px; font-weight: 600; color: var(--dim); }
 .tool-body { padding: 14px 15px 16px; }
 .tool-body > .section-h:first-child { margin-top: 0; }
+
+/* MONEY HERE — the offline stall-side converter */
+.mh-convert { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mh-in { display: flex; align-items: center; gap: 6px; flex: 1 1 150px; }
+.mh-amt { flex: 1 1 auto; min-width: 0; font-size: 17px; }
+.mh-cur { font-weight: 700; color: var(--dim); font-size: 13px; }
+.mh-eq { color: var(--dim); font-weight: 700; }
+.mh-out { flex: 1 1 130px; min-width: 100px; }
+.mh-big { font-size: 22px; font-weight: 800; letter-spacing: -.3px; color: var(--good); }
+.mh-rate { margin-top: 10px; font-size: 13.5px; }
+.mh-norate { color: var(--dim); }
+.mh-rateset { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.mh-rate-lbl { font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.mh-rate-in { width: 90px; }
+.mh-note { flex: 1 1 130px; min-width: 110px; }
+.mh-live-note { margin-top: 8px; min-height: 0; }
+.mh-cheat { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.mh-cheat-h { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--dim); margin-bottom: 5px; }
+.mh-cheat-row { display: flex; justify-content: space-between; font-size: 13.5px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.mh-cheat-row:last-child { border-bottom: none; }
+.mh-cheat-row span:last-child { font-weight: 700; }

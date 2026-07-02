@@ -59,6 +59,7 @@ js_files = [
     "quickstart-engine.js",
     "season-engine.js",
     "nlp-engine.js",
+    "money-engine.js",
     "selfcheck.js",
     "profile.js",
     "auth.js",

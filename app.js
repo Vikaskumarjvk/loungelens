@@ -21,6 +21,7 @@
   const QS = window.LL_QUICKSTART;
   const SEASON = window.LL_SEASON;
   const NLP = window.LL_NLP;
+  const MONEY = window.LL_MONEY;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -43,7 +44,7 @@
       return s && s.wallet ? s : blank();
     } catch (e) { return blank(); }
   }
-  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", homeCity: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, explore: { from: "", priority: "balanced" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 } }; }
+  function blank() { return { wallet: [], visitLog: [], spend: {}, mode: "simple", trip: ["Hyderabad", ""], experiences: [], onboarded: false, profileName: "", homeCity: "", suggestions: [], flight: { from: "", to: "", date: "" }, plan: { from: "", to: "", depart: "", nights: 3, adults: 2 }, hotel: { city: "", checkin: "", checkout: "", adults: 2 }, ontrip: { city: "" }, ground: { from: "", to: "", date: "" }, multicity: ["", "", ""], watches: [], searches: [], lw: { year: 0, custom: [] }, explore: { from: "", priority: "balanced" }, trips: [], openTripId: null, tripSeq: 1, fx: { from: "INR", to: "USD", amount: 1000 }, money: { home: "INR" } }; }
 
   // account store (login): { username: { pinHash, data } } + the active username
   const ACCT_KEY = "loungelens.accounts";
@@ -2728,7 +2729,7 @@
     // you scroll past before your itinerary. A short summary stays visible when
     // each is folded, so nothing important is hidden.
     return head + liveNowBanner(t, status) + destSnapshot(t) + `<div class="itin-days">${days}</div>` +
-      readinessBlock(t) + budgetBlock(t) + groupSplitBlock(t) + packing +
+      readinessBlock(t) + budgetBlock(t) + moneyBlock(t) + groupSplitBlock(t) + packing +
       `<div class="honesty-note" style="margin-top:14px;">Your itinerary, budget + links are saved on this device only. The links open the real booking sites. Every rupee in the budget is a number you typed — TripLens never guesses a price. Export to share the whole plan.</div>`;
   }
 
@@ -2872,6 +2873,61 @@
     return toolSection("itin-ready", summary, body, false);
   }
 
+  // "Money here" — the offline stall-side converter. Only shows when the
+  // destination uses a different currency than home, since that's the only time
+  // it's useful. Honest: the rate is one the user pinned or a live ECB rate we
+  // fetched + labelled — never invented. Works fully offline once pinned.
+  function moneyBlock(t) {
+    if (!MONEY) return "";
+    const dest = TE ? TE.resolvePlace(t.to, FLIGHTS) : null;
+    const destCode = (dest && dest.code) || "";
+    const home = (t.budget && t.budget.currency) || (state.money && state.money.home) || "INR";
+    const foreign = MONEY.currencyForCode(destCode) || (t.money && t.money.foreign) || "";
+    // nothing useful to convert if we don't know a different destination currency
+    if (!foreign || foreign.toUpperCase() === home.toUpperCase()) return "";
+    const m = t.money || (t.money = MONEY.blankMoney(home, foreign));
+    // keep home/foreign in sync with the trip if they were blank
+    if (!m.home) m.home = home;
+    if (!m.foreign) m.foreign = foreign;
+    const hasRate = MONEY.rateFromLive(m.rate) != null;
+
+    const rateLine = hasRate
+      ? `<div class="mh-rate">1 ${esc(m.foreign)} = <b>${MONEY.fmt(m.rate, m.home)}</b>${m.pinnedNote ? ` <span class="card-sub">· ${esc(m.pinnedNote)}</span>` : ""}</div>`
+      : `<div class="mh-rate mh-norate">No rate pinned yet. Enter the rate your bank/card gives (or tap “today’s rate”), then it works offline all trip.</div>`;
+
+    // cheat sheet only when a rate exists
+    let sheet = "";
+    if (hasRate) {
+      const rows = MONEY.cheatSheet(m.rate, m.home).map((x) =>
+        `<div class="mh-cheat-row"><span>${MONEY.fmt(x.foreign, m.foreign)}</span><span>${MONEY.fmt(x.home, m.home)}</span></div>`).join("");
+      sheet = `<div class="mh-cheat"><div class="mh-cheat-h">quick glance</div>${rows}</div>`;
+    }
+
+    const summary = `💱 Money here <span class="tool-tag">${hasRate ? esc(m.foreign) + " → " + esc(m.home) : "pin a rate"}</span>`;
+    const body = `
+      <div class="mh-convert">
+        <div class="mh-in">
+          <input class="fb-input mh-amt" id="mh-amt" type="number" inputmode="decimal" min="0" placeholder="price on the tag" aria-label="Amount in ${esc(m.foreign)}" />
+          <span class="mh-cur">${esc(m.foreign)}</span>
+        </div>
+        <div class="mh-eq" aria-hidden="true">=</div>
+        <div class="mh-out" id="mh-out" aria-live="polite">${hasRate ? `<span class="card-sub">type a price above</span>` : `<span class="card-sub">pin a rate first</span>`}</div>
+      </div>
+      ${rateLine}
+      <div class="mh-rateset">
+        <label class="mh-rate-lbl">1 ${esc(m.foreign)} =
+          <input class="fb-input mh-rate-in" id="mh-rate-in" type="number" inputmode="decimal" min="0" step="any" value="${m.rate != null ? esc(m.rate) : ""}" placeholder="?" aria-label="Home currency per 1 ${esc(m.foreign)}" /> ${esc(m.home)}
+        </label>
+        <input class="fb-input mh-note" id="mh-note" value="${esc(m.pinnedNote || "")}" placeholder="where from? (e.g. my card)" aria-label="Rate source note" />
+        <button class="act mini" id="mh-pin">Pin rate</button>
+        <button class="act ghost mini" id="mh-live">Today’s rate</button>
+      </div>
+      <div class="mh-live-note card-sub" id="mh-live-note"></div>
+      ${sheet}
+      <p class="card-sub" style="margin-top:8px;">This is a rough guide at the rate you pinned — your card’s real markup will differ. Nothing here is a fee estimate. Pin once and it converts offline for the whole trip.</p>`;
+    return toolSection("itin-money", summary, body, false);
+  }
+
   // budget tracker block for a trip (your numbers only, never fabricated)
   function budgetBlock(t) {
     if (!BUD) return "";
@@ -3007,6 +3063,50 @@
     return toolSection("itin-split", summary, body, on);
   }
 
+  // wire the "Money here" tool: live convert as you type, pin your own rate,
+  // optional "today's rate" ECB fetch. All conversion is offline arithmetic on
+  // the pinned rate; the live fetch only helps you pick a rate, it's not required.
+  function wireMoney(t) {
+    if (!MONEY || !t.money) return;
+    const m = t.money;
+    const out = $("#mh-out"), amt = $("#mh-amt");
+    const paint = () => {
+      if (!out) return;
+      const r = MONEY.convert(amt ? amt.value : "", m.rate, m.home);
+      if (r.ok) out.innerHTML = `<b class="mh-big">${MONEY.fmt(r.homeRounded, m.home)}</b>`;
+      else if (r.reason === "no-rate") out.innerHTML = `<span class="card-sub">pin a rate first</span>`;
+      else out.innerHTML = `<span class="card-sub">type a price above</span>`;
+    };
+    if (amt) amt.oninput = paint;
+    // pin the rate the user typed (+ its source note). Persists, re-renders so the
+    // cheat sheet + rate line update.
+    if ($("#mh-pin")) $("#mh-pin").onclick = () => {
+      const v = MONEY.rateFromLive($("#mh-rate-in") && +$("#mh-rate-in").value);
+      if (v == null) { toast("Enter the rate first (a number bigger than 0)."); return; }
+      m.rate = v;
+      m.pinnedNote = ($("#mh-note") && $("#mh-note").value.trim()) || "";
+      save(); renderTrips();
+      toast("Rate pinned. It converts offline for the whole trip now.");
+    };
+    // "today's rate": fetch the live ECB rate (needs signal) and PRE-FILL the
+    // input, clearly labelled with the date. The user still taps Pin to keep it,
+    // so the pinned rate is always one they chose. Honest: never auto-fabricated.
+    if ($("#mh-live")) $("#mh-live").onclick = () => {
+      const note = $("#mh-live-note");
+      if (!LD) { if (note) note.textContent = "Live rates aren't available here — enter your card's rate instead."; return; }
+      if (note) note.textContent = "checking…";
+      LD.getRates(m.foreign, m.home).then((fx) => {
+        const per = LD.convert(1, m.foreign, m.home, fx.base, fx.rates); // home per 1 foreign
+        const r = MONEY.rateFromLive(per);
+        if (r == null) { if (note) note.textContent = `Couldn't get a live ${m.foreign}→${m.home} rate. Enter your card's rate instead.`; return; }
+        const ri = $("#mh-rate-in"); if (ri) ri.value = MONEY.roundMoney(r, m.home);
+        const nn = $("#mh-note"); if (nn && !nn.value) nn.value = "ECB " + fx.date + (fx.fromCache ? " (cached)" : "");
+        if (note) note.innerHTML = `Live rate: 1 ${esc(m.foreign)} = <b>${MONEY.fmt(r, m.home)}</b> · ECB ${esc(fx.date)}${fx.fromCache ? " (cached, offline)" : ""}. Tap <b>Pin rate</b> to keep it.`;
+      }).catch(() => { if (note) note.textContent = `Couldn't reach live rates. Enter your card's rate instead — it still works offline.`; });
+    };
+    paint();
+  }
+
   function wireItinerary(t) {
     fillDestWeather(t); // load the live forecast into the destination snapshot
     // ✏️ Edit dates: toggle the inline editor, then reschedule (non-destructive)
@@ -3037,6 +3137,7 @@
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
     };
+    wireMoney(t);
     // 📤 Share plan: open the phone's normal share sheet with a clean readable
     // plan (real links included), or copy it on desktop. Pure text, the user's
     // own data — nothing fabricated.
