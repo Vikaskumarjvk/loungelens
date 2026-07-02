@@ -22,6 +22,7 @@
   const SEASON = window.LL_SEASON;
   const NLP = window.LL_NLP;
   const MONEY = window.LL_MONEY;
+  const REGIONS = window.LL_REGIONS, REGION = window.LL_REGION_ENGINE;
   // international hubs in our data — the ONE source for "is this trip international?".
   // shared by autoWeatherFlags + the readiness checklist so they never disagree.
   const INTL_CODES = ["DXB", "SIN", "BKK", "LHR", "JFK"];
@@ -1470,6 +1471,82 @@
     return t;
   }
 
+  // EXPERT CIRCUIT: turn a matched region + a scaled plan into a real multi-stop
+  // trip. Each stop gets its slice of days, each day auto-planned by the SAME
+  // honest day-planner (real Google Maps searches, never a fabricated venue), and
+  // a "travel to next stop" note sits on each hop with a real directions search.
+  //   region = matched region (with .slug); scaled = REGION.scalePlan output
+  //   opts   = { depart, adults, from }
+  // Honesty: the circuit shape + why + drive-times are common-knowledge geography;
+  // every specific (stay, food, transfer) is a live search link. Cost stays a
+  // qualitative tier saved into the trip notes with the region's honest savers.
+  function buildAndOpenCircuit(region, scaled, opts) {
+    if (!IT || !DESTS || !region || !scaled || !scaled.stops.length) return null;
+    opts = opts || {};
+    const from = opts.from || state.homeCity || "";
+    const totalNights = scaled.totalNights;
+    const t = IT.newTrip({
+      title: region.name, from: from, to: region.stops[0].city,
+      depart: opts.depart, nights: totalNights, adults: opts.adults || 2, seed: nextSeq(),
+    });
+    // honest planning notes: the shape, the cost tier, the savers — no numbers.
+    const noteLines = [region.vibe + ".", "", REGION.costLine(region), "", "Money-savers:"];
+    (region.savers || []).forEach((s) => noteLines.push("• " + s));
+    if (scaled.note) { noteLines.push(""); noteLines.push(scaled.note); }
+    t.notes = noteLines.join("\n");
+
+    // walk the stops, filling consecutive day slices. dayCursor = arrival day of
+    // the current stop. A stop with N nights occupies N day-cards (its arrival
+    // day through the day before the next stop's arrival). The final stop also
+    // owns the trip's departure day.
+    let dayCursor = 0;
+    const maps = (q) => "https://www.google.com/maps/search/" + encodeURIComponent(q);
+    const dir = (a, b) => "https://www.google.com/maps/dir/" + encodeURIComponent(a) + "/" + encodeURIComponent(b);
+
+    scaled.stops.forEach((stop, si) => {
+      const isLast = si === scaled.stops.length - 1;
+      // day-span for this stop: its nights, plus the departure day if it's last
+      const span = stop.nights + (isLast ? 1 : 0);
+      // plan this stop's days with the real day-planner using its own themes.
+      // We pass a dest shaped like the planner expects; code may be undefined for
+      // hill/backwater towns — the planner still builds real maps searches by city.
+      const dplan = PLANNER ? PLANNER.buildPlan({ code: stop.code, city: stop.city }, span, DESTS) : null;
+      // an arrival marker on the stop's first day (with a real "stays" search)
+      const arriveTitle = si === 0 ? ("Arrive " + stop.city) : ("Travel to " + stop.city);
+      const arriveNote = si === 0
+        ? ("Base yourself here for " + stop.nights + " night" + (stop.nights === 1 ? "" : "s") + ". " + stop.why)
+        : ((stop.driveHoursFromPrev ? ("Roughly " + stop.driveHoursFromPrev + "h from " + scaled.stops[si - 1].city + " by road. ") : "Hop to " + stop.city + ". ") + stop.why);
+      const arriveLink = si === 0 ? maps("places to stay in " + stop.city)
+        : dir(scaled.stops[si - 1].city, stop.city);
+      IT.addItem(t, dayCursor, { time: "09:00", kind: si === 0 ? "hotel" : "cab", title: arriveTitle, note: arriveNote, link: arriveLink }, countAllItemsSeed());
+      // a "find a stay" note for each new base (real search, no fabricated hotel)
+      if (si !== 0) {
+        IT.addItem(t, dayCursor, { time: "12:00", kind: "hotel", title: "Find a stay in " + stop.city, note: "Search live listings — no fake prices here", link: maps("places to stay in " + stop.city) }, countAllItemsSeed());
+      }
+      // fill the stop's day slice with the planner's themed slots
+      if (dplan) {
+        dplan.days.forEach((pd) => {
+          const targetDay = dayCursor + pd.dayIndex;
+          const day = t.days[targetDay]; if (!day) return;
+          pd.slots.forEach((sl) => {
+            if (!sl.theme) return;
+            if ((day.items || []).some((it) => it.title === sl.title)) return;
+            IT.addItem(t, targetDay, { time: sl.time, kind: sl.kind, title: sl.title, note: "Tap to open the live map search", link: sl.link }, countAllItemsSeed());
+          });
+        });
+      }
+      dayCursor += stop.nights;
+    });
+
+    trips().push(t); state.openTripId = t.id; save();
+    autoWeatherFlags(t);
+    showView("trips", true);
+    renderTrips();
+    const stopWord = scaled.stops.map((s) => s.city).join(" → ");
+    toast(region.name + " circuit ready: " + stopWord + ". Dates are a guess — tap “edit trip” to set yours.");
+    return t;
+  }
+
   // "just type your trip" — parse the sentence, show exactly what we understood
   // (honesty: never build a wrong city/date silently), and let one tap build it.
   // Deterministic + offline: LL_NLP does all the reading, no network, no LLM.
@@ -1479,14 +1556,38 @@
     const cities = (FLIGHTS.airports || []).map((a) => ({ code: a.code, city: a.city }));
     let last = null;
 
+    let lastRegion = null; // set when the text names a curated circuit
+
     const paint = () => {
       const text = input.value || "";
       const parsed = NLP.parseTrip(text, { cities: cities, todayISO: todayISO() });
       last = parsed;
+      // does the text name a whole region (Kerala, Rajasthan, Vietnam...)? if so,
+      // we offer the expert multi-stop circuit instead of a single city.
+      lastRegion = REGION ? REGION.match(text) : null;
       if (!text.trim()) { out.innerHTML = ""; out.hidden = true; if (go) go.disabled = true; return; }
       out.hidden = false;
+      if (lastRegion) {
+        // build the scaled preview using the nights the user gave, else the ideal
+        const nights = parsed.nights != null ? parsed.nights : lastRegion.idealNights;
+        const scaled = REGION.scalePlan(lastRegion, nights);
+        const route = scaled.stops.map((s) => esc(s.city) + " <span class=\"qs-nlp-n\">" + s.nights + "n</span>").join(" <span class=\"qs-nlp-arrow\">→</span> ");
+        const extra = [];
+        if (parsed.from) extra.push(`<span class="qs-nlp-chip"><span aria-hidden="true">🛫</span> from ${esc(parsed.from.city)}</span>`);
+        if (parsed.depart) extra.push(`<span class="qs-nlp-chip"><span aria-hidden="true">📅</span> ${esc(parsed.understood.find((u) => u.key === "depart") ? parsed.understood.find((u) => u.key === "depart").label : "")}</span>`);
+        if (parsed.adults != null) extra.push(`<span class="qs-nlp-chip"><span aria-hidden="true">👤</span> ${esc((parsed.understood.find((u) => u.key === "adults") || {}).label || "")}</span>`);
+        out.innerHTML = `<div class="qs-nlp-circuit">
+          <div class="qs-nlp-clabel">🗺️ ${esc(lastRegion.name)} — a proven ${scaled.totalNights}-night circuit</div>
+          <div class="qs-nlp-route">${route}</div>
+          ${scaled.note ? `<div class="qs-nlp-cnote">${esc(scaled.note)}</div>` : ""}
+          ${extra.length ? `<div class="qs-nlp-cextra">${extra.join(" ")}</div>` : ""}
+        </div>`;
+        if (go) { go.disabled = false; go.textContent = "Plan it"; }
+        return;
+      }
+      if (go) go.textContent = "Go";
       if (!parsed.understood.length) {
-        out.innerHTML = `<span class="qs-nlp-none">couldn’t read a place yet — try “5 days in Goa from Delhi next month”</span>`;
+        out.innerHTML = `<span class="qs-nlp-none">couldn’t read a place yet — try “Kerala trip” or “5 days in Goa from Delhi”</span>`;
         if (go) go.disabled = true;
         return;
       }
@@ -1499,7 +1600,23 @@
     };
 
     const build = () => {
-      if (!last || !last.ready || !NLP) return;
+      if (!NLP) return;
+      // region circuit path takes priority — the expert multi-stop plan
+      if (lastRegion && REGION) {
+        const region = lastRegion; // full region object, carries .slug
+        const nights = (last && last.nights != null) ? last.nights : region.idealNights;
+        const scaled = REGION.scalePlan(region, nights);
+        // dates + travellers still come from the parse (honest: only what was said,
+        // else resolve fills a flagged default)
+        const resolved = last ? NLP.resolve(last, { todayISO: todayISO() }) : null;
+        const depart = (resolved && resolved.depart) || null;
+        const adults = (last && last.adults) || 2;
+        const from = (last && last.from && last.from.code) || "";
+        input.value = ""; lastRegion = null; if (go) go.textContent = "Go"; paint();
+        buildAndOpenCircuit(region, scaled, { depart: depart, adults: adults, from: from });
+        return;
+      }
+      if (!last || !last.ready) return;
       const r = NLP.resolve(last, { todayISO: todayISO() });
       if (!r.to) return;
       const code = r.to.code, city = r.to.city;
@@ -1507,7 +1624,7 @@
       // note in the toast anything we had to assume, so it's never a hidden guess
       let msg = "Trip to " + city + " ready.";
       if (r.assumed && r.assumed.length) {
-        msg += " I filled in " + r.assumed.map((a) => a.label.toLowerCase()).join(" and ") + " — tap “edit dates” up top to change.";
+        msg += " I filled in " + r.assumed.map((a) => a.label.toLowerCase()).join(" and ") + " — tap “edit trip” up top to change.";
       }
       input.value = ""; paint();
       buildAndOpenTrip({ code: code, city: city, from: from, to: city, depart: r.depart, nights: r.nights, adults: r.adults }, msg);
