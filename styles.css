@@ -1387,6 +1387,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--r-md);
 }
 .itin-dates-edit .ed-note { flex-basis: 100%; line-height: 1.4; }
+.ed-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-basis: 100%; }
+.ed-row .tp-lbl { flex: 1 1 130px; }
+.ed-row #ed-swap { flex: 0 0 auto; }
 
 /* --- Collapsible tool sections (readiness / budget / split / packing) --- */
 .tool-sec { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-solid); margin: 12px 0; overflow: hidden; }

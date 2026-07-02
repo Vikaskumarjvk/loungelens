@@ -51,6 +51,27 @@
   // a small deterministic id: prefix + seed counter, so tests are stable.
   function mkId(prefix, seed) { return prefix + "-" + seed; }
 
+  // --- end-date <-> nights bridge (so the UI can offer a real "End date" picker) ---
+  // The trip stores `nights`; the LAST day (the day you travel home) = depart + nights.
+  // These two helpers convert between an end DATE and nights so a user can think in
+  // either. Pure + deterministic. Both clamp to a minimum of 1 night.
+  //
+  // endDateFor(depart, nights): the ISO date of the last day, or "" if no valid depart.
+  function endDateFor(depart, nights) {
+    if (!parseISO(depart)) return "";
+    var n = Math.max(1, +nights || 1);
+    return addDays(depart, n);
+  }
+  // nightsBetween(depart, end): whole nights from depart to end (>=1). null if either
+  // date is invalid or end is on/before depart (caller keeps the old nights then).
+  function nightsBetween(depart, end) {
+    var a = parseISO(depart), b = parseISO(end);
+    if (!a || !b) return null;
+    var ta = Date.UTC(a.y, a.mo - 1, a.d), tb = Date.UTC(b.y, b.mo - 1, b.d);
+    var n = Math.round((tb - ta) / 86400000);
+    return n >= 1 ? n : null;
+  }
+
   // ---- create a blank trip ------------------------------------------------
   // opts: { title, from, to, depart, nights, adults, id }
   function newTrip(opts) {
@@ -555,7 +576,7 @@
   }
 
   const Engine = {
-    parseISO, addDays, dayLabel, mkId,
+    parseISO, addDays, dayLabel, mkId, endDateFor, nightsBetween,
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
     seedFromPlan, packingList, packKey, tripSummary, tripDateSpan, shortDate, nextUpcomingTrip, exportTrip, importTrip, toICS, shareText, reschedule,
     packTrip, unpackTrip, encodeTripToCode, decodeTripFromCode,

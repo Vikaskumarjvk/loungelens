@@ -2641,12 +2641,24 @@
     }
   }
 
+  // a clean origin→destination line for the trip header. Uses the resolved city
+  // names when we know them, falls back to whatever the user typed, and shows
+  // just the destination when there's no origin yet (so a quick-start / typed /
+  // shared trip reads fine before you add where you're flying from).
+  function routeLine(t) {
+    const dest = TE ? TE.resolvePlace(t.to, FLIGHTS) : null;
+    const orig = t.from ? (TE ? TE.resolvePlace(t.from, FLIGHTS) : null) : null;
+    const toName = (dest && dest.city) || t.to || t.title || "your trip";
+    const fromName = t.from ? ((orig && orig.city) || t.from) : "";
+    return fromName ? (fromName + " → " + toName) : toName;
+  }
+
   function renderItinerary(t) {
     const s = IT.tripSummary(t);
     const head = `<div class="itin-head">
       <button class="act ghost mini" id="itin-back">← All trips</button>
       <div class="itin-title"><b>${esc(t.title)}</b>
-        <button class="itin-dates-btn" id="itin-dates-btn" aria-expanded="false" aria-controls="itin-dates-edit">${esc(IT.tripDateSpan(t))} · ${s.adults} traveller${s.adults > 1 ? "s" : ""} <span class="idb-edit">✏️ edit dates</span></button>
+        <button class="itin-dates-btn" id="itin-dates-btn" aria-expanded="false" aria-controls="itin-dates-edit">${esc(routeLine(t))} · ${esc(IT.tripDateSpan(t))} · ${s.adults} traveller${s.adults > 1 ? "s" : ""} <span class="idb-edit">✏️ edit trip</span></button>
       </div>
       <div class="itin-tools">
         <button class="act mini" id="itin-autoplan">✨ Plan my days</button>
@@ -2658,10 +2670,18 @@
         <button class="act ghost mini" id="itin-export">💾 Backup file</button>
       </div>
       <div class="itin-dates-edit" id="itin-dates-edit" hidden>
-        <label class="tp-lbl">Start <input class="fb-input" id="ed-depart" type="date" value="${esc(t.depart || "")}" aria-label="Trip start date" /></label>
-        <label class="tp-lbl">Nights <input class="fb-input tp-num" id="ed-nights" type="number" min="1" max="60" value="${t.nights || 1}" aria-label="Nights" /></label>
-        <button class="act mini" id="ed-apply">Update dates</button>
-        <span class="card-sub ed-note">Changing this re-dates every day. Nothing you planned is lost — if you shorten the trip, those plans move to the last day.</span>
+        <div class="ed-row">
+          <label class="tp-lbl">From <input class="fb-input" id="ed-from" list="fl-airport-list" autocomplete="off" value="${esc(t.from || "")}" placeholder="your city (optional)" aria-label="Origin city" /></label>
+          <button class="act ghost mini" id="ed-swap" title="Swap" aria-label="Swap from and to">⇄</button>
+          <label class="tp-lbl">To <input class="fb-input" id="ed-to" list="fl-airport-list" autocomplete="off" value="${esc(t.to || "")}" placeholder="destination" aria-label="Destination city" /></label>
+        </div>
+        <div class="ed-row">
+          <label class="tp-lbl">Start <input class="fb-input" id="ed-depart" type="date" value="${esc(t.depart || "")}" aria-label="Trip start date" /></label>
+          <label class="tp-lbl">End <input class="fb-input" id="ed-end" type="date" value="${esc(IT.endDateFor(t.depart, t.nights) || "")}" aria-label="Trip end date (the day you travel home)" /></label>
+          <label class="tp-lbl">Nights <input class="fb-input tp-num" id="ed-nights" type="number" min="1" max="60" value="${t.nights || 1}" aria-label="Nights" /></label>
+        </div>
+        <button class="act mini" id="ed-apply">Update trip</button>
+        <span class="card-sub ed-note">Start is the day you leave, End is the day you travel home. Set either End or Nights (they stay in sync). Nothing you planned is lost — if you shorten the trip, those plans move to the last day.</span>
       </div>
     </div>`;
 
@@ -3109,21 +3129,63 @@
 
   function wireItinerary(t) {
     fillDestWeather(t); // load the live forecast into the destination snapshot
-    // ✏️ Edit dates: toggle the inline editor, then reschedule (non-destructive)
+    // ✏️ Edit trip: toggle the inline editor (from/to/start/end/nights)
     if ($("#itin-dates-btn")) $("#itin-dates-btn").onclick = () => {
       const box = $("#itin-dates-edit"); if (!box) return;
       const open = box.hidden; box.hidden = !open;
       $("#itin-dates-btn").setAttribute("aria-expanded", open ? "true" : "false");
-      if (open) { const di = $("#ed-depart"); if (di) di.focus(); }
+      if (open) { const di = $("#ed-to"); if (di) di.focus(); }
+    };
+    // keep End date and Nights in sync as the user edits either one, using the
+    // start date as the anchor. This is why a person can think in "get back on
+    // the 16th" OR "4 nights" — both drive the same trip length.
+    const edStart = $("#ed-depart"), edEnd = $("#ed-end"), edNights = $("#ed-nights");
+    const syncFromEnd = () => {
+      if (!edStart || !edEnd || !edNights) return;
+      const n = IT.nightsBetween(edStart.value, edEnd.value);
+      if (n != null) edNights.value = n;
+    };
+    const syncFromNights = () => {
+      if (!edStart || !edEnd || !edNights) return;
+      const end = IT.endDateFor(edStart.value, +edNights.value);
+      if (end) edEnd.value = end;
+    };
+    if (edEnd) edEnd.onchange = syncFromEnd;
+    if (edNights) edNights.oninput = syncFromNights;
+    // if the start moves, keep the SAME number of nights and slide the end date
+    if (edStart) edStart.onchange = syncFromNights;
+    if ($("#ed-swap")) $("#ed-swap").onclick = () => {
+      const a = $("#ed-from"), b = $("#ed-to"); if (!a || !b) return;
+      const tmp = a.value; a.value = b.value; b.value = tmp;
     };
     if ($("#ed-apply")) $("#ed-apply").onclick = () => {
-      const depart = ($("#ed-depart") && $("#ed-depart").value) || t.depart || "";
-      const nights = ($("#ed-nights") && +$("#ed-nights").value) || t.nights || 1;
+      // from / to: keep what the user typed (may be blank origin — that's fine)
+      const newFrom = ($("#ed-from") && $("#ed-from").value.trim()) || "";
+      const newTo = ($("#ed-to") && $("#ed-to").value.trim()) || t.to || "";
+      // remember if the title was still the auto default (origin→dest or dest),
+      // so we can refresh it when the destination changes; keep a custom title.
+      const oldRoute = routeLine(t);
+      const wasAutoTitle = !t.title || t.title === oldRoute || t.title === t.to ||
+        (TE && TE.resolvePlace(t.to, FLIGHTS) && t.title === TE.resolvePlace(t.to, FLIGHTS).city);
+      t.from = newFrom;
+      t.to = newTo;
+      // dates: prefer an explicit End date, else Nights; both already kept in sync
+      const depart = (edStart && edStart.value) || t.depart || "";
+      let nights = (edNights && +edNights.value) || t.nights || 1;
+      if (edEnd && edEnd.value) {
+        const n = IT.nightsBetween(depart, edEnd.value);
+        if (n != null) nights = n;
+      }
       const daysBefore = t.days.length;
       IT.reschedule(t, depart, nights);
-      const shrank = t.days.length < daysBefore; // fewer days -> plans were folded onto the last day
+      // refresh an auto title to the new destination; leave a custom one alone
+      if (wasAutoTitle) {
+        const destNow = TE ? TE.resolvePlace(t.to, FLIGHTS) : null;
+        t.title = (destNow && destNow.city) || t.to || t.title;
+      }
+      const shrank = t.days.length < daysBefore;
       save(); autoWeatherFlags(t); renderTrips();
-      toast(shrank ? "Dates updated. Nothing lost — plans from the dropped days moved onto your last day." : "Dates updated across all your days.");
+      toast(shrank ? "Trip updated. Nothing lost — plans from the dropped days moved onto your last day." : "Trip updated.");
     };
     if ($("#itin-back")) $("#itin-back").onclick = () => { state.openTripId = null; save(); renderTrips(); };
     // the jump buttons now open the (collapsed) tool section before scrolling
