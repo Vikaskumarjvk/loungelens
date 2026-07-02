@@ -1095,6 +1095,24 @@ main { max-width: 940px; margin: 0 auto; padding: 22px 18px 0; }
 .itin-tools { display: flex; gap: 6px; }
 .itin-days { display: grid; gap: 12px; }
 .itin-day { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; box-shadow: var(--shadow-1); }
+/* today's day-card while a trip is happening: a clear left rail + soft lift */
+.itin-day-today { border-color: rgba(54, 211, 153, .45); border-left: 3px solid var(--good); box-shadow: 0 6px 20px rgba(54, 211, 153, .12); }
+.itin-day-today.flash { animation: todayflash 1.1s ease; }
+@keyframes todayflash { 0%, 100% { box-shadow: 0 6px 20px rgba(54,211,153,.12); } 30% { box-shadow: 0 0 0 3px rgba(54,211,153,.5); } }
+@media (prefers-reduced-motion: reduce) { .itin-day-today.flash { animation: none; } }
+.today-chip { color: var(--good); border-color: rgba(54, 211, 153, .4); background: var(--good-dim); }
+/* LIVE companion banner — only shows while a trip is actually happening */
+.livenow { background: var(--good-dim); border: 1px solid rgba(54, 211, 153, .3); border-radius: var(--r-md); padding: 11px 14px; margin: 12px 0; }
+.ln-head { font-size: 13.5px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.ln-dot { color: var(--good); animation: lnpulse 2s ease-in-out infinite; }
+@keyframes lnpulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .ln-dot { animation: none; } }
+.ln-jump { margin-left: auto; background: none; border: none; color: var(--good); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 2px 4px; }
+.ln-jump:hover { text-decoration: underline; }
+.ln-jump:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.ln-next { margin-top: 7px; font-size: 13.5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ln-when { color: var(--dim); font-size: 12px; }
+.ln-open { color: var(--dim); }
 .itin-day-head { font-weight: 700; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
 .itin-item { display: grid; grid-template-columns: 48px 22px 1fr auto; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); }
 .itin-item:first-of-type { border-top: none; }
@@ -1340,7 +1358,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .nt-sub { font-size: 13.5px; color: var(--dim); margin-top: 3px; }
 .nt-weather { margin-top: 7px; min-height: 0; }
 .nt-wx { font-size: 13.5px; }
+.nt-next { font-size: 13.5px; margin-top: 6px; color: var(--txt); }
 .nt-open { margin-top: 13px; }
+/* when you're actually ON the trip, the hero shifts to a live green accent */
+.nexttrip.nt-live { border-color: rgba(54, 211, 153, .4); background: linear-gradient(135deg, rgba(54, 211, 153, .16), var(--panel-solid) 70%); }
+.nexttrip.nt-live .nt-count { color: var(--good); background: var(--good-dim); }
 
 .qs-home { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .qs-home-lbl { font-size: 13.5px; font-weight: 700; white-space: nowrap; }
@@ -6113,6 +6135,92 @@ window.LL_HOLIDAYS = {
     return best;
   }
 
+  // ---- live "on-trip" companion ------------------------------------------
+  // Where are we in this trip right now? Pure + deterministic — `todayISO` is
+  // passed in (the DOM layer reads the clock, the engine never does). Honest:
+  // it only places TODAY against the trip's own dates; it invents nothing.
+  //   phase: 'undated' | 'upcoming' | 'ongoing' | 'past'
+  //   dayIndex/dayNumber: which day of the trip today is (ongoing only)
+  //   daysUntil: days until departure (upcoming; 0 never happens — that's ongoing)
+  //   daysSinceEnd: days since the last day (past)
+  //   label: a plain human line for the UI
+  function daysBetweenISO(a, b) {
+    var pa = parseISO(a), pb = parseISO(b);
+    if (!pa || !pb) return null;
+    var ta = Date.UTC(pa.y, pa.mo - 1, pa.d), tb = Date.UTC(pb.y, pb.mo - 1, pb.d);
+    return Math.round((tb - ta) / 86400000);
+  }
+  function tripStatus(trip, todayISO) {
+    var out = { phase: "undated", totalDays: dayCount(trip), dayIndex: null, dayNumber: null, daysUntil: null, daysSinceEnd: null, label: "no dates yet" };
+    if (!trip || !parseISO(trip.depart) || !parseISO(todayISO)) return out;
+    var total = out.totalDays || (Math.max(1, +trip.nights || 1) + 1);
+    out.totalDays = total;
+    var toDepart = daysBetweenISO(todayISO, trip.depart);   // >0 => depart is ahead
+    var lastISO = addDays(trip.depart, total - 1);          // departure day (last day)
+    if (toDepart > 0) {
+      out.phase = "upcoming";
+      out.daysUntil = toDepart;
+      out.label = toDepart === 1 ? "starts tomorrow" : "starts in " + toDepart + " days";
+      return out;
+    }
+    var sinceEnd = daysBetweenISO(lastISO, todayISO);       // >0 => trip already ended
+    if (sinceEnd > 0) {
+      out.phase = "past";
+      out.daysSinceEnd = sinceEnd;
+      out.label = "wrapped up";
+      return out;
+    }
+    // ongoing: today is between depart and the last day (inclusive)
+    var idx = daysBetweenISO(trip.depart, todayISO);        // 0 .. total-1
+    out.phase = "ongoing";
+    out.dayIndex = idx;
+    out.dayNumber = idx + 1;
+    out.label = "Day " + (idx + 1) + " of " + total;
+    return out;
+  }
+
+  // "what's next" on the timeline right now. Pure — `todayISO` places today and
+  // optional `nowHHMM` ("14:30") picks the next TIMED item still ahead today.
+  // Returns { dayIndex, dayNumber, item, when } or null when nothing is ahead.
+  //   when: 'today' | 'later' (a following day) | 'soon' (the upcoming trip's
+  //   first planned item). Only ever points at an item the user actually has.
+  function nextUp(trip, todayISO, nowHHMM) {
+    if (!trip || !trip.days) return null;
+    var st = tripStatus(trip, todayISO);
+    var firstItemDayFrom = function (startIdx) {
+      for (var i = startIdx; i < trip.days.length; i++) {
+        var its = (trip.days[i].items || []);
+        if (its.length) return { dayIndex: i, item: its[0] };
+      }
+      return null;
+    };
+    if (st.phase === "upcoming") {
+      var f = firstItemDayFrom(0);
+      return f ? { dayIndex: f.dayIndex, dayNumber: f.dayIndex + 1, item: f.item, when: "soon" } : null;
+    }
+    if (st.phase === "ongoing") {
+      var day = trip.days[st.dayIndex];
+      var items = (day && day.items) || [];
+      // on today: the first timed item at/after now (blank-time items aren't
+      // "next by clock" — they sink, matching sortDay). If now unknown, first item.
+      if (items.length) {
+        if (nowHHMM) {
+          for (var j = 0; j < items.length; j++) {
+            if (items[j].time && items[j].time >= nowHHMM) {
+              return { dayIndex: st.dayIndex, dayNumber: st.dayIndex + 1, item: items[j], when: "today" };
+            }
+          }
+        } else {
+          return { dayIndex: st.dayIndex, dayNumber: st.dayIndex + 1, item: items[0], when: "today" };
+        }
+      }
+      // nothing left today -> first item on a following day
+      var later = firstItemDayFrom(st.dayIndex + 1);
+      return later ? { dayIndex: later.dayIndex, dayNumber: later.dayIndex + 1, item: later.item, when: "later" } : null;
+    }
+    return null; // past or undated -> nothing "next" on the timeline
+  }
+
   // ---- calendar export (.ics) ---------------------------------------------
   // Turn the trip's day-by-day items into a standard iCalendar file the user can
   // import into Google/Apple/Outlook calendar. This is purely THEIR plan in a
@@ -6324,6 +6432,7 @@ window.LL_HOLIDAYS = {
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
     seedFromPlan, packingList, packKey, tripSummary, tripDateSpan, shortDate, nextUpcomingTrip, exportTrip, importTrip, toICS, shareText, reschedule,
     packTrip, unpackTrip, encodeTripToCode, decodeTripFromCode,
+    tripStatus, nextUp,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;
@@ -10590,9 +10699,15 @@ window.LL_HOLIDAYS = {
     if (!t) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
     const hue = destHue(t);
-    // countdown (honest label from the readiness engine)
+    // are we ON this trip right now? if so, the hero becomes a live companion.
+    const status = IT.tripStatus(t, todayISO());
+    const onTrip = status.phase === "ongoing";
+    // countdown (honest label from the readiness engine) — for ongoing trips we
+    // show "Day N of M" instead of a days-ago count.
     let countdown = "";
-    if (READY && t.depart) {
+    if (onTrip) {
+      countdown = status.label; // "Day 3 of 5"
+    } else if (READY && t.depart) {
       const n = READY.daysToGo(t.depart, todayISO());
       if (n != null) countdown = READY.countdownLabel(n);
     }
@@ -10605,16 +10720,28 @@ window.LL_HOLIDAYS = {
       else if (pk.length && done === pk.length) packLeft = "all packed ✅";
     }
     const s = IT.tripSummary(t);
+    // on an ongoing trip, surface the next thing on the timeline (an item the
+    // user actually planned — never fabricated). Blank when nothing's ahead.
+    let nextLine = "";
+    if (onTrip) {
+      const nu = IT.nextUp(t, todayISO(), nowHHMM());
+      if (nu && nu.item) {
+        const w = nu.when === "today" && nu.item.time ? " at " + nu.item.time : (nu.when === "later" ? " · Day " + nu.dayNumber : "");
+        nextLine = `<div class="nt-next">⏭️ next: <b>${esc(nu.item.title || "your next plan")}</b>${esc(w)}</div>`;
+      }
+    }
     box.style.setProperty("--chip-hue", hue);
+    box.classList.toggle("nt-live", onTrip);
     box.innerHTML = `
       <div class="nt-top">
-        <span class="nt-eyebrow">Your next trip</span>
-        ${countdown ? `<span class="nt-count">🗓️ ${esc(countdown)}</span>` : ""}
+        <span class="nt-eyebrow">${onTrip ? "You're on your trip" : "Your next trip"}</span>
+        ${countdown ? `<span class="nt-count">${onTrip ? "📍" : "🗓️"} ${esc(countdown)}</span>` : ""}
       </div>
       <div class="nt-city">🧭 ${esc(t.title)}</div>
       <div class="nt-sub">${esc(IT.tripDateSpan(t))}${packLeft ? ` · 🎒 ${esc(packLeft)}` : ""}</div>
+      ${nextLine}
       <div class="nt-weather" id="nt-weather"></div>
-      <button class="act nt-open" id="nt-open">Open this trip →</button>`;
+      <button class="act nt-open" id="nt-open">${onTrip ? "Open today’s plan →" : "Open this trip →"}</button>`;
     if ($("#nt-open")) $("#nt-open").onclick = () => { state.openTripId = t.id; save(); showView("trips", true); renderTrips(); };
     // live forecast into the hero, async + graceful (real numbers only)
     if (LD && GEO && TE) {
@@ -11917,11 +12044,19 @@ window.LL_HOLIDAYS = {
       </div>
     </div>`;
 
+    // where are we in this trip RIGHT NOW? (device clock only places today; the
+    // engine invents nothing). Used to mark today's day-card + auto-scroll to it.
+    const status = IT.tripStatus(t, todayISO());
+    const todayIdx = status.phase === "ongoing" ? status.dayIndex : -1;
+
     const days = t.days.map((day, di) => {
       // always show the day number, and the date when we have one, so start/end
       // are unmistakable: "Day 1 · Mon, 13 Jul" ... "Day 4 · Thu, 16 Jul".
       const dl = "Day " + (di + 1) + (day.date ? " · " + IT.dayLabel(day.date) : "");
-      const tag = di === 0 ? `<span class="chip">start</span>` : di === t.days.length - 1 ? `<span class="chip rail">last day</span>` : "";
+      const isToday = di === todayIdx;
+      const tag = isToday ? `<span class="chip today-chip">● Today</span>`
+        : di === 0 ? `<span class="chip">start</span>`
+        : di === t.days.length - 1 ? `<span class="chip rail">last day</span>` : "";
       const items = day.items.length ? day.items.map((it) => {
         const link = it.link ? ` <a class="fl-verify" href="${esc(it.link)}" target="_blank" rel="noopener">open ↗</a>` : "";
         return `<div class="itin-item kind-${esc(it.kind)}">
@@ -11935,7 +12070,7 @@ window.LL_HOLIDAYS = {
           </span>
         </div>`;
       }).join("") : `<div class="card-sub itin-empty">Nothing planned. Add something below.</div>`;
-      return `<div class="itin-day">
+      return `<div class="itin-day${isToday ? " itin-day-today" : ""}"${isToday ? ' id="itin-today"' : ""}>
         <div class="itin-day-head">${esc(dl)} ${tag}</div>
         ${items}
         <div class="itin-add">
@@ -11972,10 +12107,36 @@ window.LL_HOLIDAYS = {
     // <details> so they're present + one tap away, but not 5 screens of walls
     // you scroll past before your itinerary. A short summary stays visible when
     // each is folded, so nothing important is hidden.
-    return head + destSnapshot(t) + `<div class="itin-days">${days}</div>` +
+    return head + liveNowBanner(t, status) + destSnapshot(t) + `<div class="itin-days">${days}</div>` +
       readinessBlock(t) + budgetBlock(t) + groupSplitBlock(t) + packing +
       `<div class="honesty-note" style="margin-top:14px;">Your itinerary, budget + links are saved on this device only. The links open the real booking sites. Every rupee in the budget is a number you typed — TripLens never guesses a price. Export to share the whole plan.</div>`;
   }
+
+  // LIVE companion banner shown only while a trip is actually happening. It says
+  // which day you're on and what's next on YOUR timeline (an item you planned),
+  // with a tap to jump to today's card. Honest: the device clock only places
+  // "today" against your own dates; every word points at your own data.
+  function liveNowBanner(t, status) {
+    if (!IT || !status || status.phase !== "ongoing") return "";
+    const nu = IT.nextUp(t, todayISO(), nowHHMM());
+    let nextLine = "";
+    if (nu && nu.item) {
+      const when = nu.when === "today"
+        ? (nu.item.time ? "next at " + esc(nu.item.time) : "next up")
+        : "next: Day " + nu.dayNumber;
+      const icon = KIND_ICON[nu.item.kind] || "•";
+      nextLine = `<div class="ln-next">${icon} <b>${esc(nu.item.title || KIND_LABEL[nu.item.kind] || "your next plan")}</b> <span class="ln-when">${when}</span></div>`;
+    } else {
+      nextLine = `<div class="ln-next ln-open">nothing scheduled ahead — enjoy the day</div>`;
+    }
+    return `<div class="livenow">
+      <div class="ln-head"><span class="ln-dot">●</span> You're on this trip · <b>${esc(status.label)}</b>
+        <button class="ln-jump" id="ln-jump">jump to today ↓</button></div>
+      ${nextLine}
+    </div>`;
+  }
+  // current local time as "HH:MM" (DOM layer reads the clock; engine stays pure).
+  function nowHHMM() { const n = new Date(); return ("0" + n.getHours()).slice(-2) + ":" + ("0" + n.getMinutes()).slice(-2); }
   // wrap a tool block in a collapsible section. `id` anchors the jump buttons;
   // `summaryHtml` is the always-visible header; `open` defaults the panel open.
   function toolSection(id, summaryHtml, bodyHtml, open) {
@@ -12250,6 +12411,12 @@ window.LL_HOLIDAYS = {
     const jumpTo = (sel) => { const p = $(sel); if (!p) return; if (p.tagName === "DETAILS") p.open = true; p.scrollIntoView({ behavior: "smooth" }); };
     if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => jumpTo("#itin-pack");
     if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => jumpTo("#itin-budget");
+    // live companion: "jump to today" scrolls to today's day-card + flashes it
+    if ($("#ln-jump")) $("#ln-jump").onclick = () => {
+      const el = $("#itin-today"); if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    };
     // 📤 Share plan: open the phone's normal share sheet with a clean readable
     // plan (real links included), or copy it on desktop. Pure text, the user's
     // own data — nothing fabricated.

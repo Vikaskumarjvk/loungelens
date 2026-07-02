@@ -9,7 +9,7 @@
  * This fixes the earlier cache-first bug where users were stuck on a stale version.
  * Bump CACHE_VERSION on each release so old caches are purged on activate.
  */
-const CACHE_VERSION = "triplens-v65-2026-07-02-share-link";
+const CACHE_VERSION = "triplens-v66-2026-07-02-live-companion";
 const SHELL = [
   "./",
   "./index.html",

@@ -1319,9 +1319,15 @@
     if (!t) { box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
     const hue = destHue(t);
-    // countdown (honest label from the readiness engine)
+    // are we ON this trip right now? if so, the hero becomes a live companion.
+    const status = IT.tripStatus(t, todayISO());
+    const onTrip = status.phase === "ongoing";
+    // countdown (honest label from the readiness engine) — for ongoing trips we
+    // show "Day N of M" instead of a days-ago count.
     let countdown = "";
-    if (READY && t.depart) {
+    if (onTrip) {
+      countdown = status.label; // "Day 3 of 5"
+    } else if (READY && t.depart) {
       const n = READY.daysToGo(t.depart, todayISO());
       if (n != null) countdown = READY.countdownLabel(n);
     }
@@ -1334,16 +1340,28 @@
       else if (pk.length && done === pk.length) packLeft = "all packed ✅";
     }
     const s = IT.tripSummary(t);
+    // on an ongoing trip, surface the next thing on the timeline (an item the
+    // user actually planned — never fabricated). Blank when nothing's ahead.
+    let nextLine = "";
+    if (onTrip) {
+      const nu = IT.nextUp(t, todayISO(), nowHHMM());
+      if (nu && nu.item) {
+        const w = nu.when === "today" && nu.item.time ? " at " + nu.item.time : (nu.when === "later" ? " · Day " + nu.dayNumber : "");
+        nextLine = `<div class="nt-next">⏭️ next: <b>${esc(nu.item.title || "your next plan")}</b>${esc(w)}</div>`;
+      }
+    }
     box.style.setProperty("--chip-hue", hue);
+    box.classList.toggle("nt-live", onTrip);
     box.innerHTML = `
       <div class="nt-top">
-        <span class="nt-eyebrow">Your next trip</span>
-        ${countdown ? `<span class="nt-count">🗓️ ${esc(countdown)}</span>` : ""}
+        <span class="nt-eyebrow">${onTrip ? "You're on your trip" : "Your next trip"}</span>
+        ${countdown ? `<span class="nt-count">${onTrip ? "📍" : "🗓️"} ${esc(countdown)}</span>` : ""}
       </div>
       <div class="nt-city">🧭 ${esc(t.title)}</div>
       <div class="nt-sub">${esc(IT.tripDateSpan(t))}${packLeft ? ` · 🎒 ${esc(packLeft)}` : ""}</div>
+      ${nextLine}
       <div class="nt-weather" id="nt-weather"></div>
-      <button class="act nt-open" id="nt-open">Open this trip →</button>`;
+      <button class="act nt-open" id="nt-open">${onTrip ? "Open today’s plan →" : "Open this trip →"}</button>`;
     if ($("#nt-open")) $("#nt-open").onclick = () => { state.openTripId = t.id; save(); showView("trips", true); renderTrips(); };
     // live forecast into the hero, async + graceful (real numbers only)
     if (LD && GEO && TE) {
@@ -2646,11 +2664,19 @@
       </div>
     </div>`;
 
+    // where are we in this trip RIGHT NOW? (device clock only places today; the
+    // engine invents nothing). Used to mark today's day-card + auto-scroll to it.
+    const status = IT.tripStatus(t, todayISO());
+    const todayIdx = status.phase === "ongoing" ? status.dayIndex : -1;
+
     const days = t.days.map((day, di) => {
       // always show the day number, and the date when we have one, so start/end
       // are unmistakable: "Day 1 · Mon, 13 Jul" ... "Day 4 · Thu, 16 Jul".
       const dl = "Day " + (di + 1) + (day.date ? " · " + IT.dayLabel(day.date) : "");
-      const tag = di === 0 ? `<span class="chip">start</span>` : di === t.days.length - 1 ? `<span class="chip rail">last day</span>` : "";
+      const isToday = di === todayIdx;
+      const tag = isToday ? `<span class="chip today-chip">● Today</span>`
+        : di === 0 ? `<span class="chip">start</span>`
+        : di === t.days.length - 1 ? `<span class="chip rail">last day</span>` : "";
       const items = day.items.length ? day.items.map((it) => {
         const link = it.link ? ` <a class="fl-verify" href="${esc(it.link)}" target="_blank" rel="noopener">open ↗</a>` : "";
         return `<div class="itin-item kind-${esc(it.kind)}">
@@ -2664,7 +2690,7 @@
           </span>
         </div>`;
       }).join("") : `<div class="card-sub itin-empty">Nothing planned. Add something below.</div>`;
-      return `<div class="itin-day">
+      return `<div class="itin-day${isToday ? " itin-day-today" : ""}"${isToday ? ' id="itin-today"' : ""}>
         <div class="itin-day-head">${esc(dl)} ${tag}</div>
         ${items}
         <div class="itin-add">
@@ -2701,10 +2727,36 @@
     // <details> so they're present + one tap away, but not 5 screens of walls
     // you scroll past before your itinerary. A short summary stays visible when
     // each is folded, so nothing important is hidden.
-    return head + destSnapshot(t) + `<div class="itin-days">${days}</div>` +
+    return head + liveNowBanner(t, status) + destSnapshot(t) + `<div class="itin-days">${days}</div>` +
       readinessBlock(t) + budgetBlock(t) + groupSplitBlock(t) + packing +
       `<div class="honesty-note" style="margin-top:14px;">Your itinerary, budget + links are saved on this device only. The links open the real booking sites. Every rupee in the budget is a number you typed — TripLens never guesses a price. Export to share the whole plan.</div>`;
   }
+
+  // LIVE companion banner shown only while a trip is actually happening. It says
+  // which day you're on and what's next on YOUR timeline (an item you planned),
+  // with a tap to jump to today's card. Honest: the device clock only places
+  // "today" against your own dates; every word points at your own data.
+  function liveNowBanner(t, status) {
+    if (!IT || !status || status.phase !== "ongoing") return "";
+    const nu = IT.nextUp(t, todayISO(), nowHHMM());
+    let nextLine = "";
+    if (nu && nu.item) {
+      const when = nu.when === "today"
+        ? (nu.item.time ? "next at " + esc(nu.item.time) : "next up")
+        : "next: Day " + nu.dayNumber;
+      const icon = KIND_ICON[nu.item.kind] || "•";
+      nextLine = `<div class="ln-next">${icon} <b>${esc(nu.item.title || KIND_LABEL[nu.item.kind] || "your next plan")}</b> <span class="ln-when">${when}</span></div>`;
+    } else {
+      nextLine = `<div class="ln-next ln-open">nothing scheduled ahead — enjoy the day</div>`;
+    }
+    return `<div class="livenow">
+      <div class="ln-head"><span class="ln-dot">●</span> You're on this trip · <b>${esc(status.label)}</b>
+        <button class="ln-jump" id="ln-jump">jump to today ↓</button></div>
+      ${nextLine}
+    </div>`;
+  }
+  // current local time as "HH:MM" (DOM layer reads the clock; engine stays pure).
+  function nowHHMM() { const n = new Date(); return ("0" + n.getHours()).slice(-2) + ":" + ("0" + n.getMinutes()).slice(-2); }
   // wrap a tool block in a collapsible section. `id` anchors the jump buttons;
   // `summaryHtml` is the always-visible header; `open` defaults the panel open.
   function toolSection(id, summaryHtml, bodyHtml, open) {
@@ -2979,6 +3031,12 @@
     const jumpTo = (sel) => { const p = $(sel); if (!p) return; if (p.tagName === "DETAILS") p.open = true; p.scrollIntoView({ behavior: "smooth" }); };
     if ($("#itin-jump-pack")) $("#itin-jump-pack").onclick = () => jumpTo("#itin-pack");
     if ($("#itin-jump-budget")) $("#itin-jump-budget").onclick = () => jumpTo("#itin-budget");
+    // live companion: "jump to today" scrolls to today's day-card + flashes it
+    if ($("#ln-jump")) $("#ln-jump").onclick = () => {
+      const el = $("#itin-today"); if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    };
     // 📤 Share plan: open the phone's normal share sheet with a clean readable
     // plan (real links included), or copy it on desktop. Pure text, the user's
     // own data — nothing fabricated.

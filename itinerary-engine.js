@@ -262,6 +262,92 @@
     return best;
   }
 
+  // ---- live "on-trip" companion ------------------------------------------
+  // Where are we in this trip right now? Pure + deterministic — `todayISO` is
+  // passed in (the DOM layer reads the clock, the engine never does). Honest:
+  // it only places TODAY against the trip's own dates; it invents nothing.
+  //   phase: 'undated' | 'upcoming' | 'ongoing' | 'past'
+  //   dayIndex/dayNumber: which day of the trip today is (ongoing only)
+  //   daysUntil: days until departure (upcoming; 0 never happens — that's ongoing)
+  //   daysSinceEnd: days since the last day (past)
+  //   label: a plain human line for the UI
+  function daysBetweenISO(a, b) {
+    var pa = parseISO(a), pb = parseISO(b);
+    if (!pa || !pb) return null;
+    var ta = Date.UTC(pa.y, pa.mo - 1, pa.d), tb = Date.UTC(pb.y, pb.mo - 1, pb.d);
+    return Math.round((tb - ta) / 86400000);
+  }
+  function tripStatus(trip, todayISO) {
+    var out = { phase: "undated", totalDays: dayCount(trip), dayIndex: null, dayNumber: null, daysUntil: null, daysSinceEnd: null, label: "no dates yet" };
+    if (!trip || !parseISO(trip.depart) || !parseISO(todayISO)) return out;
+    var total = out.totalDays || (Math.max(1, +trip.nights || 1) + 1);
+    out.totalDays = total;
+    var toDepart = daysBetweenISO(todayISO, trip.depart);   // >0 => depart is ahead
+    var lastISO = addDays(trip.depart, total - 1);          // departure day (last day)
+    if (toDepart > 0) {
+      out.phase = "upcoming";
+      out.daysUntil = toDepart;
+      out.label = toDepart === 1 ? "starts tomorrow" : "starts in " + toDepart + " days";
+      return out;
+    }
+    var sinceEnd = daysBetweenISO(lastISO, todayISO);       // >0 => trip already ended
+    if (sinceEnd > 0) {
+      out.phase = "past";
+      out.daysSinceEnd = sinceEnd;
+      out.label = "wrapped up";
+      return out;
+    }
+    // ongoing: today is between depart and the last day (inclusive)
+    var idx = daysBetweenISO(trip.depart, todayISO);        // 0 .. total-1
+    out.phase = "ongoing";
+    out.dayIndex = idx;
+    out.dayNumber = idx + 1;
+    out.label = "Day " + (idx + 1) + " of " + total;
+    return out;
+  }
+
+  // "what's next" on the timeline right now. Pure — `todayISO` places today and
+  // optional `nowHHMM` ("14:30") picks the next TIMED item still ahead today.
+  // Returns { dayIndex, dayNumber, item, when } or null when nothing is ahead.
+  //   when: 'today' | 'later' (a following day) | 'soon' (the upcoming trip's
+  //   first planned item). Only ever points at an item the user actually has.
+  function nextUp(trip, todayISO, nowHHMM) {
+    if (!trip || !trip.days) return null;
+    var st = tripStatus(trip, todayISO);
+    var firstItemDayFrom = function (startIdx) {
+      for (var i = startIdx; i < trip.days.length; i++) {
+        var its = (trip.days[i].items || []);
+        if (its.length) return { dayIndex: i, item: its[0] };
+      }
+      return null;
+    };
+    if (st.phase === "upcoming") {
+      var f = firstItemDayFrom(0);
+      return f ? { dayIndex: f.dayIndex, dayNumber: f.dayIndex + 1, item: f.item, when: "soon" } : null;
+    }
+    if (st.phase === "ongoing") {
+      var day = trip.days[st.dayIndex];
+      var items = (day && day.items) || [];
+      // on today: the first timed item at/after now (blank-time items aren't
+      // "next by clock" — they sink, matching sortDay). If now unknown, first item.
+      if (items.length) {
+        if (nowHHMM) {
+          for (var j = 0; j < items.length; j++) {
+            if (items[j].time && items[j].time >= nowHHMM) {
+              return { dayIndex: st.dayIndex, dayNumber: st.dayIndex + 1, item: items[j], when: "today" };
+            }
+          }
+        } else {
+          return { dayIndex: st.dayIndex, dayNumber: st.dayIndex + 1, item: items[0], when: "today" };
+        }
+      }
+      // nothing left today -> first item on a following day
+      var later = firstItemDayFrom(st.dayIndex + 1);
+      return later ? { dayIndex: later.dayIndex, dayNumber: later.dayIndex + 1, item: later.item, when: "later" } : null;
+    }
+    return null; // past or undated -> nothing "next" on the timeline
+  }
+
   // ---- calendar export (.ics) ---------------------------------------------
   // Turn the trip's day-by-day items into a standard iCalendar file the user can
   // import into Google/Apple/Outlook calendar. This is purely THEIR plan in a
@@ -473,6 +559,7 @@
     newTrip, dayCount, addItem, removeItem, moveItem, sortDay, countItems,
     seedFromPlan, packingList, packKey, tripSummary, tripDateSpan, shortDate, nextUpcomingTrip, exportTrip, importTrip, toICS, shareText, reschedule,
     packTrip, unpackTrip, encodeTripToCode, decodeTripFromCode,
+    tripStatus, nextUp,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_ITINERARY = Engine;
