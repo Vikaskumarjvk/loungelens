@@ -4765,7 +4765,7 @@ window.LL_HOLIDAYS = {
       ],
       stops: [
         { city: "North Goa", code: "GOI", nights: 3, why: "Baga/Anjuna/Vagator — beaches, flea markets, nightlife", themes: ["beach", "nightlife", "market"] },
-        { city: "South Goa", nights: 2, driveHoursFromPrev: 1.5, why: "Palolem/Colva — quieter sand and slower days to finish", themes: ["beach", "waterfront", "food"] },
+        { city: "South Goa", nights: 2, driveHoursFromPrev: 1.5, travel: ["scooter", "cab", "auto"], why: "Palolem/Colva — quieter sand and slower days to finish", themes: ["beach", "waterfront", "food"] },
       ],
     },
     himachal: {
@@ -4812,8 +4812,8 @@ window.LL_HOLIDAYS = {
       ],
       stops: [
         { city: "Port Blair", code: "IXZ", nights: 1, why: "arrival + Cellular Jail; a light first day, then ferry out", themes: ["oldtown", "waterfront", "food"] },
-        { city: "Havelock Island", nights: 3, driveHoursFromPrev: 2.5, why: "Radhanagar beach + diving — the main event", themes: ["beach", "nature", "waterfront"] },
-        { city: "Neil Island", nights: 2, driveHoursFromPrev: 1, why: "smaller, slower, snorkelling and quiet sand to finish", themes: ["beach", "nature", "waterfront"] },
+        { city: "Havelock Island", nights: 3, driveHoursFromPrev: 2.5, travel: ["ferry"], why: "Radhanagar beach + diving — the main event (ferry from Port Blair)", themes: ["beach", "nature", "waterfront"] },
+        { city: "Neil Island", nights: 2, driveHoursFromPrev: 1, travel: ["ferry"], why: "smaller, slower, snorkelling and quiet sand to finish (short ferry hop)", themes: ["beach", "nature", "waterfront"] },
       ],
     },
     "north-east-india": {
@@ -4863,8 +4863,8 @@ window.LL_HOLIDAYS = {
       ],
       stops: [
         { city: "Bangkok", code: "BKK", nights: 3, why: "temples, markets, river and nightlife — the classic entry", themes: ["temple", "food", "market"] },
-        { city: "Chiang Mai", nights: 3, driveHoursFromPrev: null, why: "old-city temples, night bazaar, hills and elephants (fly up)", themes: ["temple", "oldtown", "nature"] },
-        { city: "Phuket", nights: 3, driveHoursFromPrev: null, why: "islands and beaches to finish (fly down)", themes: ["beach", "waterfront", "nightlife"] },
+        { city: "Chiang Mai", nights: 3, driveHoursFromPrev: null, travel: ["fly", "train"], why: "old-city temples, night bazaar, hills and elephants (cheap flight or overnight train up)", themes: ["temple", "oldtown", "nature"] },
+        { city: "Phuket", nights: 3, driveHoursFromPrev: null, travel: ["fly"], why: "islands and beaches to finish (quick flight down)", themes: ["beach", "waterfront", "nightlife"] },
       ],
     },
     "sri-lanka": {
@@ -4880,7 +4880,7 @@ window.LL_HOLIDAYS = {
       stops: [
         { city: "Colombo", code: "CMB", nights: 1, why: "gentle arrival by the sea before heading inland", themes: ["waterfront", "food", "market"] },
         { city: "Kandy", nights: 2, driveHoursFromPrev: 3.5, why: "the Temple of the Tooth and the hill-country gateway", themes: ["temple", "oldtown", "nature"] },
-        { city: "Ella", nights: 2, driveHoursFromPrev: null, why: "tea hills and viewpoints — take the famous train here", themes: ["hills", "nature", "cafe"] },
+        { city: "Ella", nights: 2, driveHoursFromPrev: 6, travel: ["train"], why: "tea hills and viewpoints — the Kandy-to-Ella train is one of the world's great rides", themes: ["hills", "nature", "cafe"] },
         { city: "Galle", nights: 2, driveHoursFromPrev: 5, why: "the Dutch fort and south-coast beaches to finish", themes: ["oldtown", "beach", "waterfront"] },
       ],
     },
@@ -4896,9 +4896,9 @@ window.LL_HOLIDAYS = {
       ],
       stops: [
         { city: "Hanoi", code: "HAN", nights: 2, why: "old-quarter chaos, lakes and the northern start", themes: ["oldtown", "food", "market"] },
-        { city: "Halong Bay", nights: 1, driveHoursFromPrev: 2.5, why: "the limestone-karst cruise — the postcard", themes: ["waterfront", "nature"] },
-        { city: "Hoi An", nights: 3, driveHoursFromPrev: null, why: "lantern-lit old town, tailors and beaches (fly to Da Nang)", themes: ["oldtown", "beach", "food"] },
-        { city: "Ho Chi Minh City", nights: 3, driveHoursFromPrev: null, why: "Saigon energy + Mekong day trip to finish (fly south)", themes: ["landmark", "food", "market"] },
+        { city: "Halong Bay", nights: 1, driveHoursFromPrev: 2.5, travel: ["bus", "cab"], why: "the limestone-karst cruise — most cruises include the transfer from Hanoi", themes: ["waterfront", "nature"] },
+        { city: "Hoi An", nights: 3, driveHoursFromPrev: null, travel: ["fly"], why: "lantern-lit old town, tailors and beaches (fly to Da Nang, then a short cab)", themes: ["oldtown", "beach", "food"] },
+        { city: "Ho Chi Minh City", nights: 3, driveHoursFromPrev: null, travel: ["fly"], why: "Saigon energy + Mekong day trip to finish (quick flight south)", themes: ["landmark", "food", "market"] },
       ],
     },
     "dubai-uae": {
@@ -9502,6 +9502,57 @@ window.LL_HOLIDAYS = {
     return { stops: outStops, dropped: dropped, totalNights: totalNights, note: note };
   }
 
+  // --- transport modes per hop --------------------------------------------
+  // What's the sensible way to cover a leg? Honest rule-of-thumb from the hop's
+  // rough drive-hours (exact distances aren't in the data), with two extra
+  // signals: `isAirLeg` (curated null driveHours = a fly-between leg) and an
+  // optional per-hop `override` array of mode ids where a mode is famously THE
+  // way (Sri Lanka's Kandy->Ella train, Goa scooters). Returns ordered modes,
+  // each { id, label, icon, search } where `search` is a search-KIND the app
+  // turns into a real live query — never a fabricated fare or operator.
+  var MODE = {
+    fly:     { id: "fly",     label: "Fly",              icon: "✈️", search: "flights" },
+    train:   { id: "train",   label: "Train",            icon: "🚆", search: "trains" },
+    bus:     { id: "bus",     label: "Bus",              icon: "🚌", search: "buses" },
+    cab:     { id: "cab",     label: "Cab / car",        icon: "🚕", search: "cab" },
+    scooter: { id: "scooter", label: "Scooter rental",   icon: "🛵", search: "scooter" },
+    auto:    { id: "auto",    label: "Auto / local ride", icon: "🛺", search: "auto" },
+    local:   { id: "local",   label: "Local transit",    icon: "🚇", search: "transit" },
+    ferry:   { id: "ferry",   label: "Ferry",            icon: "⛴️", search: "ferry" },
+    walk:    { id: "walk",    label: "Walk",             icon: "🚶", search: "walk" },
+  };
+  function modeList(ids) {
+    var seen = {}, out = [];
+    (ids || []).forEach(function (id) {
+      if (MODE[id] && !seen[id]) { seen[id] = true; out.push(MODE[id]); }
+    });
+    return out;
+  }
+  // hop = { driveHoursFromPrev, travel? } ; opts = { isArrival, isAirLeg }
+  //   isArrival: the flight INTO the region (first stop from home) -> always fly-first
+  //   isAirLeg : curated leg with no road drive (island/long domestic) -> fly-first
+  function modesForHop(hop, opts) {
+    opts = opts || {};
+    hop = hop || {};
+    // 1. curated override wins (famous, specific modes for this exact hop)
+    if (Array.isArray(hop.travel) && hop.travel.length) {
+      var over = modeList(hop.travel);
+      if (over.length) return over;
+    }
+    // 2. arrival into the region, or a curated air leg -> fly, with train as the
+    //    scenic/overland alternative
+    if (opts.isArrival || opts.isAirLeg || hop.driveHoursFromPrev == null) {
+      return modeList(["fly", "train"]);
+    }
+    // 3. band logic on rough drive-hours
+    var h = +hop.driveHoursFromPrev;
+    if (h >= 8) return modeList(["fly", "train", "bus"]);     // very long: flying often saves a day
+    if (h >= 5) return modeList(["train", "bus", "cab"]);     // long haul: rail/coach territory
+    if (h >= 2) return modeList(["bus", "cab", "train"]);     // medium: bus or a hired car
+    if (h >= 1) return modeList(["cab", "bus", "scooter"]);   // short hop: cab/auto, scooter if you ride
+    return modeList(["auto", "scooter", "local", "walk"]);    // very near / in-town: local transport
+  }
+
   // a short honest summary line for the advisor card.
   function summary(region) {
     if (!region) return "";
@@ -9518,6 +9569,7 @@ window.LL_HOLIDAYS = {
 
   var Engine = {
     match: match, scalePlan: scalePlan, summary: summary, costLine: costLine, norm: norm,
+    modesForHop: modesForHop, MODE: MODE,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_REGION_ENGINE = Engine;
@@ -11523,6 +11575,23 @@ window.LL_HOLIDAYS = {
     let dayCursor = 0;
     const maps = (q) => "https://www.google.com/maps/search/" + encodeURIComponent(q);
     const dir = (a, b) => "https://www.google.com/maps/dir/" + encodeURIComponent(a) + "/" + encodeURIComponent(b);
+    const gsearch = (q) => "https://www.google.com/search?q=" + encodeURIComponent(q);
+    // a REAL live search per transport mode for a specific leg (from -> to).
+    // No fabricated fares/operators — each opens a genuine search the user runs.
+    const modeSearchUrl = (mode, fromCity, toCity) => {
+      switch (mode.search) {
+        case "flights": return "https://www.google.com/travel/flights?q=" + encodeURIComponent("flights from " + fromCity + " to " + toCity);
+        case "trains":  return gsearch("trains from " + fromCity + " to " + toCity);
+        case "buses":   return gsearch("bus from " + fromCity + " to " + toCity);
+        case "ferry":   return gsearch("ferry from " + fromCity + " to " + toCity + " schedule");
+        case "cab":     return dir(fromCity, toCity);
+        case "scooter": return maps("scooter rental in " + fromCity);
+        case "auto":    return dir(fromCity, toCity);
+        case "transit": return dir(fromCity, toCity);
+        case "walk":    return dir(fromCity, toCity);
+        default:        return dir(fromCity, toCity);
+      }
+    };
 
     scaled.stops.forEach((stop, si) => {
       const isLast = si === scaled.stops.length - 1;
@@ -11532,16 +11601,30 @@ window.LL_HOLIDAYS = {
       // We pass a dest shaped like the planner expects; code may be undefined for
       // hill/backwater towns — the planner still builds real maps searches by city.
       const dplan = PLANNER ? PLANNER.buildPlan({ code: stop.code, city: stop.city }, span, DESTS) : null;
-      // an arrival marker on the stop's first day (with a real "stays" search)
-      const arriveTitle = si === 0 ? ("Arrive " + stop.city) : ("Travel to " + stop.city);
-      const arriveNote = si === 0
-        ? ("Base yourself here for " + stop.nights + " night" + (stop.nights === 1 ? "" : "s") + ". " + stop.why)
-        : ((stop.driveHoursFromPrev ? ("Roughly " + stop.driveHoursFromPrev + "h from " + scaled.stops[si - 1].city + " by road. ") : "Hop to " + stop.city + ". ") + stop.why);
-      const arriveLink = si === 0 ? maps("places to stay in " + stop.city)
-        : dir(scaled.stops[si - 1].city, stop.city);
-      IT.addItem(t, dayCursor, { time: "09:00", kind: si === 0 ? "hotel" : "cab", title: arriveTitle, note: arriveNote, link: arriveLink }, countAllItemsSeed());
-      // a "find a stay" note for each new base (real search, no fabricated hotel)
-      if (si !== 0) {
+      if (si === 0) {
+        // arrival into the region: how to get here from home (fly-first), then settle
+        const prevCity = from ? (TE && TE.resolvePlace(from, FLIGHTS) ? TE.resolvePlace(from, FLIGHTS).city : from) : "";
+        const modes = REGION ? REGION.modesForHop(stop, { isArrival: true }) : [];
+        if (prevCity && modes.length) {
+          const modeWords = modes.map((m) => m.icon + " " + m.label).join(" · ");
+          IT.addItem(t, dayCursor, { time: "07:00", kind: "flight", title: "Get to " + stop.city + " from " + prevCity, note: "Best by " + modeWords + ". Tap for a real search.", link: modeSearchUrl(modes[0], prevCity, stop.city) }, countAllItemsSeed());
+        }
+        IT.addItem(t, dayCursor, { time: "09:00", kind: "hotel", title: "Arrive " + stop.city, note: "Base yourself here for " + stop.nights + " night" + (stop.nights === 1 ? "" : "s") + ". " + stop.why, link: maps("places to stay in " + stop.city) }, countAllItemsSeed());
+      } else {
+        // a hop between stops: suggest the sensible transport mode(s) for this leg
+        const prevCity = scaled.stops[si - 1].city;
+        const isAir = stop.driveHoursFromPrev == null;
+        const modes = REGION ? REGION.modesForHop(stop, { isAirLeg: isAir }) : [];
+        const timeBit = stop.driveHoursFromPrev ? ("Roughly " + stop.driveHoursFromPrev + "h from " + prevCity + ". ") : ("From " + prevCity + ". ");
+        const modeWords = modes.length ? ("Best by " + modes.map((m) => m.icon + " " + m.label).join(" · ") + ". ") : "";
+        IT.addItem(t, dayCursor, { time: "09:00", kind: "cab", title: "Travel to " + stop.city, note: timeBit + modeWords + stop.why, link: modes.length ? modeSearchUrl(modes[0], prevCity, stop.city) : dir(prevCity, stop.city) }, countAllItemsSeed());
+        // a second tappable option so the user has a real search for the alternate
+        // mode too (e.g. bus link AND cab link), not just the top pick.
+        if (modes.length > 1) {
+          const alt = modes[1];
+          IT.addItem(t, dayCursor, { time: "09:30", kind: "cab", title: alt.icon + " " + alt.label + " to " + stop.city, note: "Alternate way to make this hop — real search, no fake fares.", link: modeSearchUrl(alt, prevCity, stop.city) }, countAllItemsSeed());
+        }
+        // find a stay at the new base (real search, no fabricated hotel)
         IT.addItem(t, dayCursor, { time: "12:00", kind: "hotel", title: "Find a stay in " + stop.city, note: "Search live listings — no fake prices here", link: maps("places to stay in " + stop.city) }, countAllItemsSeed());
       }
       // fill the stop's day slice with the planner's themed slots

@@ -120,6 +120,57 @@
     return { stops: outStops, dropped: dropped, totalNights: totalNights, note: note };
   }
 
+  // --- transport modes per hop --------------------------------------------
+  // What's the sensible way to cover a leg? Honest rule-of-thumb from the hop's
+  // rough drive-hours (exact distances aren't in the data), with two extra
+  // signals: `isAirLeg` (curated null driveHours = a fly-between leg) and an
+  // optional per-hop `override` array of mode ids where a mode is famously THE
+  // way (Sri Lanka's Kandy->Ella train, Goa scooters). Returns ordered modes,
+  // each { id, label, icon, search } where `search` is a search-KIND the app
+  // turns into a real live query — never a fabricated fare or operator.
+  var MODE = {
+    fly:     { id: "fly",     label: "Fly",              icon: "✈️", search: "flights" },
+    train:   { id: "train",   label: "Train",            icon: "🚆", search: "trains" },
+    bus:     { id: "bus",     label: "Bus",              icon: "🚌", search: "buses" },
+    cab:     { id: "cab",     label: "Cab / car",        icon: "🚕", search: "cab" },
+    scooter: { id: "scooter", label: "Scooter rental",   icon: "🛵", search: "scooter" },
+    auto:    { id: "auto",    label: "Auto / local ride", icon: "🛺", search: "auto" },
+    local:   { id: "local",   label: "Local transit",    icon: "🚇", search: "transit" },
+    ferry:   { id: "ferry",   label: "Ferry",            icon: "⛴️", search: "ferry" },
+    walk:    { id: "walk",    label: "Walk",             icon: "🚶", search: "walk" },
+  };
+  function modeList(ids) {
+    var seen = {}, out = [];
+    (ids || []).forEach(function (id) {
+      if (MODE[id] && !seen[id]) { seen[id] = true; out.push(MODE[id]); }
+    });
+    return out;
+  }
+  // hop = { driveHoursFromPrev, travel? } ; opts = { isArrival, isAirLeg }
+  //   isArrival: the flight INTO the region (first stop from home) -> always fly-first
+  //   isAirLeg : curated leg with no road drive (island/long domestic) -> fly-first
+  function modesForHop(hop, opts) {
+    opts = opts || {};
+    hop = hop || {};
+    // 1. curated override wins (famous, specific modes for this exact hop)
+    if (Array.isArray(hop.travel) && hop.travel.length) {
+      var over = modeList(hop.travel);
+      if (over.length) return over;
+    }
+    // 2. arrival into the region, or a curated air leg -> fly, with train as the
+    //    scenic/overland alternative
+    if (opts.isArrival || opts.isAirLeg || hop.driveHoursFromPrev == null) {
+      return modeList(["fly", "train"]);
+    }
+    // 3. band logic on rough drive-hours
+    var h = +hop.driveHoursFromPrev;
+    if (h >= 8) return modeList(["fly", "train", "bus"]);     // very long: flying often saves a day
+    if (h >= 5) return modeList(["train", "bus", "cab"]);     // long haul: rail/coach territory
+    if (h >= 2) return modeList(["bus", "cab", "train"]);     // medium: bus or a hired car
+    if (h >= 1) return modeList(["cab", "bus", "scooter"]);   // short hop: cab/auto, scooter if you ride
+    return modeList(["auto", "scooter", "local", "walk"]);    // very near / in-town: local transport
+  }
+
   // a short honest summary line for the advisor card.
   function summary(region) {
     if (!region) return "";
@@ -136,6 +187,7 @@
 
   var Engine = {
     match: match, scalePlan: scalePlan, summary: summary, costLine: costLine, norm: norm,
+    modesForHop: modesForHop, MODE: MODE,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = Engine;
   root.LL_REGION_ENGINE = Engine;

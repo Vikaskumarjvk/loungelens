@@ -162,6 +162,74 @@ ok("any stop that declares a code uses a 3-letter IATA code", () => {
   });
 });
 
+// ---- transport modes per hop --------------------------------------------
+function ids(modes) { return modes.map((m) => m.id); }
+ok("arrival into the region is fly-first (with train as the overland option)", () => {
+  const r = RE.match("kerala");
+  const m = RE.modesForHop(r.stops[0], { isArrival: true });
+  assert.strictEqual(m[0].id, "fly");
+  assert.ok(ids(m).includes("train"));
+});
+ok("a long road leg (>=5h) suggests train/bus/cab, not fly", () => {
+  const m = RE.modesForHop({ driveHoursFromPrev: 6 });
+  assert.deepStrictEqual(ids(m), ["train", "bus", "cab"]);
+});
+ok("a very long leg (>=8h) puts fly first (saves a day)", () => {
+  const m = RE.modesForHop({ driveHoursFromPrev: 9 });
+  assert.strictEqual(m[0].id, "fly");
+});
+ok("a medium leg (2-5h) suggests bus/cab/train", () => {
+  const m = RE.modesForHop({ driveHoursFromPrev: 3.5 });
+  assert.deepStrictEqual(ids(m), ["bus", "cab", "train"]);
+});
+ok("a short leg (1-2h) suggests cab/bus/scooter", () => {
+  const m = RE.modesForHop({ driveHoursFromPrev: 1.5 });
+  assert.deepStrictEqual(ids(m), ["cab", "bus", "scooter"]);
+});
+ok("a very near / in-town leg (<1h) suggests auto/scooter/local/walk", () => {
+  const m = RE.modesForHop({ driveHoursFromPrev: 0.4 });
+  assert.deepStrictEqual(ids(m), ["auto", "scooter", "local", "walk"]);
+});
+ok("a curated air leg (null drive) is fly-first", () => {
+  const m = RE.modesForHop({ driveHoursFromPrev: null });
+  assert.strictEqual(m[0].id, "fly");
+});
+ok("a curated override wins over the band logic (Sri Lanka Kandy->Ella = the train)", () => {
+  const r = RE.match("sri lanka");
+  const ella = r.stops.find((s) => s.city === "Ella");
+  const m = RE.modesForHop(ella, {});
+  assert.deepStrictEqual(ids(m), ["train"], "the famous hill train overrides bus/cab for this hop");
+});
+ok("Goa North->South override is scooter-first", () => {
+  const r = RE.match("goa");
+  const south = r.stops.find((s) => s.city === "South Goa");
+  const m = RE.modesForHop(south, {});
+  assert.strictEqual(m[0].id, "scooter");
+});
+ok("Andaman inter-island override is ferry", () => {
+  const r = RE.match("andaman");
+  const hav = r.stops.find((s) => s.city === "Havelock Island");
+  assert.deepStrictEqual(ids(RE.modesForHop(hav, {})), ["ferry"]);
+});
+ok("every mode has a label, icon and a search kind", () => {
+  Object.keys(RE.MODE).forEach((k) => {
+    const m = RE.MODE[k];
+    assert.ok(m.label && m.icon && m.search, k + " mode malformed");
+  });
+});
+ok("every curated travel override references a real mode id", () => {
+  Object.keys(DATA.REGIONS).forEach((slug) => {
+    DATA.REGIONS[slug].stops.forEach((s) => {
+      if (Array.isArray(s.travel)) s.travel.forEach((id) => assert.ok(RE.MODE[id], slug + "/" + s.city + " bad travel mode: " + id));
+    });
+  });
+});
+ok("modesForHop always returns at least one mode, never throws on junk", () => {
+  assert.ok(RE.modesForHop({}).length >= 1);
+  assert.ok(RE.modesForHop(null).length >= 1);
+  assert.ok(RE.modesForHop({ driveHoursFromPrev: "abc" }).length >= 1);
+});
+
 // ---- determinism ---------------------------------------------------------
 ok("same (region, nights) -> identical plan", () => {
   const r = RE.match("kerala");

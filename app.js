@@ -1502,6 +1502,23 @@
     let dayCursor = 0;
     const maps = (q) => "https://www.google.com/maps/search/" + encodeURIComponent(q);
     const dir = (a, b) => "https://www.google.com/maps/dir/" + encodeURIComponent(a) + "/" + encodeURIComponent(b);
+    const gsearch = (q) => "https://www.google.com/search?q=" + encodeURIComponent(q);
+    // a REAL live search per transport mode for a specific leg (from -> to).
+    // No fabricated fares/operators — each opens a genuine search the user runs.
+    const modeSearchUrl = (mode, fromCity, toCity) => {
+      switch (mode.search) {
+        case "flights": return "https://www.google.com/travel/flights?q=" + encodeURIComponent("flights from " + fromCity + " to " + toCity);
+        case "trains":  return gsearch("trains from " + fromCity + " to " + toCity);
+        case "buses":   return gsearch("bus from " + fromCity + " to " + toCity);
+        case "ferry":   return gsearch("ferry from " + fromCity + " to " + toCity + " schedule");
+        case "cab":     return dir(fromCity, toCity);
+        case "scooter": return maps("scooter rental in " + fromCity);
+        case "auto":    return dir(fromCity, toCity);
+        case "transit": return dir(fromCity, toCity);
+        case "walk":    return dir(fromCity, toCity);
+        default:        return dir(fromCity, toCity);
+      }
+    };
 
     scaled.stops.forEach((stop, si) => {
       const isLast = si === scaled.stops.length - 1;
@@ -1511,16 +1528,30 @@
       // We pass a dest shaped like the planner expects; code may be undefined for
       // hill/backwater towns — the planner still builds real maps searches by city.
       const dplan = PLANNER ? PLANNER.buildPlan({ code: stop.code, city: stop.city }, span, DESTS) : null;
-      // an arrival marker on the stop's first day (with a real "stays" search)
-      const arriveTitle = si === 0 ? ("Arrive " + stop.city) : ("Travel to " + stop.city);
-      const arriveNote = si === 0
-        ? ("Base yourself here for " + stop.nights + " night" + (stop.nights === 1 ? "" : "s") + ". " + stop.why)
-        : ((stop.driveHoursFromPrev ? ("Roughly " + stop.driveHoursFromPrev + "h from " + scaled.stops[si - 1].city + " by road. ") : "Hop to " + stop.city + ". ") + stop.why);
-      const arriveLink = si === 0 ? maps("places to stay in " + stop.city)
-        : dir(scaled.stops[si - 1].city, stop.city);
-      IT.addItem(t, dayCursor, { time: "09:00", kind: si === 0 ? "hotel" : "cab", title: arriveTitle, note: arriveNote, link: arriveLink }, countAllItemsSeed());
-      // a "find a stay" note for each new base (real search, no fabricated hotel)
-      if (si !== 0) {
+      if (si === 0) {
+        // arrival into the region: how to get here from home (fly-first), then settle
+        const prevCity = from ? (TE && TE.resolvePlace(from, FLIGHTS) ? TE.resolvePlace(from, FLIGHTS).city : from) : "";
+        const modes = REGION ? REGION.modesForHop(stop, { isArrival: true }) : [];
+        if (prevCity && modes.length) {
+          const modeWords = modes.map((m) => m.icon + " " + m.label).join(" · ");
+          IT.addItem(t, dayCursor, { time: "07:00", kind: "flight", title: "Get to " + stop.city + " from " + prevCity, note: "Best by " + modeWords + ". Tap for a real search.", link: modeSearchUrl(modes[0], prevCity, stop.city) }, countAllItemsSeed());
+        }
+        IT.addItem(t, dayCursor, { time: "09:00", kind: "hotel", title: "Arrive " + stop.city, note: "Base yourself here for " + stop.nights + " night" + (stop.nights === 1 ? "" : "s") + ". " + stop.why, link: maps("places to stay in " + stop.city) }, countAllItemsSeed());
+      } else {
+        // a hop between stops: suggest the sensible transport mode(s) for this leg
+        const prevCity = scaled.stops[si - 1].city;
+        const isAir = stop.driveHoursFromPrev == null;
+        const modes = REGION ? REGION.modesForHop(stop, { isAirLeg: isAir }) : [];
+        const timeBit = stop.driveHoursFromPrev ? ("Roughly " + stop.driveHoursFromPrev + "h from " + prevCity + ". ") : ("From " + prevCity + ". ");
+        const modeWords = modes.length ? ("Best by " + modes.map((m) => m.icon + " " + m.label).join(" · ") + ". ") : "";
+        IT.addItem(t, dayCursor, { time: "09:00", kind: "cab", title: "Travel to " + stop.city, note: timeBit + modeWords + stop.why, link: modes.length ? modeSearchUrl(modes[0], prevCity, stop.city) : dir(prevCity, stop.city) }, countAllItemsSeed());
+        // a second tappable option so the user has a real search for the alternate
+        // mode too (e.g. bus link AND cab link), not just the top pick.
+        if (modes.length > 1) {
+          const alt = modes[1];
+          IT.addItem(t, dayCursor, { time: "09:30", kind: "cab", title: alt.icon + " " + alt.label + " to " + stop.city, note: "Alternate way to make this hop — real search, no fake fares.", link: modeSearchUrl(alt, prevCity, stop.city) }, countAllItemsSeed());
+        }
+        // find a stay at the new base (real search, no fabricated hotel)
         IT.addItem(t, dayCursor, { time: "12:00", kind: "hotel", title: "Find a stay in " + stop.city, note: "Search live listings — no fake prices here", link: maps("places to stay in " + stop.city) }, countAllItemsSeed());
       }
       // fill the stop's day slice with the planner's themed slots

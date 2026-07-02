@@ -89,7 +89,7 @@
       ],
       stops: [
         { city: "North Goa", code: "GOI", nights: 3, why: "Baga/Anjuna/Vagator — beaches, flea markets, nightlife", themes: ["beach", "nightlife", "market"] },
-        { city: "South Goa", nights: 2, driveHoursFromPrev: 1.5, why: "Palolem/Colva — quieter sand and slower days to finish", themes: ["beach", "waterfront", "food"] },
+        { city: "South Goa", nights: 2, driveHoursFromPrev: 1.5, travel: ["scooter", "cab", "auto"], why: "Palolem/Colva — quieter sand and slower days to finish", themes: ["beach", "waterfront", "food"] },
       ],
     },
     himachal: {
@@ -136,8 +136,8 @@
       ],
       stops: [
         { city: "Port Blair", code: "IXZ", nights: 1, why: "arrival + Cellular Jail; a light first day, then ferry out", themes: ["oldtown", "waterfront", "food"] },
-        { city: "Havelock Island", nights: 3, driveHoursFromPrev: 2.5, why: "Radhanagar beach + diving — the main event", themes: ["beach", "nature", "waterfront"] },
-        { city: "Neil Island", nights: 2, driveHoursFromPrev: 1, why: "smaller, slower, snorkelling and quiet sand to finish", themes: ["beach", "nature", "waterfront"] },
+        { city: "Havelock Island", nights: 3, driveHoursFromPrev: 2.5, travel: ["ferry"], why: "Radhanagar beach + diving — the main event (ferry from Port Blair)", themes: ["beach", "nature", "waterfront"] },
+        { city: "Neil Island", nights: 2, driveHoursFromPrev: 1, travel: ["ferry"], why: "smaller, slower, snorkelling and quiet sand to finish (short ferry hop)", themes: ["beach", "nature", "waterfront"] },
       ],
     },
     "north-east-india": {
@@ -187,8 +187,8 @@
       ],
       stops: [
         { city: "Bangkok", code: "BKK", nights: 3, why: "temples, markets, river and nightlife — the classic entry", themes: ["temple", "food", "market"] },
-        { city: "Chiang Mai", nights: 3, driveHoursFromPrev: null, why: "old-city temples, night bazaar, hills and elephants (fly up)", themes: ["temple", "oldtown", "nature"] },
-        { city: "Phuket", nights: 3, driveHoursFromPrev: null, why: "islands and beaches to finish (fly down)", themes: ["beach", "waterfront", "nightlife"] },
+        { city: "Chiang Mai", nights: 3, driveHoursFromPrev: null, travel: ["fly", "train"], why: "old-city temples, night bazaar, hills and elephants (cheap flight or overnight train up)", themes: ["temple", "oldtown", "nature"] },
+        { city: "Phuket", nights: 3, driveHoursFromPrev: null, travel: ["fly"], why: "islands and beaches to finish (quick flight down)", themes: ["beach", "waterfront", "nightlife"] },
       ],
     },
     "sri-lanka": {
@@ -204,7 +204,7 @@
       stops: [
         { city: "Colombo", code: "CMB", nights: 1, why: "gentle arrival by the sea before heading inland", themes: ["waterfront", "food", "market"] },
         { city: "Kandy", nights: 2, driveHoursFromPrev: 3.5, why: "the Temple of the Tooth and the hill-country gateway", themes: ["temple", "oldtown", "nature"] },
-        { city: "Ella", nights: 2, driveHoursFromPrev: null, why: "tea hills and viewpoints — take the famous train here", themes: ["hills", "nature", "cafe"] },
+        { city: "Ella", nights: 2, driveHoursFromPrev: 6, travel: ["train"], why: "tea hills and viewpoints — the Kandy-to-Ella train is one of the world's great rides", themes: ["hills", "nature", "cafe"] },
         { city: "Galle", nights: 2, driveHoursFromPrev: 5, why: "the Dutch fort and south-coast beaches to finish", themes: ["oldtown", "beach", "waterfront"] },
       ],
     },
@@ -220,9 +220,9 @@
       ],
       stops: [
         { city: "Hanoi", code: "HAN", nights: 2, why: "old-quarter chaos, lakes and the northern start", themes: ["oldtown", "food", "market"] },
-        { city: "Halong Bay", nights: 1, driveHoursFromPrev: 2.5, why: "the limestone-karst cruise — the postcard", themes: ["waterfront", "nature"] },
-        { city: "Hoi An", nights: 3, driveHoursFromPrev: null, why: "lantern-lit old town, tailors and beaches (fly to Da Nang)", themes: ["oldtown", "beach", "food"] },
-        { city: "Ho Chi Minh City", nights: 3, driveHoursFromPrev: null, why: "Saigon energy + Mekong day trip to finish (fly south)", themes: ["landmark", "food", "market"] },
+        { city: "Halong Bay", nights: 1, driveHoursFromPrev: 2.5, travel: ["bus", "cab"], why: "the limestone-karst cruise — most cruises include the transfer from Hanoi", themes: ["waterfront", "nature"] },
+        { city: "Hoi An", nights: 3, driveHoursFromPrev: null, travel: ["fly"], why: "lantern-lit old town, tailors and beaches (fly to Da Nang, then a short cab)", themes: ["oldtown", "beach", "food"] },
+        { city: "Ho Chi Minh City", nights: 3, driveHoursFromPrev: null, travel: ["fly"], why: "Saigon energy + Mekong day trip to finish (quick flight south)", themes: ["landmark", "food", "market"] },
       ],
     },
     "dubai-uae": {
